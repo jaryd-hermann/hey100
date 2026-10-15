@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Titan+One&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;-webkit-font-smoothing:antialiased}a{color:inherit}a:hover{opacity:.8}*{box-sizing:border-box}::-webkit-scrollbar{display:none}textarea,input{outline:none}@keyframes h100blink{0%,50%{opacity:1}50.01%,100%{opacity:0}}</style>
+</helmet>
+<div style="display:flex;justify-content:center;font-family:'Inter',system-ui,sans-serif">
+<div style="width:414px;height:868px;padding:12px;background:#0b0b0c;border-radius:64px;box-shadow:0 30px 60px rgba(0,0,0,.18),inset 0 0 0 2px #2a2a2d;flex:none">
+<div style="position:relative;width:390px;height:844px;border-radius:52px;overflow:hidden;background:{{ t.bg }};color:{{ t.ink }}">
+
+<div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:122px;height:36px;border-radius:20px;background:#000;z-index:120"></div>
+<div style="position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 34px 0 44px;z-index:110;font-size:16px;font-weight:600;font-family:-apple-system,system-ui,sans-serif;color:{{ t.ink }};background:{{ t.bg }}">
+<span>9:41</span>
+<div style="display:flex;align-items:center;gap:6px;font-size:13px"><span>5G</span><div style="width:25px;height:12px;border:1.5px solid currentColor;border-radius:4px;padding:1.5px;opacity:.9"><div style="width:70%;height:100%;background:currentColor;border-radius:1.5px"></div></div></div>
+</div>
+
+<div ref="{{ scrollRef }}" style="position:absolute;top:54px;left:0;right:0;bottom:{{ contentBottom }};overflow-y:auto;scrollbar-width:none">
+
+<sc-if value="{{ s0 }}" hint-placeholder-val="{{ true }}">
+<div style="height:790px;display:flex;flex-direction:column;padding:0 28px 48px">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px">
+<div style="font:600 15px/1.4 'Inter',sans-serif;color:{{ t.muted }};max-width:290px;text-wrap:pretty">Build is now the easy part. Finding users is what's hard!</div>
+<div style="display:flex;align-items:center;gap:4px;transform:rotate(-3deg);padding:6px 0 26px 6px">
+<svg viewBox="-24 -6 136 140" style="width:62px;height:64px;transform:rotate(-14deg);overflow:visible;flex:none;margin-top:-10px"><path d="M30 124 C 18 110, 12 92, 14 76 L 10 48 C 9 38, 22 36, 24 46 L 28 70 L 26 24 C 25 12, 41 11, 42 23 L 46 64 L 48 12 C 49 0, 65 1, 64 14 L 62 64 L 70 22 C 72 11, 87 14, 84 26 L 76 72 C 84 64, 96 54, 106 58 C 116 62, 112 74, 104 80 L 88 100 C 78 118, 60 128, 44 128 C 38 128, 33 126, 30 124 Z" transform="translate(0,4)" fill="#111" stroke="#111" stroke-width="14" stroke-linejoin="round"></path><path d="M30 124 C 18 110, 12 92, 14 76 L 10 48 C 9 38, 22 36, 24 46 L 28 70 L 26 24 C 25 12, 41 11, 42 23 L 46 64 L 48 12 C 49 0, 65 1, 64 14 L 62 64 L 70 22 C 72 11, 87 14, 84 26 L 76 72 C 84 64, 96 54, 106 58 C 116 62, 112 74, 104 80 L 88 100 C 78 118, 60 128, 44 128 C 38 128, 33 126, 30 124 Z" fill="#fff" stroke="#111" stroke-width="7" stroke-linejoin="round"></path></svg>
+<div style="display:flex;align-items:baseline;font:400 62px/1 'Titan One',sans-serif;color:#fff;text-shadow:7px 0 0 #111,6.5px 2.7px 0 #111,4.9px 4.9px 0 #111,2.7px 6.5px 0 #111,0 7px 0 #111,-2.7px 6.5px 0 #111,-4.9px 4.9px 0 #111,-6.5px 2.7px 0 #111,-7px 0 0 #111,-6.5px -2.7px 0 #111,-4.9px -4.9px 0 #111,-2.7px -6.5px 0 #111,0 -7px 0 #111,2.7px -6.5px 0 #111,4.9px -4.9px 0 #111,6.5px -2.7px 0 #111,0 9px 0 #111,4px 10px 0 #111,-4px 10px 0 #111">
+<span>Hey1</span>
+<span style="position:relative;display:inline-block">00<svg viewBox="0 0 100 34" style="position:absolute;left:2%;top:112%;width:96%;height:21px;overflow:visible"><path d="M6 6 Q50 36 90 8" fill="none" stroke="#111" stroke-width="20" stroke-linecap="round"></path><path d="M6 6 Q50 36 90 8" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"></path></svg></span>
+</div>
+</div>
+<div style="font:600 22px/1.25 'Inter',sans-serif;letter-spacing:-.01em">Find your first 100 users.</div>
+<div style="font-size:16px;line-height:1.5;color:{{ t.muted }};max-width:300px;text-wrap:pretty">It's a match-making app with other developers. Discover, like, chat, get users.</div>
+<div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+<div style="display:flex;gap:14px;align-items:baseline;font-size:15px"><span style="font:700 12px 'JetBrains Mono',monospace;color:{{ t.accentText }};width:22px">01</span><span>Build a page for your app.</span></div>
+<div style="display:flex;gap:14px;align-items:baseline;font-size:15px"><span style="font:700 12px 'JetBrains Mono',monospace;color:{{ t.accentText }};width:22px">02</span><span>Like apps you'd use. Match when they like yours.</span></div>
+<div style="display:flex;gap:14px;align-items:baseline;font-size:15px"><span style="font:700 12px 'JetBrains Mono',monospace;color:{{ t.accentText }};width:22px">03</span><span>Trade: you use theirs, they use yours.</span></div>
+</div>
+</div>
+<button onClick="{{ next }}" style="height:56px;border:none;border-radius:8px;background:{{ t.accent }};color:{{ t.accentInk }};font:600 17px 'Inter',sans-serif;cursor:pointer">Continue</button>
+<div style="text-align:center;font-size:13px;color:{{ t.muted }};margin-top:14px">About 3 minutes. You'll sign in at the end.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ inOnb }}" hint-placeholder-val="{{ false }}">
+<div style="padding:12px 24px 0;display:flex;align-items:center;gap:14px">
+<button onClick="{{ back }}" style="border:none;background:none;color:{{ t.ink }};font-size:24px;cursor:pointer;padding:0;width:24px">‹</button>
+<div style="flex:1;display:grid;grid-template-columns:repeat(6,1fr);gap:5px"><sc-for list="{{ progress }}" as="p" hint-placeholder-count="6"><div style="height:3px;border-radius:2px;background:{{ p.c }}"></div></sc-for></div>
+<span style="font:500 12px 'JetBrains Mono',monospace;color:{{ t.muted }};width:28px;text-align:right">{{ stepLabel }}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 130px;display:flex;flex-direction:column;gap:26px">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font:500 28px/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em">About you</div></div>
+<div style="display:flex;gap:16px;align-items:center">
+<div style="width:76px;height:76px;border-radius:50%;flex:none;background:repeating-linear-gradient(45deg,{{ t.raised }} 0 6px,{{ t.surface }} 6px 12px);border:1px solid {{ t.line }};display:flex;align-items:center;justify-content:center;font:500 9px 'JetBrains Mono',monospace;color:{{ t.muted }}">photo</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<div style="height:46px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }};display:flex;align-items:center;padding:0 14px;font-size:16px;font-weight:500">Jaryd</div>
+<div style="height:46px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }};display:flex;align-items:center;padding:0 14px;font-size:16px;color:{{ t.muted }}">@jaryd</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Your job</div>
+<input value="{{ job }}" onChange="{{ onJob }}" placeholder="e.g. Product designer at a bank" style="height:48px;border-radius:8px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:0 14px;font:15px 'Inter',sans-serif">
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Role and stack</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ roles }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Devices I use</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ devices }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 130px;display:flex;flex-direction:column;gap:26px">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font:500 28px/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em">You, as a user</div></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Age</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;padding:3px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }}"><sc-for list="{{ ages }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;border:none;border-radius:5px;background:{{ c.bg }};color:{{ c.fg }};font:600 13.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Gender</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ genders }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Life right now</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ lifeTags }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Into</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ interests }}" as="c" hint-placeholder-count="10"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 130px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font:500 28px/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em">Add your app</div></div>
+<div style="display:flex;gap:8px">
+<div style="flex:1;min-width:0;height:50px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }};display:flex;align-items:center;padding:0 14px;font:14px 'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">apps.apple.com/app/tidepool/id6471</div>
+<button onClick="{{ fetchApp }}" style="height:50px;padding:0 18px;border:none;border-radius:8px;background:{{ t.accent }};color:{{ t.accentInk }};font:600 15px 'Inter',sans-serif;cursor:pointer">{{ fetchLabel }}</button>
+</div>
+<sc-if value="{{ fetched }}" hint-placeholder-val="{{ false }}">
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:58px;height:58px;border-radius:14px;flex:none;background:oklch(0.68 0.13 220);display:flex;align-items:center;justify-content:center;color:#fff;font:700 24px 'Inter',sans-serif">T</div>
+<div style="display:flex;flex-direction:column;gap:3px;min-width:0"><div style="font:500 17px/1.2 'JetBrains Mono',monospace;letter-spacing:-.02em">Tidepool: Couples Budget</div><div style="font-size:14px;color:{{ t.muted }}">Money dates for two</div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+<div style="aspect-ratio:9/16;border-radius:8px;background:repeating-linear-gradient(135deg,{{ t.raised }} 0 6px,{{ t.bg }} 6px 12px);display:flex;align-items:flex-end;padding:6px;font:9px 'JetBrains Mono',monospace;color:{{ t.muted }}">screen 1</div>
+<div style="aspect-ratio:9/16;border-radius:8px;background:repeating-linear-gradient(135deg,{{ t.raised }} 0 6px,{{ t.bg }} 6px 12px);display:flex;align-items:flex-end;padding:6px;font:9px 'JetBrains Mono',monospace;color:{{ t.muted }}">screen 2</div>
+<div style="aspect-ratio:9/16;border-radius:8px;background:repeating-linear-gradient(135deg,{{ t.raised }} 0 6px,{{ t.bg }} 6px 12px);display:flex;align-items:flex-end;padding:6px;font:9px 'JetBrains Mono',monospace;color:{{ t.muted }}">screen 3</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<span style="font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid {{ t.line }}">Finance</span>
+<span style="font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid {{ t.line }}">iOS</span>
+<span style="font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid {{ t.line }}">Live</span>
+</div>
+</div>
+<div style="font-size:14px;color:{{ t.muted }};margin-top:-8px">You'll customize this soon.</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">App socials</div>
+<sc-for list="{{ socialFields }}" as="s" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:10px;height:48px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }};padding:0 6px 0 14px">
+<span style="width:78px;font-size:14px;font-weight:600;flex:none">{{ s.label }}</span>
+<input value="{{ s.value }}" onChange="{{ s.onChange }}" placeholder="{{ s.ph }}" style="flex:1;min-width:0;height:40px;border:none;background:transparent;color:{{ t.ink }};font:14px 'JetBrains Mono',monospace">
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ notFetched }}" hint-placeholder-val="{{ true }}"><div style="font-size:14px;color:{{ t.muted }};line-height:1.5">Works for iOS, Android, web apps, SaaS, browser extensions and AI tools.</div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 130px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"><div style="font:500 28px/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em">Answer 5 prompts</div></div>
+<div style="display:flex;gap:6px;overflow-x:auto;margin:0 -24px;padding:0 24px;scrollbar-width:none"><sc-for list="{{ promptTags }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:34px;padding:0 13px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14px 'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex:none">{{ c.label }}</button></sc-for></div>
+<div style="font:500 12px 'JetBrains Mono',monospace;color:{{ t.muted }};padding-top:2px">{{ answeredLabel }}</div>
+<sc-for list="{{ promptLib }}" as="p" hint-placeholder-count="5">
+<button onClick="{{ p.onClick }}" style="background:{{ t.surface }};border:1px solid {{ p.bd }};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;text-align:left;color:{{ t.ink }};cursor:pointer;width:100%">
+<div style="display:flex;justify-content:space-between;gap:10px;width:100%"><div style="font:600 11px/1.4 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">{{ p.label }}</div><span style="font:600 13px 'Inter',sans-serif;color:{{ p.actColor }};flex:none">{{ p.action }}</span></div>
+<sc-if value="{{ p.on }}" hint-placeholder-val="{{ true }}"><div style="font:500 16.5px/1.4 'Inter',sans-serif;text-wrap:pretty">{{ p.text }}</div></sc-if>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ s5 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 130px;display:flex;flex-direction:column;gap:26px">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font:500 28px/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em">Your ideal users</div></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Age</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ idealAges }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Gender</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }}"><sc-for list="{{ idealGender }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.onClick }}" style="height:38px;border:none;border-radius:5px;background:{{ c.bg }};color:{{ c.fg }};font:600 14px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Life and interests</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ idealInterests }}" as="c" hint-placeholder-count="8"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">On</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ idealPlat }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="height:1px;background:{{ t.line }}"></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">What you want to hear about</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ fbTypes }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s6 }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:740px;padding:28px 24px 48px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font:500 28px/1.1 'JetBrains Mono',monospace;letter-spacing:-.03em">Save your app page</div></div>
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:52px;height:52px;border-radius:13px;flex:none;background:oklch(0.68 0.13 220);display:flex;align-items:center;justify-content:center;color:#fff;font:700 22px 'Inter',sans-serif">T</div>
+<div style="display:flex;flex-direction:column;gap:3px;min-width:0"><div style="font:500 16px/1.2 'JetBrains Mono',monospace;letter-spacing:-.02em">Tidepool: Couples Budget</div><div style="font-size:13.5px;color:{{ t.muted }}">by Jaryd · iOS · Live</div></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>3 screenshots</div>
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>{{ answeredCount }} prompts answered</div>
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>Ideal users set</div>
+</div>
+</div>
+<div style="flex:1"></div>
+<button onClick="{{ signIn }}" style="height:56px;border:none;border-radius:8px;background:{{ t.ink }};color:{{ t.bg }};font:600 17px 'Inter',sans-serif;cursor:pointer">Continue with Apple</button>
+<div style="text-align:center;font-size:12.5px;color:{{ t.muted }};margin-top:-8px">By continuing you agree to the Terms and Privacy Policy.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabHeader }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px">
+<div style="font:500 20px 'JetBrains Mono',monospace;letter-spacing:-.03em;display:flex;align-items:baseline;white-space:nowrap"><span style="font-weight:800">Hey100</span><span style="color:{{ t.muted }};margin:0 .55ch;font-weight:400">%</span><span style="font-weight:400">{{ pageTitle }}</span>{{ cursor }}</div>
+<sc-if value="{{ isApps }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:8px;align-items:center">
+<button onClick="{{ goSettings }}" style="width:36px;height:36px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};font-size:16px;cursor:pointer">⚙</button>
+<button onClick="{{ goMe }}" style="width:36px;height:36px;border-radius:50%;border:1.5px solid {{ t.ink }};background:repeating-linear-gradient(45deg,{{ t.raised }} 0 4px,{{ t.surface }} 4px 8px);color:{{ t.ink }};font:700 13px 'Inter',sans-serif;cursor:pointer">J</button>
+</div>
+</sc-if>
+<sc-if value="{{ isInbox }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;z-index:40">
+<button onClick="{{ toggleAppMenu }}" style="height:38px;padding:0 10px 0 4px;border-radius:8px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};display:flex;align-items:center;gap:7px;cursor:pointer"><span style="width:30px;height:30px;border-radius:7px;background:{{ inboxApp.icon }};color:#fff;font:700 13px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center">{{ inboxApp.initial }}</span><span style="font-size:10px;color:{{ t.muted }}">▼</span></button>
+<sc-if value="{{ appMenuOpen }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:0;top:44px;width:220px;background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;box-shadow:{{ t.shadow }};padding:6px;display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ appMenu }}" as="a" hint-placeholder-count="2"><button onClick="{{ a.onClick }}" style="display:flex;gap:10px;align-items:center;padding:8px;border:none;border-radius:6px;background:{{ a.bg }};color:{{ t.ink }};text-align:left;cursor:pointer;font:500 14.5px 'Inter',sans-serif"><span style="width:28px;height:28px;border-radius:7px;background:{{ a.icon }};color:#fff;font:700 12px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;flex:none">{{ a.initial }}</span><span style="flex:1">{{ a.short }}</span><span style="color:{{ t.accentText }};font-weight:700">{{ a.check }}</span></button></sc-for>
+</div></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ hasHeaderRight }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:{{ t.muted }};font-weight:500">{{ headerRight }}</span></sc-if>
+</div>
+</sc-if>
+
+
+<sc-if value="{{ isAppView }}" hint-placeholder-val="{{ false }}">
+<div style="padding:6px 16px 0;display:flex;align-items:center;gap:10px">
+<button onClick="{{ goLikes }}" style="border:none;background:none;color:{{ t.ink }};font:500 16px 'Inter',sans-serif;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px"><span style="font-size:26px;line-height:1">‹</span>Likes</button>
+</div>
+<div style="padding:12px 14px 4px">
+<div style="background:{{ t.soft }};border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.accentText }}">{{ viewLike.builderFirst }} liked {{ viewLike.viaShort }}'s {{ viewLike.target }}</div>
+<div style="font:500 16px/1.4 'Inter',sans-serif;text-wrap:pretty">{{ viewLike.comment }}</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMyApp }}" hint-placeholder-val="{{ false }}">
+<div style="padding:6px 16px 0;display:flex;align-items:center;gap:10px">
+<sc-if value="{{ notSetup }}" hint-placeholder-val="{{ true }}"><button onClick="{{ goApps }}" style="border:none;background:none;color:{{ t.ink }};font:500 16px 'Inter',sans-serif;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px"><span style="font-size:26px;line-height:1">‹</span>Apps</button></sc-if>
+<div style="flex:1"></div>
+<button onClick="{{ toggleEdit }}" style="height:34px;padding:0 14px;border-radius:6px;border:1px solid {{ editBd }};background:{{ editBg }};color:{{ editFg }};font:600 13.5px 'Inter',sans-serif;cursor:pointer">{{ editLabel }}</button>
+</div>
+<div style="padding:14px 14px 4px;display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ notEditing }}" hint-placeholder-val="{{ true }}">
+<div style="background:{{ t.soft }};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ setup }}" hint-placeholder-val="{{ false }}"><div style="font:500 22px/1.15 'JetBrains Mono',monospace;letter-spacing:-.03em">Your listing is live.</div></sc-if>
+<div style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0;font:500 14px 'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ myUrl }}</span><button onClick="{{ shareListing }}" style="height:36px;padding:0 16px;border-radius:6px;border:none;background:{{ t.accent }};color:{{ t.accentInk }};font:600 14px 'Inter',sans-serif;cursor:pointer;flex:none">{{ shareLabel }}</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}"><div style="font-size:13.5px;color:{{ t.muted }};padding:0 4px;line-height:1.45">Move sections up or down. The header always stays on top.</div></sc-if>
+<sc-if value="{{ notEditing }}" hint-placeholder-val="{{ true }}">
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:6px 16px">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 6px"><span style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Verify</span><span style="font:500 12px 'JetBrains Mono',monospace;color:{{ t.muted }}">{{ connCount }}/4 connected</span></div>
+<sc-for list="{{ conns }}" as="c" hint-placeholder-count="4">
+<div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid {{ t.line }}">
+<div style="width:34px;height:34px;border-radius:8px;flex:none;background:{{ t.raised }};display:flex;align-items:center;justify-content:center;font:700 14px 'JetBrains Mono',monospace">{{ c.letter }}</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+<span style="font-size:15px;font-weight:600">{{ c.name }}</span>
+<span style="font-size:13px;color:{{ c.subColor }}">{{ c.sub }}</span>
+<sc-if value="{{ c.hasDetail }}" hint-placeholder-val="{{ false }}"><span style="font:12px 'JetBrains Mono',monospace;color:{{ t.muted }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.detail }}</span></sc-if>
+</div>
+<button onClick="{{ c.onClick }}" style="height:32px;padding:0 12px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:600 13px 'Inter',sans-serif;cursor:pointer;flex:none">{{ c.btn }}</button>
+</div>
+</sc-for>
+</div>
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:6px 16px">
+<div style="padding:10px 0 6px;font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Badges for your site</div>
+<sc-for list="{{ siteBadges }}" as="sb" hint-placeholder-count="3">
+<div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid {{ t.line }}">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px;border-radius:6px;background:#0e100f;color:#e8ece7;border:1px solid {{ sb.edge }};font:600 11.5px 'JetBrains Mono',monospace;opacity:{{ sb.op }};white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.87 0.18 128)"></span><span>{{ sb.text }}</span></span><sc-if value="{{ sb.locked }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:{{ t.muted }}">{{ sb.hint }}</span></sc-if></div>
+<button onClick="{{ sb.onCopy }}" style="height:32px;padding:0 12px;border-radius:6px;border:1px solid {{ t.line }};background:transparent;color:{{ sb.btnColor }};font:600 13px 'Inter',sans-serif;cursor:pointer;flex:none">{{ sb.btn }}</button>
+</div>
+</sc-for>
+</div>
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }};padding:10px 4px 0">How builders see your page</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isWeb }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;top:0;z-index:6;background:{{ t.bg }};padding:6px 12px 10px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px">
+<button onClick="{{ closeWeb }}" style="border:none;background:none;color:{{ t.accentText }};font:600 15px 'Inter',sans-serif;cursor:pointer;padding:0 4px">Done</button>
+<div style="flex:1;height:36px;border-radius:10px;background:{{ t.raised }};display:flex;align-items:center;justify-content:center;gap:6px;font:500 14px -apple-system,system-ui,sans-serif"><span style="font-size:11px;color:{{ t.muted }}">🔒</span>{{ webUrl }}</div>
+</div>
+<div onClick="{{ openSignup }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:{{ t.surface }};border:1px solid {{ t.line }};cursor:pointer">
+<div style="width:34px;height:34px;border-radius:8px;background:oklch(0.87 0.18 128);flex:none;display:flex;align-items:center;justify-content:center;font:400 13px 'Titan One',sans-serif;color:#111">00</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:700">Hey100</span><span style="font-size:12px;color:{{ t.muted }}">Find your first 100 users</span></div>
+<span style="height:30px;padding:0 12px;border-radius:15px;background:{{ t.accent }};color:{{ t.accentInk }};font:700 13px/30px 'Inter',sans-serif">Get</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ showPage }}" hint-placeholder-val="{{ false }}">
+<div onClickCapture="{{ pageClick }}" style="padding:0 14px {{ pagePad }};display:flex;flex-direction:column;gap:12px">
+<div style="padding:10px 6px 4px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:64px;height:64px;border-radius:15px;flex:none;background:{{ page.icon }};display:flex;align-items:center;justify-content:center;color:#fff;font:700 28px 'Inter',sans-serif">{{ page.initial }}</div>
+<div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+<div style="font:500 20px/1.2 'JetBrains Mono',monospace;letter-spacing:-.03em;text-wrap:pretty">{{ page.name }}</div>
+<div style="font-size:15px;line-height:1.35;color:{{ t.muted }}">{{ page.sub }}</div>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ page.chips }}" as="c" hint-placeholder-count="3"><span style="font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid {{ t.line }}">{{ c }}</span></sc-for></div>
+<sc-if value="{{ page.hasLinks }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ page.links }}" as="lk" hint-placeholder-count="2"><span style="display:flex;gap:6px;align-items:center;font-size:13px;padding:5px 10px;border-radius:6px;background:{{ t.raised }}"><b style="font:600 11px 'JetBrains Mono',monospace">{{ lk.k }}</b><span>{{ lk.v }}</span></span></sc-for></div></sc-if>
+<sc-if value="{{ page.hasFit }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:{{ t.muted }};display:flex;gap:8px;align-items:center"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.accentText }};flex:none"></span><span>{{ page.fit }}</span></div></sc-if>
+</div>
+<sc-for list="{{ page.blocks }}" as="b" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:6px">
+<sc-if value="{{ b.editing }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:6px;padding:0 4px">
+<span style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }};flex:1">{{ b.pos }} · {{ b.typeLabel }}</span>
+<button onClick="{{ b.onUp }}" style="width:34px;height:30px;border-radius:6px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ b.upColor }};font-size:14px;cursor:pointer">↑</button>
+<button onClick="{{ b.onDown }}" style="width:34px;height:30px;border-radius:6px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ b.downColor }};font-size:14px;cursor:pointer">↓</button>
+</div>
+</sc-if>
+<sc-if value="{{ b.isMedia }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;aspect-ratio:4/4.4;border-radius:10px;overflow:hidden;background:repeating-linear-gradient(135deg,{{ t.raised }} 0 8px,{{ t.surface }} 8px 16px);border:1px solid {{ b.bd }}">
+<div style="position:absolute;left:12px;top:12px;font:500 11px 'JetBrains Mono',monospace;color:{{ t.muted }};background:{{ t.bg }};padding:4px 8px;border-radius:5px">{{ b.media }}</div>
+<sc-if value="{{ b.canLike }}" hint-placeholder-val="{{ false }}"><button onClick="{{ b.onLike }}" style="position:absolute;right:12px;bottom:12px;width:50px;height:50px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.bg }};color:{{ t.accentText }};font-size:21px;cursor:pointer">♥</button></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ b.isPrompt }}" hint-placeholder-val="{{ true }}">
+<div style="position:relative;background:{{ t.surface }};border:1px solid {{ b.bd }};border-radius:10px;padding:20px 20px {{ b.padB }};display:flex;flex-direction:column;gap:12px">
+<div style="font:600 11px/1.4 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">{{ b.label }}</div>
+<div style="font:500 20px/1.38 'Inter',sans-serif;letter-spacing:-.01em;text-wrap:pretty">{{ b.text }}</div>
+<sc-if value="{{ b.canLike }}" hint-placeholder-val="{{ false }}"><button onClick="{{ b.onLike }}" style="position:absolute;right:12px;bottom:12px;width:46px;height:46px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.bg }};color:{{ t.accentText }};font-size:19px;cursor:pointer">♥</button></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ b.isBuilder }}" hint-placeholder-val="{{ false }}">
+<div style="background:{{ t.surface }};border:1px solid {{ b.bd }};border-radius:10px;padding:16px 18px;display:flex;gap:14px;align-items:center">
+<div style="width:48px;height:48px;border-radius:50%;flex:none;background:repeating-linear-gradient(45deg,{{ t.raised }} 0 5px,{{ t.bg }} 5px 10px);border:1px solid {{ t.line }}"></div>
+<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font-size:16px;font-weight:700">{{ b.builder }}</div><div style="font-size:13.5px;color:{{ t.muted }}">{{ b.role }}</div><div style="font-size:13px;color:{{ t.muted }}">{{ b.style }}</div></div>
+</div>
+</sc-if>
+<sc-if value="{{ b.isLooking }}" hint-placeholder-val="{{ false }}">
+<div style="background:{{ t.surface }};border:1px solid {{ b.bd }};border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Ideal users</div>
+<div style="display:grid;grid-template-columns:84px 1fr;row-gap:10px;font-size:14.5px;line-height:1.35">
+<span style="color:{{ t.muted }}">Age</span><span style="font-weight:500">{{ b.ideal.age }}</span>
+<span style="color:{{ t.muted }}">Gender</span><span style="font-weight:500">{{ b.ideal.gender }}</span>
+<span style="color:{{ t.muted }}">Into</span><span style="font-weight:500">{{ b.ideal.interests }}</span>
+<span style="color:{{ t.muted }}">On</span><span style="font-weight:500">{{ b.ideal.plat }}</span>
+<span style="color:{{ t.muted }}">Wants</span><span style="font-weight:500">Feedback on {{ b.ideal.wants }}</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ b.isStats }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border:1px solid {{ b.bd }};border-radius:10px;background:{{ t.surface }}">
+<div style="padding:10px 12px;display:flex;flex-direction:column;gap:3px"><span style="font:600 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Likes</span><span style="font:600 16px 'JetBrains Mono',monospace;letter-spacing:-.02em">{{ b.likes }}</span></div>
+<div style="padding:10px 12px;display:flex;flex-direction:column;gap:3px;border-left:1px solid {{ t.line }}"><span style="font:600 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Trades</span><span style="font:600 16px 'JetBrains Mono',monospace;letter-spacing:-.02em">{{ b.trades }}</span></div>
+<div style="padding:10px 12px;display:flex;flex-direction:column;gap:3px;border-left:1px solid {{ t.line }}"><span style="font:600 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Replies</span><span style="font:600 16px 'JetBrains Mono',monospace;letter-spacing:-.02em">{{ b.reply }}</span></div>
+</div>
+</sc-if>
+<sc-if value="{{ b.isVerified }}" hint-placeholder-val="{{ false }}">
+<div style="background:{{ t.surface }};border:1px solid {{ b.bd }};border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Verified</div>
+<sc-for list="{{ b.badges }}" as="bd" hint-placeholder-count="2"><div style="display:flex;gap:10px;align-items:flex-start;font-size:14.5px;line-height:1.35"><span style="width:20px;height:20px;border-radius:50%;background:{{ t.soft }};color:{{ t.accentText }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none">✓</span><span>{{ bd }}</span></div></sc-for>
+<sc-if value="{{ b.noBadges }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:{{ t.muted }}">Nothing verified yet. Connect a source above.</div></sc-if>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isLikes }}" hint-placeholder-val="{{ false }}">
+<div style="padding:4px 20px 30px;display:flex;flex-direction:column;gap:14px">
+<sc-for list="{{ likes }}" as="l" hint-placeholder-count="3">
+<div onClick="{{ l.onOpen }}" style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;cursor:pointer">
+<div style="display:flex;gap:12px;align-items:center">
+<div style="width:46px;height:46px;border-radius:12px;flex:none;background:{{ l.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 20px 'Inter',sans-serif">{{ l.initial }}</div>
+<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font:500 14.5px/1.25 'JetBrains Mono',monospace;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.name }}</div><div style="font-size:13px;color:{{ t.muted }}">{{ l.builder }} · {{ l.cat }}</div></div>
+<span style="font-size:20px;color:{{ t.muted }}">›</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:8px;background:{{ t.bg }}">
+<div style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:{{ t.muted }}"><span style="width:18px;height:18px;border-radius:5px;background:{{ l.viaIcon }};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ l.viaInitial }}</span><span>Liked {{ l.viaShort }}'s {{ l.target }}</span></div>
+<div style="font:500 15.5px/1.4 'Inter',sans-serif;text-wrap:pretty">{{ l.comment }}</div>
+</div>
+<sc-if value="{{ l.open }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:8px">
+<button onClick="{{ l.onPass }}" style="height:44px;border-radius:8px;border:1px solid {{ t.line }};background:transparent;color:{{ t.ink }};font:600 15px 'Inter',sans-serif;cursor:pointer">Pass</button>
+<button onClick="{{ l.onLike }}" style="height:44px;border-radius:8px;border:none;background:{{ t.accent }};color:{{ t.accentInk }};font:600 15px 'Inter',sans-serif;cursor:pointer">Like back</button>
+</div>
+</sc-if>
+<sc-if value="{{ l.matched }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;font-weight:600;color:{{ t.accentText }}">Matched. Say hi in Matches.</div></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMatches }}" hint-placeholder-val="{{ false }}">
+<div style="padding:4px 20px 30px;display:flex;flex-direction:column">
+<sc-for list="{{ matches }}" as="m" hint-placeholder-count="3">
+<button onClick="{{ m.onOpen }}" style="display:flex;gap:14px;align-items:center;padding:14px 0;border:none;border-bottom:1px solid {{ t.line }};background:none;color:{{ t.ink }};text-align:left;font-family:'Inter',sans-serif;cursor:pointer;width:100%">
+<div style="position:relative;width:56px;height:56px;flex:none">
+<div style="width:50px;height:50px;border-radius:13px;background:{{ m.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 21px 'Inter',sans-serif">{{ m.initial }}</div>
+<div style="position:absolute;right:0;bottom:0;width:24px;height:24px;border-radius:7px;border:2px solid {{ t.bg }};background:{{ m.viaIcon }};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ m.viaInitial }}</div>
+</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+<div style="display:flex;justify-content:space-between;gap:8px"><span style="font:500 15px 'JetBrains Mono',monospace;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.short }}</span><span style="font-size:12.5px;color:{{ t.muted }};flex:none">{{ m.time }}</span></div>
+<div style="font-size:14px;color:{{ t.muted }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.last }}</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:3px"><span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:5px;background:{{ m.chipBg }};color:{{ m.chipFg }}">{{ m.chip }}</span><span style="font-size:12px;color:{{ t.muted }}">via {{ m.viaShort }}</span></div>
+</div>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;top:0;z-index:5;background:{{ t.bg }};padding:6px 16px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid {{ t.line }}">
+<div style="display:flex;align-items:center;gap:12px">
+<button onClick="{{ goMatches }}" style="border:none;background:none;color:{{ t.ink }};font-size:28px;cursor:pointer;padding:0 4px 0 0;line-height:1">‹</button>
+<div style="width:38px;height:38px;border-radius:10px;background:{{ chat.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 17px 'Inter',sans-serif">{{ chat.initial }}</div>
+<div style="flex:1;display:flex;flex-direction:column;min-width:0"><span style="font:500 15px 'JetBrains Mono',monospace;letter-spacing:-.02em">{{ chat.short }}</span><span style="font-size:12.5px;color:{{ t.muted }}">{{ chat.builder }}</span></div>
+<span style="font-size:20px;color:{{ t.muted }}">···</span>
+</div>
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Trade</span><span style="font:12px 'JetBrains Mono',monospace;color:{{ t.muted }}">code {{ chat.code }}</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<div style="display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:8px;background:{{ t.bg }}"><span style="font-size:12px;color:{{ t.muted }}">You use {{ chat.short }}</span><span style="font-size:14px;font-weight:700;color:{{ chat.mineColor }}">{{ chat.mine }}</span></div>
+<div style="display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:8px;background:{{ t.bg }}"><span style="font-size:12px;color:{{ t.muted }}">They use {{ chat.viaShort }}</span><span style="font-size:14px;font-weight:700;color:{{ chat.theirsColor }}">{{ chat.theirs }}</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button style="height:40px;border-radius:8px;border:1px solid {{ t.line }};background:transparent;color:{{ t.ink }};font:600 14px 'Inter',sans-serif;cursor:pointer">Open TestFlight</button>
+<button onClick="{{ goFeedback }}" style="height:40px;border-radius:8px;border:none;background:{{ t.accent }};color:{{ t.accentInk }};font:600 14px 'Inter',sans-serif;cursor:pointer">{{ fbBtnLabel }}</button>
+</div>
+</div>
+</div>
+<div style="padding:18px 16px 100px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ chat.msgs }}" as="m" hint-placeholder-count="3">
+<sc-if value="{{ m.isSys }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;font:12px 'JetBrains Mono',monospace;color:{{ t.muted }};padding:4px 20px 8px">{{ m.text }}</div></sc-if>
+<sc-if value="{{ m.isText }}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:{{ m.justify }}"><div style="max-width:78%;padding:10px 14px;border-radius:10px;background:{{ m.bg }};color:{{ m.fg }};font-size:15px;line-height:1.4;border:{{ m.bd }}">{{ m.text }}</div></div></sc-if>
+<sc-if value="{{ m.isFb }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:{{ m.justify }}"><div style="width:80%;padding:14px;border-radius:10px;background:{{ t.surface }};border:1.5px solid {{ t.accentText }};display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between"><span style="font:700 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.accentText }}">Feedback</span><span style="font:600 13px 'JetBrains Mono',monospace">{{ m.stars }}</span></div>
+<div style="font:500 15.5px/1.4 'Inter',sans-serif">{{ m.text }}</div>
+<div style="font-size:13px;color:{{ t.muted }}">{{ m.meta }}</div>
+</div></div></sc-if>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFeedback }}" hint-placeholder-val="{{ false }}">
+<div style="padding:8px 20px 130px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;justify-content:space-between;align-items:center"><button onClick="{{ goChat }}" style="border:none;background:none;color:{{ t.ink }};font:500 16px 'Inter',sans-serif;cursor:pointer;padding:0">Cancel</button><span style="font:12px 'JetBrains Mono',monospace;color:{{ t.muted }}">~3 min</span></div>
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font:500 26px/1.15 'JetBrains Mono',monospace;letter-spacing:-.03em">Feedback for {{ chat.shortName }}</div></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">First impression</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px"><sc-for list="{{ ratings }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:48px;border-radius:8px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:700 16px 'JetBrains Mono',monospace;cursor:pointer">{{ c.label }}</button></sc-for></div>
+<textarea style="height:72px;resize:none;border-radius:8px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 'Inter',sans-serif">Feels like a real tool, not a toy. Took me a minute to find where to start.</textarea>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Would you keep using it?</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }}"><sc-for list="{{ keeps }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.onClick }}" style="height:40px;border:none;border-radius:5px;background:{{ c.bg }};color:{{ c.fg }};font:600 15px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Biggest confusion</div>
+<textarea style="height:64px;resize:none;border-radius:8px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 'Inter',sans-serif">The plus button did something different than I expected.</textarea>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Best moment</div>
+<textarea style="height:64px;resize:none;border-radius:8px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 'Inter',sans-serif">The first screen after sign-up. Clear and quick.</textarea>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Found a bug?</div>
+<div style="height:56px;border-radius:8px;border:1.5px dashed {{ t.line }};display:flex;align-items:center;justify-content:center;font-size:15px;color:{{ t.muted }}">+ Add screenshot</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Would you pay? What feels right?</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ prices }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 14px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 14.5px 'Inter',sans-serif;cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isInbox }}" hint-placeholder-val="{{ false }}">
+<div style="padding:4px 20px 30px;display:flex;flex-direction:column;gap:14px">
+<div style="font:12px 'JetBrains Mono',monospace;color:{{ t.muted }}">{{ inboxApp.short }} · last 30 days</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid {{ t.line }};border-radius:10px;background:{{ t.surface }}">
+<sc-for list="{{ funnel }}" as="f" hint-placeholder-count="4">
+<div style="padding:14px 16px;display:flex;flex-direction:column;gap:4px;border-left:{{ f.bl }};border-top:{{ f.bt }}"><span style="font:600 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">{{ f.label }}</span><span style="font:600 26px 'JetBrains Mono',monospace;letter-spacing:-.04em;color:{{ f.color }}">{{ f.value }}</span><span style="font-size:12px;color:{{ t.muted }}">{{ f.note }}</span></div>
+</sc-for>
+</div>
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:16px">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 22px 'JetBrains Mono',monospace;letter-spacing:-.03em">{{ ib.responses }}</span><span style="font-size:12px;color:{{ t.muted }}">responses</span></div>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 22px 'JetBrains Mono',monospace;letter-spacing:-.03em">{{ ib.impression }}</span><span style="font-size:12px;color:{{ t.muted }}">first impression</span></div>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 22px 'JetBrains Mono',monospace;letter-spacing:-.03em">{{ ib.price }}</span><span style="font-size:12px;color:{{ t.muted }}">fair price</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:13px;color:{{ t.muted }}">Would keep using it</div>
+<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px"><div style="width:{{ ib.yes }};background:{{ t.accent }}"></div><div style="width:{{ ib.maybe }};background:{{ t.mid }}"></div><div style="width:{{ ib.no }};background:{{ t.line }}"></div></div>
+<div style="display:flex;gap:14px;font-size:12.5px"><span><b>{{ ib.yes }}</b> yes</span><span><b>{{ ib.maybe }}</b> maybe</span><span><b>{{ ib.no }}</b> no</span></div>
+</div>
+</div>
+<sc-for list="{{ inbox }}" as="f" hint-placeholder-count="3">
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:10px;align-items:center"><div style="width:32px;height:32px;border-radius:9px;background:{{ f.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px 'Inter',sans-serif">{{ f.initial }}</div><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:14.5px;font-weight:700">{{ f.who }}</span><span style="font-size:12.5px;color:{{ t.muted }}">{{ f.app }} · {{ f.when }}</span></div><span style="font:600 13px 'JetBrains Mono',monospace">{{ f.stars }}</span></div>
+<div style="font:500 15.5px/1.4 'Inter',sans-serif;text-wrap:pretty">{{ f.text }}</div>
+<div style="display:grid;grid-template-columns:96px 1fr;row-gap:6px;font-size:13.5px"><span style="color:{{ t.muted }}">Confusion</span><span>{{ f.conf }}</span><span style="color:{{ t.muted }}">Keep using</span><span>{{ f.keep }}</span></div>
+<div style="display:flex;gap:8px;align-items:center;border-top:1px solid {{ t.line }};padding-top:12px"><span style="font-size:13px;color:{{ t.muted }};flex:1">Was this helpful?</span>
+<button onClick="{{ f.onYes }}" style="height:32px;padding:0 12px;border-radius:6px;border:1px solid {{ f.yesBd }};background:{{ f.yesBg }};color:{{ f.yesFg }};font:600 13px 'Inter',sans-serif;cursor:pointer">Helpful</button>
+<button onClick="{{ f.onNo }}" style="height:32px;padding:0 12px;border-radius:6px;border:1px solid {{ f.noBd }};background:{{ f.noBg }};color:{{ f.noFg }};font:600 13px 'Inter',sans-serif;cursor:pointer">Not really</button></div>
+<sc-if value="{{ f.showTesti }}" hint-placeholder-val="{{ false }}"><button onClick="{{ f.onTesti }}" style="height:40px;border-radius:8px;border:1px dashed {{ t.accentText }};background:{{ t.soft }};color:{{ t.ink }};font:600 14px 'Inter',sans-serif;cursor:pointer">{{ f.testiLabel }}</button></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isApps }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 30px;display:flex;flex-direction:column;gap:14px">
+<sc-for list="{{ myApps }}" as="a" hint-placeholder-count="2">
+<button onClick="{{ a.onOpen }}" style="background:{{ t.surface }};border:1px solid {{ a.bd }};border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px;text-align:left;color:{{ t.ink }};font-family:'Inter',sans-serif;cursor:pointer;width:100%">
+<div style="display:flex;gap:14px;align-items:center;width:100%">
+<div style="width:56px;height:56px;border-radius:14px;flex:none;background:{{ a.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 24px 'Inter',sans-serif">{{ a.initial }}</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font:500 16px/1.25 'JetBrains Mono',monospace;letter-spacing:-.02em">{{ a.name }}</span><span style="font-size:13.5px;color:{{ t.muted }}">{{ a.status }}</span></div>
+<span style="font-size:20px;color:{{ t.muted }}">›</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);width:100%;border-top:1px solid {{ t.line }};padding-top:14px">
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Views</span><span style="font:600 17px 'JetBrains Mono',monospace">{{ a.views }}</span></div>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Likes</span><span style="font:600 17px 'JetBrains Mono',monospace">{{ a.likes }}</span></div>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font:600 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Matches</span><span style="font:600 17px 'JetBrains Mono',monospace">{{ a.matches }}</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;width:100%">
+<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:{{ t.muted }}">Verification</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">{{ a.connCount }}/4</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px"><sc-for list="{{ a.connBars }}" as="cb" hint-placeholder-count="4"><div style="height:4px;border-radius:2px;background:{{ cb }}"></div></sc-for></div>
+</div>
+</button>
+</sc-for>
+<div style="height:54px;border-radius:10px;border:1.5px dashed {{ t.line }};display:flex;align-items:center;justify-content:center;font-size:15px;color:{{ t.muted }}">+ List another app</div>
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }};padding-top:10px">Milestones</div>
+<sc-for list="{{ milestones }}" as="ms" hint-placeholder-count="3">
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:14px 16px;display:flex;gap:14px;align-items:center">
+<div style="width:46px;height:46px;border-radius:8px;flex:none;background:{{ t.soft }};color:{{ t.accentText }};font:700 14px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;letter-spacing:-.03em">{{ ms.badge }}</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600;line-height:1.3">{{ ms.title }}</span><span style="font-size:13px;color:{{ t.muted }}">{{ ms.sub }}</span></div>
+<button onClick="{{ ms.onShare }}" style="height:32px;padding:0 12px;border-radius:6px;border:1px solid {{ t.line }};background:transparent;color:{{ t.ink }};font:600 13px 'Inter',sans-serif;cursor:pointer;flex:none">Share</button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMe }}" hint-placeholder-val="{{ false }}">
+<div style="padding:6px 20px 30px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<button onClick="{{ goApps }}" style="border:none;background:none;color:{{ t.ink }};font:500 16px 'Inter',sans-serif;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px"><span style="font-size:26px;line-height:1">‹</span>Apps</button>
+<div style="display:flex;gap:8px"><span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid {{ t.line }};display:flex;align-items:center;font-size:14px;font-weight:600">Edit</span><button onClick="{{ goSettings }}" style="width:36px;height:36px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};font-size:16px;cursor:pointer">⚙</button></div>
+</div>
+<div style="display:flex;gap:16px;align-items:center">
+<div style="width:84px;height:84px;border-radius:50%;flex:none;background:repeating-linear-gradient(45deg,{{ t.raised }} 0 6px,{{ t.surface }} 6px 12px);border:1px solid {{ t.line }};display:flex;align-items:center;justify-content:center;font:500 9px 'JetBrains Mono',monospace;color:{{ t.muted }}">photo</div>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font:500 26px/1 'JetBrains Mono',monospace;letter-spacing:-.03em">Jaryd</div><div style="font-size:14px;color:{{ t.muted }}">@jaryd · hey100.com/jaryd</div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border:1px solid {{ t.line }};border-radius:10px;background:{{ t.surface }};padding:14px 0">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="font:600 20px 'JetBrains Mono',monospace">18</span><span style="font-size:12px;color:{{ t.muted }}">feedback given</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px;border-left:1px solid {{ t.line }};border-right:1px solid {{ t.line }}"><span style="font:600 20px 'JetBrains Mono',monospace">94%</span><span style="font-size:12px;color:{{ t.muted }}">reply rate</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="font:600 20px 'JetBrains Mono',monospace">4.7</span><span style="font-size:12px;color:{{ t.muted }}">rated by matches</span></div>
+</div>
+<div style="background:{{ t.soft }};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.accentText }}">Invite builders</span><span style="font:500 12px 'JetBrains Mono',monospace">{{ refCount }}</span></div>
+<div style="font-size:15px;line-height:1.4">You both get +3 matches when they publish a listing.</div>
+<div style="display:flex;gap:10px;align-items:center"><span style="flex:1;font:500 14px 'JetBrains Mono',monospace">hey100.com/i/jaryd</span><button onClick="{{ shareInvite }}" style="height:36px;padding:0 14px;border-radius:6px;border:none;background:{{ t.accent }};color:{{ t.accentInk }};font:600 14px 'Inter',sans-serif;cursor:pointer">Share invite</button></div>
+<div style="font-size:12.5px;color:{{ t.muted }}">{{ refEarned }}</div>
+</div>
+<sc-for list="{{ profileRows }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">{{ r.label }}</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ r.tags }}" as="tg" hint-placeholder-count="3"><span style="font-size:14px;padding:6px 12px;border-radius:6px;border:1px solid {{ t.line }};background:{{ t.surface }}">{{ tg }}</span></sc-for></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+<div style="padding:6px 20px 30px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:10px"><button onClick="{{ settingsBack }}" style="border:none;background:none;color:{{ t.ink }};font-size:26px;cursor:pointer;padding:0;line-height:1">‹</button><span style="font:500 20px 'JetBrains Mono',monospace;letter-spacing:-.03em">Settings</span></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">Appearance</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><sc-for list="{{ modes }}" as="c" hint-placeholder-count="3">
+<button onClick="{{ c.onClick }}" style="display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:10px;border:1.5px solid {{ c.bd }};background:{{ t.surface }};color:{{ t.ink }};cursor:pointer;font:600 13.5px 'Inter',sans-serif">
+<div style="height:64px;border-radius:6px;background:{{ c.preview }};border:1px solid {{ t.line }};display:flex;flex-direction:column;gap:5px;padding:8px"><div style="height:5px;width:60%;border-radius:2px;background:{{ c.bar }}"></div><div style="height:5px;width:40%;border-radius:2px;background:oklch(0.87 0.18 128)"></div></div>
+<span>{{ c.label }}</span>
+</button>
+</sc-for></div>
+</div>
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:0 16px">
+<sc-for list="{{ settingsRows }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:15px 0;border-top:{{ r.bt }};font-size:15px"><span>{{ r.label }}</span><span style="color:{{ t.muted }};font-size:14px">{{ r.value }} ›</span></div>
+</sc-for>
+</div>
+<div style="text-align:center;font-size:15px;font-weight:600;color:oklch(0.62 0.19 25)">Sign out</div>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;padding:10px 14px 34px;background:{{ t.bg }};border-top:1px solid {{ t.line }};display:flex;gap:8px;z-index:20">
+<input value="{{ draft }}" onChange="{{ onDraft }}" placeholder="Message" style="flex:1;min-width:0;height:44px;border-radius:8px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:0 14px;font:15px 'Inter',sans-serif">
+<button onClick="{{ sendMsg }}" style="height:44px;padding:0 16px;border-radius:8px;border:none;background:{{ t.ink }};color:{{ t.bg }};font:600 15px 'Inter',sans-serif;cursor:pointer">Send</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ showFooterBtn }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;padding:16px 24px 40px;background:linear-gradient(to top,{{ t.bg }} 70%,transparent);z-index:20">
+<button onClick="{{ footerAction }}" style="width:100%;height:56px;border:none;border-radius:8px;background:{{ footerBg }};color:{{ footerFg }};font:600 17px 'Inter',sans-serif;cursor:pointer">{{ footerLabel }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDeck }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ pass }}" style="position:absolute;left:20px;bottom:104px;width:58px;height:58px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.surface }};box-shadow:{{ t.shadow }};color:{{ t.ink }};font-size:20px;cursor:pointer;z-index:20">✕</button>
+</sc-if>
+
+<sc-if value="{{ isAppView }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;padding:14px 20px 38px;background:{{ t.bg }};border-top:1px solid {{ t.line }};display:grid;grid-template-columns:1fr 1.6fr;gap:10px;z-index:20">
+<button onClick="{{ viewPass }}" style="height:52px;border-radius:8px;border:1px solid {{ t.line }};background:transparent;color:{{ t.ink }};font:600 16px 'Inter',sans-serif;cursor:pointer">Pass</button>
+<button onClick="{{ viewLikeBack }}" style="height:52px;border-radius:8px;border:none;background:{{ t.accent }};color:{{ t.accentInk }};font:600 16px 'Inter',sans-serif;cursor:pointer">Like back</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;height:84px;padding:8px 8px 0;display:grid;grid-template-columns:repeat(5,1fr);background:{{ t.surface }};border-top:1px solid {{ t.line }};z-index:30">
+<sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="5">
+<button onClick="{{ tb.onClick }}" style="border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:6px;cursor:pointer;color:{{ tb.fg }};font:600 10.5px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.04em">
+<div style="position:relative;width:22px;height:22px;border-radius:{{ tb.shapeR }};border:2px solid currentColor;background:{{ tb.fill }}">
+<sc-if value="{{ tb.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-8px;right:-12px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:{{ t.accent }};color:{{ t.accentInk }};font:700 11px/18px 'Inter',sans-serif">{{ tb.badge }}</span></sc-if>
+</div>
+<span>{{ tb.label }}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ likeTarget }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:70;background:{{ t.scrim }};display:flex;flex-direction:column;justify-content:flex-end">
+<div onClick="{{ closeLike }}" style="flex:1"></div>
+<div style="background:{{ t.bg }};border-radius:18px 18px 0 0;border-top:1px solid {{ t.line }};padding:10px 20px 40px;display:flex;flex-direction:column;gap:16px">
+<div style="width:40px;height:4px;border-radius:2px;background:{{ t.line }};align-self:center"></div>
+<div style="font-size:14px;color:{{ t.muted }}">Liking {{ pageShort }}'s {{ likeTarget.kind }}</div>
+<div style="background:{{ t.surface }};border:1px solid {{ t.line }};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<div style="font:600 11px/1.4 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:{{ t.muted }}">{{ likeTarget.label }}</div>
+<div style="font:500 16px/1.4 'Inter',sans-serif">{{ likeTarget.text }}</div>
+</div>
+<textarea value="{{ comment }}" onChange="{{ onComment }}" placeholder="Add a comment. Say what caught your eye." style="height:88px;resize:none;border-radius:8px;border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 'Inter',sans-serif"></textarea>
+<button onClick="{{ sendLike }}" style="height:54px;border:none;border-radius:8px;background:{{ t.accent }};color:{{ t.accentInk }};font:600 17px 'Inter',sans-serif;cursor:pointer">Send like</button>
+<div style="text-align:center;font-size:13px;color:{{ t.muted }}">{{ likesLeft }} likes left today. Comments double your match rate.</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ share }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:92;background:{{ t.scrim }};display:flex;flex-direction:column;justify-content:flex-end">
+<div onClick="{{ closeShare }}" style="flex:1"></div>
+<div style="background:{{ t.bg }};border-radius:18px 18px 0 0;border-top:1px solid {{ t.line }};padding:10px 20px 38px;display:flex;flex-direction:column;gap:16px">
+<div style="width:40px;height:4px;border-radius:2px;background:{{ t.line }};align-self:center"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font:500 18px 'JetBrains Mono',monospace;letter-spacing:-.03em">{{ share.title }}</span><button onClick="{{ closeShare }}" style="border:none;background:none;color:{{ t.muted }};font:500 15px 'Inter',sans-serif;cursor:pointer;padding:0">Close</button></div>
+<div style="aspect-ratio:{{ share.ratio }};border-radius:12px;background:#0e100f;color:#e8ece7;padding:18px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;border:1px solid rgba(232,236,231,.16)">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font:800 15px 'JetBrains Mono',monospace;letter-spacing:-.04em">Hey100<span style="color:oklch(0.87 0.18 128)">_</span></span><span style="font:500 11px 'JetBrains Mono',monospace;color:#8e968f">{{ share.url }}</span></div>
+<sc-if value="{{ share.isListing }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:12px;align-items:center"><div style="width:52px;height:52px;border-radius:13px;flex:none;background:{{ share.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 22px 'Inter',sans-serif">{{ share.initial }}</div><div style="display:flex;flex-direction:column;gap:3px;min-width:0"><span style="font:500 16px/1.2 'JetBrains Mono',monospace;letter-spacing:-.02em">{{ share.name }}</span><span style="font-size:13px;color:#a3aaa4">{{ share.sub }}</span></div></div>
+<div style="display:flex;gap:8px;align-items:center"><span style="width:24px;height:24px;border-radius:50%;flex:none;background:repeating-linear-gradient(45deg,#2a2f2b 0 4px,#171a18 4px 8px);border:1.5px solid oklch(0.87 0.18 128)"></span><span style="font-size:13px;font-weight:600">{{ share.builder }}</span><span style="font-size:12.5px;color:#8e968f">{{ share.builderSub }}</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><sc-for list="{{ share.prompts }}" as="sp" hint-placeholder-count="3"><div style="background:#171a18;border:1px solid rgba(232,236,231,.1);border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;gap:3px"><span style="font:600 9.5px/1.3 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.07em;color:#8e968f">{{ sp.label }}</span><span style="font:500 13px/1.35 'Inter',sans-serif">{{ sp.text }}</span></div></sc-for></div>
+</sc-if>
+<sc-if value="{{ share.isBig }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 42px/1 'JetBrains Mono',monospace;color:oklch(0.87 0.18 128);letter-spacing:-.05em">{{ share.big }}</span><span style="font:500 15px/1.3 'Inter',sans-serif">{{ share.line }}</span></div></sc-if>
+<sc-if value="{{ share.isQuote }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px"><span style="font:500 16px/1.35 'Inter',sans-serif;text-wrap:pretty">“{{ share.quote }}”</span><span style="font-size:12.5px;color:#a3aaa4">{{ share.who }}</span></div></sc-if>
+<sc-if value="{{ share.isReport }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><sc-for list="{{ share.stats }}" as="x" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 21px 'JetBrains Mono',monospace;color:oklch(0.87 0.18 128);letter-spacing:-.04em">{{ x.v }}</span><span style="font-size:11px;color:#a3aaa4">{{ x.k }}</span></div></sc-for></div></sc-if>
+<div style="font:600 12.5px 'Inter',sans-serif;color:oklch(0.87 0.18 128)">{{ share.cta }}</div>
+</div>
+<div style="padding:10px 12px;border-radius:8px;background:{{ t.surface }};border:1px solid {{ t.line }};font-size:13.5px;line-height:1.4;white-space:pre-wrap;max-height:64px;overflow:hidden">{{ share.post }}</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><sc-for list="{{ share.actions }}" as="a" hint-placeholder-count="4"><button onClick="{{ a.onClick }}" style="height:46px;border-radius:8px;border:1px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};font:600 13px 'Inter',sans-serif;cursor:pointer">{{ a.label }}</button></sc-for></div>
+<sc-if value="{{ share.hasWeb }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openWeb }}" style="border:none;background:none;color:{{ t.accentText }};font:600 14.5px 'Inter',sans-serif;cursor:pointer;padding:0;margin-top:-4px">Preview the web page →</button></sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ matchOverlay }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:80;background:#0e100f;color:#e8ece7;display:flex;flex-direction:column;padding:130px 28px 48px">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center">
+<div style="display:flex">
+<div style="width:96px;height:96px;border-radius:24px;background:{{ matchOverlay.viaIcon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 40px 'Inter',sans-serif;transform:rotate(-8deg);border:3px solid #0e100f">{{ matchOverlay.viaInitial }}</div>
+<div style="width:96px;height:96px;border-radius:24px;background:{{ matchOverlay.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 40px 'Inter',sans-serif;transform:rotate(8deg);margin-left:-18px;border:3px solid #0e100f">{{ matchOverlay.initial }}</div>
+</div>
+<div style="font:500 40px/1 'JetBrains Mono',monospace;letter-spacing:-.05em">It's a trade<span style="color:oklch(0.87 0.18 128)">_</span></div>
+<div style="font-size:16px;line-height:1.5;color:#a3aaa4;max-width:290px">You and {{ matchOverlay.builder }} agreed to use each other's apps. Test links and codes are unlocked.</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<button onClick="{{ openMatchChat }}" style="height:56px;border:none;border-radius:8px;background:oklch(0.87 0.18 128);color:#0e100f;font:600 17px 'Inter',sans-serif;cursor:pointer">Say hi</button>
+<button onClick="{{ closeMatch }}" style="height:56px;border:none;border-radius:8px;background:transparent;color:#e8ece7;font:600 16px 'Inter',sans-serif;cursor:pointer">Keep browsing</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ paywall }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:90;background:{{ t.bg }};display:flex;flex-direction:column;padding:70px 24px 40px;gap:20px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:600 72px/.9 'JetBrains Mono',monospace;color:{{ t.accentText }};letter-spacing:-.06em">5</div>
+<div style="font:500 26px/1.15 'JetBrains Mono',monospace;letter-spacing:-.03em;text-wrap:pretty">You've made 5 builder connections.</div>
+<div style="font-size:15px;line-height:1.45;color:{{ t.muted }}">List Tidepool to keep matching. Your existing chats stay open either way.</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ plans }}" as="p" hint-placeholder-count="2">
+<button onClick="{{ p.onClick }}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:10px;border:2px solid {{ p.bd }};background:{{ t.surface }};color:{{ t.ink }};text-align:left;font-family:'Inter',sans-serif;cursor:pointer">
+<div style="width:22px;height:22px;border-radius:50%;border:2px solid {{ p.bd }};display:flex;align-items:center;justify-content:center;flex:none"><div style="width:10px;height:10px;border-radius:50%;background:{{ p.dot }}"></div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:16px;font-weight:700">{{ p.name }}</span><span style="font-size:13px;color:{{ t.muted }}">{{ p.sub }}</span></div>
+<span style="font:600 16px 'JetBrains Mono',monospace">{{ p.price }}</span>
+</button>
+</sc-for>
+<button onClick="{{ paywallInvite }}" style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:10px;border:1.5px dashed {{ t.line }};background:transparent;color:{{ t.ink }};text-align:left;cursor:pointer;font-family:'Inter',sans-serif"><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px;font-weight:700">Or invite a builder to keep going</span><span style="font-size:13px;color:{{ t.muted }}">You both get +3 matches when they publish</span></div><span style="font:600 15px 'JetBrains Mono',monospace;color:{{ t.accentText }}">Free</span></button>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;font-size:14.5px">
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>Unlimited matches for Tidepool</div>
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>Full feedback inbox and page stats</div>
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>Verified badges on your page</div>
+</div>
+<div style="flex:1"></div>
+<button onClick="{{ buy }}" style="height:56px;border:none;border-radius:8px;background:{{ t.accent }};color:{{ t.accentInk }};font:600 17px 'Inter',sans-serif;cursor:pointer">{{ buyLabel }}</button>
+<button onClick="{{ closePaywall }}" style="border:none;background:none;color:{{ t.muted }};font:500 15px 'Inter',sans-serif;cursor:pointer;margin-top:-8px">Not now</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ webSignup }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:85;background:{{ t.scrim }};display:flex;flex-direction:column;justify-content:flex-end">
+<div onClick="{{ closeSignup }}" style="flex:1"></div>
+<div style="background:{{ t.bg }};border-radius:18px 18px 0 0;border-top:1px solid {{ t.line }};padding:10px 22px 40px;display:flex;flex-direction:column;gap:16px">
+<div style="width:40px;height:4px;border-radius:2px;background:{{ t.line }};align-self:center"></div>
+<div style="display:flex;gap:-10px;align-items:center;padding-top:6px"><div style="width:56px;height:56px;border-radius:14px;background:oklch(0.66 0.13 220);color:#fff;font:700 24px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;border:3px solid {{ t.bg }}">T</div><div style="width:56px;height:56px;border-radius:50%;margin-left:-14px;background:repeating-linear-gradient(45deg,{{ t.raised }} 0 5px,{{ t.surface }} 5px 10px);border:3px solid {{ t.bg }}"></div></div>
+<div style="font:500 24px/1.15 'JetBrains Mono',monospace;letter-spacing:-.03em">Want to try Tidepool?</div>
+<div style="font-size:15px;line-height:1.45;color:{{ t.muted }};text-wrap:pretty">Match with Jaryd on Hey100. Builders trade: you try their app, they try yours.</div>
+<button onClick="{{ webToSignup }}" style="height:54px;border:none;border-radius:8px;background:{{ t.ink }};color:{{ t.bg }};font:600 17px 'Inter',sans-serif;cursor:pointer">Continue with Apple</button>
+<button onClick="{{ webGetApp }}" style="height:50px;border-radius:8px;border:1px solid {{ t.line }};background:transparent;color:{{ t.ink }};font:600 15px 'Inter',sans-serif;cursor:pointer">Get the iOS app</button>
+<button onClick="{{ closeSignup }}" style="border:none;background:none;color:{{ t.muted }};font:500 14px 'Inter',sans-serif;cursor:pointer">Keep browsing</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:95;padding:10px 16px;border-radius:8px;background:{{ t.ink }};color:{{ t.bg }};font-size:14px;font-weight:600;white-space:nowrap;box-shadow:{{ t.shadow }}">{{ toast }}</div>
+</sc-if>
+
+<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:{{ homeBar }};z-index:100"></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:920},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dark&quot;,&quot;Light&quot;],&quot;default&quot;:&quot;Dark&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Onboarding&quot;,&quot;Discover&quot;,&quot;Likes you&quot;,&quot;Liker profile&quot;,&quot;Matches&quot;,&quot;Chat&quot;,&quot;Feedback&quot;,&quot;Inbox&quot;,&quot;Apps&quot;,&quot;App page&quot;,&quot;Profile&quot;,&quot;Settings&quot;,&quot;Paywall&quot;,&quot;Web listing&quot;],&quot;default&quot;:&quot;Onboarding&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const T = {
+  Dark:{bg:'#0e100f',surface:'#171a18',raised:'#232825',ink:'#e8ece7',muted:'#8e968f',line:'rgba(232,236,231,.11)',accent:'oklch(0.87 0.18 128)',accentText:'oklch(0.87 0.18 128)',accentInk:'#0e100f',soft:'oklch(0.87 0.18 128 / .13)',mid:'oklch(0.6 0.11 128)',scrim:'rgba(0,0,0,.6)',shadow:'0 6px 20px rgba(0,0,0,.5)'},
+  Light:{bg:'#f2f3ef',surface:'#ffffff',raised:'#e6e9e2',ink:'#121412',muted:'#5b625c',line:'rgba(18,20,18,.12)',accent:'oklch(0.88 0.19 128)',accentText:'oklch(0.48 0.13 135)',accentInk:'#121412',soft:'oklch(0.88 0.19 128 / .3)',mid:'oklch(0.74 0.12 128)',scrim:'rgba(0,0,0,.35)',shadow:'0 6px 20px rgba(0,0,0,.12)'},
+};
+const ic = h => `oklch(0.66 0.13 ${h})`;
+const short = n => n.split(':')[0];
+const P = {
+  honest:'The honest thing I need feedback on…', love:"You'll love this app if…", dont:"Don't download this if…", first:'Our first user said…', proud:"The feature I'm most proud of…", works:"I'll know this app works when…", how:"In 30 seconds, here's how it works:", weird:'The weirdest thing I learned building it…', green:'Green flag in a user:',
+};
+const APPS = {
+  brew:{ name:'Brewlog: Coffee Brew Journal', sub:'Dial in every pour-over', cat:'Food & Drink', plat:'iOS', stage:'Live', hue:55, builder:'Nina Park', role:'iOS dev and designer', style:'Balanced feedback · replies within a day', likes:'10–50', trades:12, reply:'92%', fit:'You fit their ideal users · coffee, 25–34, iPhone', likesYou:true, via:'tide', code:'BREW-HEY100', asked:'onboarding and UI',
+    media:['Screenshot · recipe timer','Demo video · 0:34','Screenshot · bean library'],
+    prompts:[[P.honest,'Whether logging a brew takes too many taps. I count six. It should be two.'],[P.love,"You own a scale you bought for coffee and pretend it's for baking."],[P.first,'"I finally know why Tuesday\'s cup was good."'],[P.proud,'Ratios that adjust when you change the dose. No maths at 7am.'],[P.green,"You'll brew with it for a full week, not just open it once."]],
+    ideal:{age:'25–44',gender:'Anyone',interests:'Coffee, cooking',plat:'iPhone',wants:'onboarding, UI'}, badges:['Live on the App Store · 1k–5k downloads','RevenueCat · 100–500 subscribers','GitHub · last commit 2 days ago'] },
+  ship:{ name:'Shipnote: Changelog Widget', sub:'Release notes users open', cat:'Developer Tools', plat:'Web · SaaS', stage:'Revenue', hue:250, builder:'Omar Haddad', role:'Full-stack, Supabase', style:'Blunt feedback · replies within hours', likes:'50–100', trades:31, reply:'88%', fit:'You fit their ideal users · founder, ships weekly', likesYou:false,
+    media:['Screenshot · widget on a pricing page','GIF · install in 40 seconds'],
+    prompts:[[P.honest,'Is $12/mo the right price, or am I leaving money on the table?'],[P.how,'Paste one script tag. Write an entry. A small dot appears in your app until users read it.'],[P.dont,"You ship once a quarter. You'd be paying for a widget with nothing to say."],[P.works,'A customer replies to a changelog entry.']],
+    ideal:{age:'25–54',gender:'Anyone',interests:'Startups, productivity',plat:'Web, Mac',wants:'pricing, onboarding'}, badges:['Stripe · $1k–5k MRR','GitHub · last commit today'] },
+  lullo:{ name:'Lullo: Baby Sleep Tracker', sub:'One-handed logging at 3am', cat:'Parenting', plat:'iOS', stage:'TestFlight', hue:340, builder:'Priya Nair', role:'React Native', style:'Gentle feedback · replies within a day', likes:'1–10', trades:4, reply:'97%', fit:'You fit their ideal users · new parent, iPhone', likesYou:false,
+    media:['Screenshot · night mode log','Demo video · 0:21'],
+    prompts:[[P.proud,'The whole screen is one button. Tap to start, tap to stop. Works with your thumb in the dark.'],[P.green,"You'll use it for a full week, including the bad nights."],[P.weird,'Parents log more at 4am than at any other hour.']],
+    ideal:{age:'25–44',gender:'Anyone',interests:'New parents',plat:'iPhone',wants:'retention, bugs'}, badges:['GitHub · last commit today'] },
+  fern:{ name:'Fernly: Plant Care Reminders', sub:'Never drown a monstera again', cat:'Lifestyle', plat:'iOS', stage:'Live', hue:150, builder:'Tomás Reyes', role:'SwiftUI', style:'Balanced feedback', likes:'10–50', trades:9, reply:'90%', fit:'Matched on Tidepool · you both want couples, 25–34',
+    media:['Screenshot · watering schedule','Screenshot · plant ID'], prompts:[[P.love,'You have more plants than chairs.'],[P.honest,'Does the plant ID feel trustworthy, or like a guess?'],[P.first,'"My fiddle leaf is alive for the first time in two years."']],
+    ideal:{age:'25–44',gender:'Anyone',interests:'Homeowners, couples',plat:'iPhone',wants:'UI, retention'}, badges:['Live on the App Store · 1k–5k downloads','GitHub · last commit 4 days ago'] },
+  ink:{ name:'Inkwell: AI Journal & Diary', sub:'Write less, reflect more', cat:'Health & Fitness', plat:'iOS · Web', stage:'Revenue', hue:20, builder:'Hana Ito', role:'Full-stack, OpenAI', style:'Blunt feedback', likes:'50–100', trades:22, reply:'85%', fit:'Matched on Tidepool · you both target couples',
+    media:['Screenshot · weekly reflection','Demo video · 0:40'], prompts:[[P.how,'Write three lines a night. Sunday you get a letter about your week.'],[P.dont,'You want an AI to write for you. It only asks questions.'],[P.works,"Someone keeps writing after the free month ends."]],
+    ideal:{age:'25–44',gender:'Mostly women',interests:'Reading, wellness',plat:'iPhone, Web',wants:'pricing'}, badges:['Stripe · $1k–5k MRR','RevenueCat · 500+ subscribers'] },
+  grid:{ name:'Gridline: Design Grid Overlay', sub:'Pixel-check any website', cat:'Chrome extension', plat:'Web', stage:'Live', hue:200, builder:'Dev Patel', role:'Designer who codes', style:'Detailed feedback', likes:'10–50', trades:15, reply:'95%', fit:'Matched on Tally · you both like productivity tools',
+    media:['Screenshot · grid on a landing page','GIF · toggle with ⌥G'], prompts:[[P.love,"You've ever zoomed to 400% to check a margin."],[P.proud,'It reads your CSS grid and draws it. No setup.'],[P.honest,'Is the free tier too generous?']],
+    ideal:{age:'18–44',gender:'Anyone',interests:'Design, productivity',plat:'Web, Mac',wants:'pricing, UI'}, badges:['Chrome Web Store · 1k–5k users'] },
+  cad:{ name:'Cadence: Habit Streaks', sub:'Small habits, long streaks', hue:290, builder:'Lena Vogel', code:'CADENCE-1YR', asked:'retention' },
+  lum:{ name:'Lumen: Read It Later', sub:'Articles, minus the noise', hue:95, builder:'Ari Cohen', code:'LUMEN-HEY', asked:'UI' },
+  pt:{ name:'Pocket Tutor: AI Math Help', sub:'Homework help that explains', hue:180, builder:'Sam Osei', code:'TUTOR-FREE', asked:'bugs' },
+};
+const MINE = {
+  tide:{ name:'Tidepool: Couples Budget', sub:'Money dates for two', cat:'Finance', plat:'iOS', stage:'Live', hue:220, likes:'10–50', trades:3, reply:'94%', views:412, primary:true,
+    media:['Screenshot · Sunday summary','Demo video · onboarding 0:28','Screenshot · shared goals'],
+    prompts:[[P.honest,'Whether inviting your partner feels exciting or like homework.'],[P.love,'Money talks with your partner usually end with someone on the couch.'],[P.how,'Connect one account each. Every Sunday you get a short "money date" summary to read together.'],[P.proud,'The Sunday summary. It reads like a letter, not a spreadsheet.'],[P.works,'A couple opens it together without one of them being asked twice.']] },
+  tally:{ name:'Tally: Shared Grocery List', sub:'One list for the household', cat:'Food & Drink', plat:'iOS', stage:'TestFlight', hue:160, likes:'1–10', trades:1, reply:'100%', views:58,
+    media:['Screenshot · shared list','Screenshot · aisle sort'],
+    prompts:[[P.love,'You and your housemates buy three bottles of ketchup a month by accident.'],[P.honest,'Is aisle sorting useful or a gimmick?'],[P.weird,'People add "milk" twice more than any other item.']] },
+};
+const CONN = [
+  { k:'github', name:'GitHub', letter:'G', desc:'Show commit activity', on:'148 commits in 30 days', detail:'last 2h ago · fix: partner invite deep link', badge:'GitHub · 148 commits in 30 days · last 2h ago' },
+  { k:'asc', name:'App Store Connect', letter:'A', desc:'Show live status and downloads', on:'Live · 1k–5k downloads', badge:'Live on the App Store · 1k–5k downloads' },
+  { k:'rc', name:'RevenueCat', letter:'R', desc:'Show subscriber count', on:'100–500 active subscribers', badge:'RevenueCat · 100–500 subscribers' },
+  { k:'stripe', name:'Stripe', letter:'S', desc:'Show revenue band', on:'$100–1k MRR', badge:'Stripe · $100–1k MRR' },
+];
+const DEF = ['m0','p0','builder','m1','p1','looking','p2','m2','p3','stats','verified','p4'];
+APPS.brew.links=[['TikTok','@brewlog'],['Instagram','@brewlog.app']]; APPS.ship.links=[['X','@shipnote']]; APPS.lullo.links=[['Instagram','@lullo.sleep']]; APPS.fern.links=[['TikTok','@fernly']]; APPS.ink.links=[['Instagram','@inkwell.journal']];
+MINE.tally.links=[['Instagram','@tally.list']];
+const PLIB = [
+  { id:'honest', tag:'Feedback', label:P.honest, text:'Whether inviting your partner feels exciting or like homework.' },
+  { id:'love', tag:'Audience', label:P.love, text:'Money talks with your partner usually end with someone on the couch.' },
+  { id:'how', tag:'Product', label:P.how, text:'Connect one account each. Every Sunday you get a short "money date" summary to read together.' },
+  { id:'proud', tag:'Product', label:P.proud, text:'The Sunday summary. It reads like a letter, not a spreadsheet.' },
+  { id:'works', tag:'Feedback', label:P.works, text:'A couple opens it together without one of them being asked twice.' },
+  { id:'dont', tag:'Audience', label:P.dont, text:'You want to track every cent. This is for talking, not auditing.' },
+  { id:'green', tag:'Audience', label:P.green, text:"You'll open it with your partner, not just on your own." },
+  { id:'why', tag:'Story', label:'Why I built this…', text:'My partner and I kept having the same money argument. I wanted a calmer way to have it.' },
+  { id:'first', tag:'Story', label:P.first, text:'"We had our first money talk that didn\'t end in a fight."' },
+  { id:'weird', tag:'Story', label:P.weird, text:'Couples open it most on Sunday nights, right before the week starts.' },
+  { id:'next', tag:'Product', label:"What's coming next…", text:'Shared savings goals with a progress bar you both can see.' },
+  { id:'stuck', tag:'Feedback', label:'Where people get stuck…', text:'Connecting the second bank account.' },
+];
+const INBOX_DATA = {
+  tide:{ funnel:['412','318','94','23%'], responses:12, impression:'4.1', price:'$3–5', yes:58, maybe:25, no:17, list:[
+    { who:'Lena Vogel', app:'Cadence', hue:290, when:'2h ago', stars:'4/5', text:'Calm and clear. I wanted to invite my partner sooner.', conf:'Partner invite is buried in settings', keep:'Yes', optIn:true },
+    { who:'Sam Osei', app:'Pocket Tutor', hue:180, when:'Oct 11', stars:'5/5', text:'The Sunday "money date" summary is the best part. I read it out loud.', conf:'None, honestly', keep:'Yes', optIn:true },
+    { who:'Marco Bellini', app:'Tiny Ledger', hue:40, when:'Oct 8', stars:'3/5', text:"Pretty, but I wasn't sure what to do after connecting my bank.", conf:'Empty state after bank sync', keep:'Maybe', optIn:false } ] },
+  tally:{ funnel:['58','44','11','19%'], responses:2, impression:'3.5', price:'$1–3', yes:50, maybe:50, no:0, list:[
+    { who:'Ari Cohen', app:'Lumen', hue:95, when:'Oct 13', stars:'4/5', text:'Sorting by aisle is the feature. Lead with it.', conf:'Inviting housemates took two tries', keep:'Maybe', optIn:true },
+    { who:'Dev Patel', app:'Gridline', hue:200, when:'Oct 10', stars:'3/5', text:'Nice and fast. The empty list could tell me what to do first.', conf:'Empty first screen', keep:'Maybe', optIn:false } ] },
+};
+const DECK = ['brew','ship','lullo'];
+const LIKES = [
+  { id:'fern', via:'tide', target:'onboarding video', comment:"The couples invite flow looks smooth. I'd try it with my partner this weekend." },
+  { id:'ink', via:'tide', target:'"honest thing" prompt', comment:'I can tell you if the pricing feels fair. I pay for three budgeting apps.' },
+  { id:'grid', via:'tally', target:'aisle sort screenshot', comment:"Clean. I'm a designer and do the shopping, happy to do a UI pass." },
+];
+const MATCHES0 = [
+  { id:'cad', via:'tide', last:'Sent my feedback. The Sunday summary is great.', time:'2h', mine:'Using', theirs:'Feedback sent', turn:true },
+  { id:'lum', via:'tally', last:'You: Downloading now, will report back tonight.', time:'1d', mine:'Using', theirs:'Using', left:'5 days left' },
+  { id:'pt', via:'tide', last:'Thanks! Fixed the crash you found.', time:'3d', mine:'Feedback sent', theirs:'Feedback sent' },
+];
+const MSGS0 = {
+  cad:[{sys:'matched oct 12 · lena liked your onboarding video'},{them:'Hey! Your onboarding video sold me. Downloading Tidepool now.'},{me:'Thanks Lena. TestFlight link is up top, and the code gets you a free year.'},{fb:true, from:'them', stars:'4/5', text:'Calm and clear. I wanted to invite my partner sooner.', meta:'Keep using: Yes · Fair price: $3–5/mo'},{them:'One confusing bit on the partner invite. Your turn on Cadence whenever you have a week.'}],
+  lum:[{sys:'matched oct 14 · you liked their demo video'},{them:'Hi! Happy to swap. Code is in the trade card.'},{me:'Downloading now, will report back tonight.'}],
+  pt:[{sys:'matched oct 9'},{me:'Found a crash when switching subjects mid-lesson. Screenshot in my feedback.'},{them:'Thanks! Fixed the crash you found.'}],
+};
+const INBOX = [
+  { who:'Lena Vogel', app:'Cadence', hue:290, when:'2h ago', stars:'4/5', text:'Calm and clear. I wanted to invite my partner sooner.', conf:'Partner invite is buried in settings', keep:'Yes' },
+  { who:'Sam Osei', app:'Pocket Tutor', hue:180, when:'Oct 11', stars:'5/5', text:'The Sunday "money date" summary is the best part. I read it out loud.', conf:'None, honestly', keep:'Yes' },
+  { who:'Marco Bellini', app:'Tiny Ledger', hue:40, when:'Oct 8', stars:'3/5', text:"Pretty, but I wasn't sure what to do after connecting my bank.", conf:'Empty state after bank sync', keep:'Maybe' },
+];
+
+class Component extends DCLogic {
+  state = this.initial();
+  scrollRef = React.createRef();
+  initial() {
+    const s = this.props.startScreen || 'Onboarding';
+    const map = { Onboarding:'onb', Discover:'deck', 'Likes you':'likes', 'Liker profile':'appview', Matches:'matches', Chat:'chat', Feedback:'feedback', Inbox:'inbox', Apps:'apps', 'App page':'myapp', Profile:'me', Settings:'settings', 'Web listing':'web', Paywall:'likes' };
+    return { screen: map[s] || 'onb', step:0, mode:'System',
+      sel:{'r:iOS':1,'r:Supabase':1,'d:iPhone':1,'d:Mac':1,'age:25–34':1,'gen:Man':1,'l:💑 In a couple':1,'i:☕ Coffee':1,'i:🏃 Running':1,'i:💰 Budgeting':1,'ia:25–34':1,'ia:35–44':1,'ig:Anyone':1,'ii:💑 In a couple':1,'ii:💰 Budgeting':1,'ip:iPhone':1,'f:Onboarding':1,'f:Pricing':1,'rate:4':1,'keep:Maybe':1,'price:$3–5/mo':1},
+      fetched:false, deck:0, likesLeft:6, likeTarget:null, comment:'', matchOverlay:null, paywall:s==='Paywall', paid:false, plan:'season', toast:'',
+      matches:MATCHES0, msgs:MSGS0, chatId:'cad', likeState:{}, draft:'', helpful:{'tide-0':'y'}, answered:['honest','love','how','proud','works'], promptTag:'All', job:'Product manager at a fintech', socials:{ tiktok:'@tidepoolapp', instagram:'@tidepool.app', x:'' }, inboxApp:'tide', appMenu:false, share:null, viewId:'fern', myAppId:'tide', editLayout:false, setup:false,
+      conns:{ tide:{ github:true }, tally:{ github:true, asc:true } }, layouts:{ tide:DEF.slice(), tally:DEF.slice() }, settingsFrom:'apps' };
+  }
+  componentDidUpdate(prev, ps) {
+    if (prev.startScreen !== this.props.startScreen) this.setState(this.initial());
+    if (ps && (ps.screen !== this.state.screen || ps.step !== this.state.step || ps.deck !== this.state.deck) && this.scrollRef.current) this.scrollRef.current.scrollTop = 0;
+  }
+  flash(msg) { this.setState({ toast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast:'' }), 1800); }
+  addMatch(m) {
+    this.setState(s => {
+      const matches = [m, ...s.matches];
+      return { matches, msgs:{ ...s.msgs, [m.id]:[{ sys:'matched just now · ' + m.why }] }, chatId:m.id, paywall: !s.paid && matches.length === 5 ? true : s.paywall };
+    });
+  }
+  renderVals() {
+    const st = this.state, sel = st.sel;
+    const modeName = st.mode === 'System' ? (this.props.mode || 'Dark') : st.mode;
+    const t = T[modeName] || T.Dark;
+    const set = p => this.setState(p);
+    const toggle = (k, single) => this.setState(s => {
+      const n = { ...s.sel };
+      if (single) Object.keys(n).forEach(x => { if (x.startsWith(single + ':')) delete n[x]; });
+      if (n[k] && !single) delete n[k]; else n[k] = 1;
+      return { sel:n };
+    });
+    const chips = (g, labels, single) => labels.map(label => { const on = !!sel[g+':'+label]; return { label, on, onClick:() => toggle(g+':'+label, single ? g : null), bg: on ? t.ink : 'transparent', fg: on ? t.bg : t.ink, bd: on ? t.ink : t.line }; });
+    const seg = (g, labels) => labels.map(label => { const on = !!sel[g+':'+label]; return { label, onClick:() => toggle(g+':'+label, g), bg: on ? t.ink : 'transparent', fg: on ? t.bg : t.ink }; });
+    const picked = g => Object.keys(sel).filter(k => k.startsWith(g + ':')).map(k => k.slice(g.length + 1));
+    const scr = st.screen, onb = scr === 'onb';
+
+    const mineObj = id => {
+      const a = MINE[id], c = st.conns[id] || {};
+      const badges = CONN.filter(x => c[x.k]).map(x => x.badge);
+      return { ...a, prompts: id === 'tide' ? st.answered.map(k => { const p = PLIB.find(x => x.id === k); return [p.label, p.text]; }) : a.prompts, links: id === 'tide' ? [['TikTok', st.socials.tiktok], ['Instagram', st.socials.instagram], ['X', st.socials.x]] : (a.links || []), builder:'Jaryd', role:'iOS · Supabase', style:'Balanced feedback · replies within a day', badges,
+        ideal:{ age: picked('ia').join(', ') || 'Any', gender: picked('ig')[0] || 'Anyone', interests: picked('ii').join(', ') || 'Any', plat: picked('ip').join(', ') || 'Any', wants: picked('f').join(', ').toLowerCase() || 'anything' } };
+    };
+    const blocks = (a, order, o) => {
+      const list = order.map(k => {
+        const b = { key:k, isStats:false, isMedia:false, isPrompt:false, isBuilder:false, isLooking:false, isVerified:false, canLike:!!o.canLike, editing:!!o.editing, bd: o.editing ? t.mid : t.line, padB: o.canLike ? '68px' : '20px' };
+        if (k[0] === 'm') { const m = a.media[+k.slice(1)]; if (!m) return null; return { ...b, isMedia:true, media:m, typeLabel:'Media', onLike:() => set({ likeTarget:{ kind:'media', label:m, text:'Photo or video' }, comment:'' }) }; }
+        if (k[0] === 'p') { const p = a.prompts[+k.slice(1)]; if (!p) return null; return { ...b, isPrompt:true, label:p[0], text:p[1], typeLabel:'Prompt', onLike:() => set({ likeTarget:{ kind:'prompt', label:p[0], text:p[1] }, comment:'' }) }; }
+        if (k === 'builder') return { ...b, isBuilder:true, builder:a.builder, role:a.role, style:a.style, typeLabel:'Builder' };
+        if (k === 'looking') return { ...b, isLooking:true, ideal:a.ideal, typeLabel:'Ideal users' };
+        if (k === 'stats') return { ...b, isStats:true, likes:a.likes, trades:a.trades, reply:a.reply, typeLabel:'Stats' };
+        if (k === 'verified') return { ...b, isVerified:true, badges:a.badges, noBadges:!a.badges.length, typeLabel:'Verified' };
+        return null;
+      }).filter(Boolean);
+      return list.map((b, i) => ({ ...b, pos: String(i + 1).padStart(2, '0'), upColor: i === 0 ? t.line : t.ink, downColor: i === list.length - 1 ? t.line : t.ink,
+        onUp:() => o.move && o.move(b.key, -1), onDown:() => o.move && o.move(b.key, 1) }));
+    };
+    const mkPage = (a, order, o) => ({ icon: ic(a.hue), initial: a.name[0], name:a.name, sub:a.sub, chips:[a.cat, a.plat, a.stage], likes:a.likes, trades:a.trades, reply:a.reply, fit:a.fit, hasFit:!!a.fit && !o.mine, links:(a.links||[]).filter(l => l[1]).map(([k,v]) => ({ k, v })), hasLinks:(a.links||[]).some(l => l[1]), blocks: blocks(a, order, o) });
+    const move = (key, dir) => this.setState(s => {
+      const id = s.myAppId, a = mineObj(id);
+      const valid = s.layouts[id].filter(k => (k[0]==='m' ? !!a.media[+k.slice(1)] : k[0]==='p' ? !!a.prompts[+k.slice(1)] : true));
+      const i = valid.indexOf(key), j = i + dir;
+      if (i < 0 || j < 0 || j >= valid.length) return null;
+      const n = valid.slice(); [n[i], n[j]] = [n[j], n[i]];
+      return { layouts:{ ...s.layouts, [id]:n } };
+    });
+
+    const deckApp = APPS[DECK[st.deck % DECK.length]], deckId = DECK[st.deck % DECK.length];
+    let page = null, pagePad = '30px', pageShort = '';
+    if (scr === 'deck') { page = mkPage(deckApp, DEF, { canLike:true }); pagePad = '130px'; pageShort = short(deckApp.name); }
+    if (scr === 'appview') { page = mkPage(APPS[st.viewId], DEF, {}); pagePad = '120px'; }
+    if (scr === 'web') { page = mkPage(mineObj('tide'), st.layouts.tide, { canLike:true }); pagePad = '30px'; }
+    if (scr === 'myapp') { page = mkPage(mineObj(st.myAppId), st.layouts[st.myAppId], { mine:true, editing:st.editLayout, move }); pagePad = st.setup ? '120px' : '30px'; }
+
+    const matchCount = st.matches.length;
+    const curMatch = st.matches.find(m => m.id === st.chatId) || st.matches[0];
+    const cm = APPS[curMatch.id], via = MINE[curMatch.via];
+    const statusColor = v => v === 'Feedback sent' ? t.accentText : t.ink;
+    const chat = { builder:cm.builder, code:cm.code || 'HEY100', asked:cm.asked || 'onboarding', icon: ic(cm.hue), initial: cm.name[0], short: short(cm.name), shortName: short(cm.name), viaShort: short(via.name), mine:curMatch.mine, theirs:curMatch.theirs, mineColor: statusColor(curMatch.mine), theirsColor: statusColor(curMatch.theirs),
+      msgs: (st.msgs[curMatch.id] || []).map(m => { const me = m.me || m.from === 'me';
+        return { isSys: !!m.sys, isFb: !!m.fb, isText: !!(m.me || m.them), text: m.sys || m.me || m.them || m.text, stars:m.stars, meta:m.meta, justify: me ? 'flex-end' : 'flex-start', bg: me ? t.ink : t.surface, fg: me ? t.bg : t.ink, bd: me ? 'none' : `1px solid ${t.line}` }; }) };
+
+    const openLikes = LIKES.filter(l => !st.likeState[l.id]).length;
+    const tabDefs = [['Discover','deck',['deck']],['Likes','likes',['likes','appview']],['Matches','matches',['matches','chat','feedback']],['Feedback','inbox',['inbox']],['Apps','apps',['apps','myapp','me','settings']]];
+    const tabs = tabDefs.map(([label, k, group], i) => { const active = scr === 'web' ? k === 'deck' : group.includes(scr); return { label, onClick:() => scr === 'web' ? set({ webSignup:true }) : set({ screen:k, editLayout:false }), fg: active ? t.ink : t.muted, fill: active ? t.accent : 'transparent', shapeR: ['50%','6px','50% 50% 50% 3px','3px','6px'][i], hasBadge: k==='likes' && openLikes > 0, badge: openLikes }; });
+    const showTabs = ['web','deck','likes','matches','inbox','apps','me','settings'].includes(scr) || (scr === 'myapp' && !st.setup);
+    const titles = { deck:'Discover', likes:'Likes', matches:'Matches', inbox:'Feedback', apps:'Apps' };
+    const headerRight = scr === 'matches' ? `${Math.min(matchCount,5)} of 5 free` : '';
+
+    const likeBack = (l) => {
+      const a = APPS[l.id];
+      this.setState(s => ({ likeState:{ ...s.likeState, [l.id]:'match' } }));
+      this.addMatch({ id:l.id, via:l.via, last:'New match. Say hi.', time:'now', mine:'Not started', theirs:'Not started', turn:true, why:`${a.builder.split(' ')[0].toLowerCase()} liked ${short(MINE[l.via].name).toLowerCase()}'s ${l.target}` });
+      if (st.paid || matchCount + 1 !== 5) this.setState({ matchOverlay:{ icon:ic(a.hue), initial:a.name[0], builder:a.builder, id:l.id, viaIcon:ic(MINE[l.via].hue), viaInitial:MINE[l.via].name[0] } });
+    };
+    const likes = LIKES.filter(l => st.likeState[l.id] !== 'pass').map(l => { const a = APPS[l.id], v = MINE[l.via], ls = st.likeState[l.id];
+      return { ...l, name:a.name, builder:a.builder, cat:a.cat, icon: ic(a.hue), initial:a.name[0], viaIcon: ic(v.hue), viaInitial: v.name[0], viaShort: short(v.name), open:!ls, matched: ls === 'match',
+        onOpen:() => set({ viewId:l.id, screen:'appview' }),
+        onPass:e => { e && e.stopPropagation(); this.setState(s => ({ likeState:{ ...s.likeState, [l.id]:'pass' } })); },
+        onLike:e => { e && e.stopPropagation(); likeBack(l); } }; });
+    const vl = LIKES.find(l => l.id === st.viewId) || LIKES[0];
+    const viewLike = { ...vl, builderFirst: APPS[vl.id].builder.split(' ')[0], viaShort: short(MINE[vl.via].name) };
+
+    const matches = st.matches.map(m => { const a = APPS[m.id], v = MINE[m.via]; return { ...m, short: short(a.name), icon: ic(a.hue), initial: a.name[0], viaIcon: ic(v.hue), viaInitial: v.name[0], viaShort: short(v.name), onOpen:() => set({ chatId:m.id, screen:'chat' }),
+      chip: m.turn ? 'Your turn' : (m.mine === 'Feedback sent' && m.theirs === 'Feedback sent' ? 'Trade complete' : (m.left || 'Waiting')), chipBg: m.turn ? t.accent : t.soft, chipFg: m.turn ? t.accentInk : t.ink }; });
+
+    const openShare = (kind, d) => set({ share:{ kind, ...(d||{}) }, appMenu:false });
+    const ibId = st.inboxApp, ibD = INBOX_DATA[ibId], ibA = MINE[ibId];
+    const inbox = ibD.list.map((f, i) => { const key = ibId + '-' + i, hv = st.helpful[key]; const on = v => ({ bg: hv === v ? t.ink : 'transparent', fg: hv === v ? t.bg : t.ink, bd: hv === v ? t.ink : t.line }); const y = on('y'), n = on('n'); const first = f.who.split(' ')[0];
+      return { ...f, icon: ic(f.hue), initial: f.app[0], yesBg:y.bg, yesFg:y.fg, yesBd:y.bd, noBg:n.bg, noFg:n.fg, noBd:n.bd, showTesti: hv === 'y', testiLabel: f.optIn ? 'Make testimonial card' : 'Ask ' + first + ' to share it',
+        onTesti:() => f.optIn ? openShare('testimonial', { quote:f.text, who: f.who + ', builder of ' + f.app, appId: ibId }) : this.flash('Asked ' + first + '. One tap for them in chat.'),
+        onYes:() => this.setState(s => ({ helpful:{ ...s.helpful, [key]:'y' } })), onNo:() => this.setState(s => ({ helpful:{ ...s.helpful, [key]:'n' } })) }; });
+    const funnel = [['Views',ibD.funnel[0],'people saw your page',t.ink],['Skips',ibD.funnel[1],'passed without a like',t.ink],['Likes',ibD.funnel[2],'liked a prompt or photo',t.ink],['Like ratio',ibD.funnel[3],'likes per view',t.accentText]].map(([label,value,note,color],i) => ({ label, value, note, color, bl: i % 2 ? '1px solid ' + t.line : 'none', bt: i > 1 ? '1px solid ' + t.line : 'none' }));
+    const ib = { responses: ibD.responses, impression: ibD.impression, price: ibD.price, yes: ibD.yes + '%', maybe: ibD.maybe + '%', no: ibD.no + '%' };
+    const inboxApp = { icon: ic(ibA.hue), initial: ibA.name[0], short: short(ibA.name) };
+    const appMenu = Object.keys(MINE).map(id => ({ initial: MINE[id].name[0], icon: ic(MINE[id].hue), short: short(MINE[id].name), check: id === ibId ? '✓' : '', bg: id === ibId ? t.raised : 'transparent', onClick:() => set({ inboxApp:id, appMenu:false }) }));
+    const slug = a => 'hey100.com/' + short(a.name).toLowerCase().replace(/\s+/g, '');
+    const myA = mineObj(st.myAppId), myUrl = slug(myA);
+    let share = null;
+    if (st.share) { const k = st.share.kind, sa = mineObj(st.share.appId || st.myAppId), su = slug(sa), sn = short(sa.name);
+      const act = (label, msg, primary) => ({ label, bg: primary ? t.accent : 'transparent', fg: primary ? t.accentInk : t.ink, bd: primary ? t.accent : t.line, onClick:() => { this.setState({ share:null }); this.flash(msg); } });
+      const social = [act('X','Opened X with your post',true), act('LinkedIn','Opened LinkedIn'), act('Threads','Opened Threads'), act('Copy link','Link copied')];
+      const base = { ratio:'1.91/1', hasWeb:false, prompts:[], url: su, isListing:false, isBig:false, isQuote:false, isReport:false, icon: ic(sa.hue), initial: sa.name[0], name: sa.name, sub: sa.sub, actions: social, stats:[] };
+      if (k === 'listing') share = { ...base, title:'Share your listing', isListing:true, hasWeb:true, ratio:'auto', builder:'Jaryd', builderSub:'iOS · Supabase', prompts: sa.prompts.slice(0,3).map(([label,text]) => ({ label, text })), cta:'Want to try this? Match with me on Hey100', post: sn + " is on Hey100. If you're a builder who fits, match with me and we'll trade: you try mine, I try yours.\n" + su };
+      if (k === 'milestone') share = { ...base, title:'Share milestone', isBig:true, big: st.share.big, line: st.share.line, cta:'See the listing → ' + su, post: st.share.post + '\n' + su };
+      if (k === 'report') share = { ...base, title:'October launch report', isReport:true, stats:[{k:'views',v:'412'},{k:'matches',v:'5'},{k:'trades',v:'2'},{k:'like ratio',v:'23%'}], cta:'Top-liked: the Sunday summary prompt', post: sn + ' in October: 412 page views, 5 matches, 2 completed trades. The Sunday summary was the most-liked part.\n' + su };
+      if (k === 'testimonial') share = { ...base, title:'Testimonial card', isQuote:true, quote: st.share.quote, who: '— ' + st.share.who, cta:'via Hey100 · ' + su, post: 'What builders say about ' + sn + ':\n"' + st.share.quote + '"', actions:[act('Image','Image saved',true), act('Embed','Embed code copied'), act('X','Opened X with your post'), act('LinkedIn','Opened LinkedIn')] };
+      if (k === 'invite') share = { ...base, title:'Invite a builder', url:'hey100.com/i/jaryd', isBig:true, big:'+3', line:'matches for both of us when you list your app', cta:'Find your first 100 users', post:"I'm finding early users for Tidepool on Hey100. Builders match, try each other's apps and trade feedback. Join with my link and we both get 3 extra matches.\nhey100.com/i/jaryd" };
+    }
+    const milestones = [
+      { badge:'1st', title:'First completed trade', sub:'Tidepool ⇄ Pocket Tutor · Oct 11', d:{ big:'1st', line:'completed trade on Hey100', post:'First completed trade for Tidepool on Hey100. I tried Pocket Tutor, Sam tried Tidepool, and we both got real feedback.' } },
+      { badge:'38%', title:'38% of your ideal users opened Tidepool', sub:'Last 30 days', d:{ big:'38%', line:'of my ideal users opened Tidepool', post:'38% of the builders who fit my ideal user opened Tidepool on Hey100 this month.' } },
+      { badge:'OCT', title:'October launch report', sub:'412 views · 5 matches · 2 trades', report:true },
+    ].map(m => ({ ...m, onShare:() => m.report ? openShare('report', { appId:'tide' }) : openShare('milestone', { ...m.d, appId:'tide' }) }));
+    const mc = st.conns[st.myAppId] || {};
+    const revBand = mc.stripe ? 'Verified $100–1k MRR' : mc.rc ? 'Verified 100–500 subscribers' : '';
+    const siteBadges = [
+      { text:'Find us on Hey100' },
+      { text:'Tested by ' + (myA.trades * 4) + ' builders on Hey100' },
+      { text: revBand ? revBand + ' · Hey100' : 'Verified revenue · Hey100', locked: !revBand, hint:'Connect Stripe or RevenueCat to unlock' },
+    ].map(b => ({ ...b, locked: !!b.locked, op: b.locked ? '.45' : '1', edge: b.locked ? 'rgba(232,236,231,.14)' : 'oklch(0.87 0.18 128 / .5)', btn: b.locked ? 'Locked' : 'Copy', btnColor: b.locked ? t.muted : t.ink, onCopy:() => { if (!b.locked) this.flash('Snippet copied'); } }));
+
+    const curConns = st.conns[st.myAppId] || {};
+    const conns = CONN.map(c => { const on = !!curConns[c.k]; return { ...c, sub: on ? c.on : c.desc, subColor: on ? t.accentText : t.muted, hasDetail: on && !!c.detail, btn: on ? 'Connected' : 'Connect', bg: on ? 'transparent' : t.ink, fg: on ? t.muted : t.bg, bd: on ? t.line : t.ink,
+      onClick:() => this.setState(s => ({ conns:{ ...s.conns, [s.myAppId]:{ ...(s.conns[s.myAppId]||{}), [c.k]: !on } } })) }; });
+    const myApps = Object.keys(MINE).map(id => { const a = MINE[id], cc = st.conns[id] || {}, n = CONN.filter(x => cc[x.k]).length;
+      const mcount = st.matches.filter(m => m.via === id).length;
+      return { name:a.name, icon: ic(a.hue), initial:a.name[0], views:a.views, likes:a.likes, matches:mcount, connCount:n, connBars: CONN.map((x,i) => i < n ? t.accentText : t.line), bd: a.primary ? t.mid : t.line,
+        status: a.primary ? (st.paid ? 'Primary · listed · ' + (st.plan === 'season' ? '84 days left' : 'monthly') : `Primary · free · ${Math.min(matchCount,5)} of 5 matches`) : `${a.stage} · matching`,
+        onOpen:() => set({ myAppId:id, screen:'myapp', editLayout:false, setup:false }) }; });
+
+    let footer = null;
+    if (scr === 'feedback') footer = { label:'Send feedback', action:() => {
+      const id = curMatch.id;
+      this.setState(s => ({ screen:'chat', matches: s.matches.map(m => m.id === id ? { ...m, mine:'Feedback sent', last:'You sent feedback', turn:false, time:'now' } : m),
+        msgs:{ ...s.msgs, [id]:[...(s.msgs[id]||[]), { fb:true, from:'me', stars:(picked('rate')[0]||'4') + '/5', text:'Feels like a real tool, not a toy. Took me a minute to find where to start.', meta:'Keep using: ' + (picked('keep')[0]||'Maybe') }] } }));
+      this.flash('Feedback sent to ' + cm.builder.split(' ')[0]);
+    } };
+    else if (scr === 'myapp' && st.setup) footer = { label:'Start matching', action:() => set({ screen:'deck', setup:false, editLayout:false }) };
+    else if (onb && st.step >= 1 && st.step <= 5) footer = st.step === 1 && !st.fetched ? { label:'Paste a link to continue', action:() => set({ fetched:true }), dim:true } : { label:'Continue', action:() => set({ step: st.step + 1 }) };
+
+    const plans = [['month','Monthly','Cancel anytime','$9.99/mo'],['season','Launch season','90 days, timed to your launch','$24.99']].map(([k,name,sub,price]) => ({ name, sub, price, onClick:() => set({ plan:k }), bd: st.plan === k ? t.accentText : t.line, dot: st.plan === k ? t.accentText : 'transparent' }));
+    const modes = ['System','Light','Dark'].map(label => ({ label, onClick:() => set({ mode:label }), bd: st.mode === label ? t.accentText : t.line,
+      preview: label === 'Light' ? '#f2f3ef' : label === 'Dark' ? '#0e100f' : 'linear-gradient(90deg,#f2f3ef 50%,#0e100f 50%)', bar: label === 'Light' ? '#121412' : label === 'Dark' ? '#e8ece7' : '#8e968f' }));
+
+    const cursor = React.createElement('span', { key:'cur', style:{ color:t.accentText, animation:'h100blink 1.1s infinite', marginLeft:'1px' } }, '_');
+
+    return {
+      t, homeBar: st.matchOverlay ? '#e8ece7' : t.ink, cursor,
+      contentBottom: showTabs ? '84px' : '0px',
+      s0: onb && st.step === 0, s3: onb && st.step === 1, s4: onb && st.step === 2, s5: onb && st.step === 3, s1: onb && st.step === 4, s2: onb && st.step === 5, s6: onb && st.step === 6,
+      inOnb: onb && st.step > 0, stepLabel: `${st.step}/6`,
+      progress: [1,2,3,4,5,6].map(i => ({ c: i <= st.step ? t.accentText : t.line })),
+      next:() => set({ step: st.step + 1 }), back:() => set({ step: Math.max(0, st.step - 1) }),
+      roles: chips('r', ['iOS','Android','Web','React Native','Supabase','Designer','Marketer']),
+      devices: chips('d', ['iPhone','iPad','Mac','Android','Windows','Apple Watch']),
+      ages: seg('age', ['18–24','25–34','35–44','45–54','55+']),
+      genders: chips('gen', ['Woman','Man','Non-binary','Prefer not to say'], true),
+      lifeTags: chips('l', ['💑 In a couple','👶 New parent','🎓 Student','💼 Freelancer','💻 Remote worker','🏠 Homeowner']),
+      interests: chips('i', ['☕ Coffee','🍳 Cooking','🏃 Running','💪 Fitness','💰 Budgeting','📈 Investing','🎮 Gaming','📚 Reading','✈️ Travel','🎵 Music','🐶 Pets','⚡ Productivity']),
+      idealAges: chips('ia', ['18–24','25–34','35–44','45–54','55+']),
+      idealGender: seg('ig', ['Anyone','Women','Men']),
+      idealInterests: chips('ii', ['💑 In a couple','👶 New parent','🏠 Homeowner','💰 Budgeting','📈 Investing','🍳 Cooking','⚡ Productivity','✈️ Travel']),
+      idealPlat: chips('ip', ['iPhone','iPad','Mac','Android','Web']),
+      fbTypes: chips('f', ['Onboarding','UI','Pricing','Bugs','Retention']),
+      fetched: st.fetched, notFetched: !st.fetched, fetchApp:() => set({ fetched:true }), fetchLabel: st.fetched ? 'Found' : 'Fetch',
+      myPrompts: MINE.tide.prompts.map(([label, text]) => ({ label, text })),
+      signIn:() => { this.setState({ screen:'myapp', myAppId:'tide', setup:true, editLayout:false }); this.flash('Signed in. Tidepool is live.'); },
+      showFooterBtn: !!footer, footerLabel: footer && footer.label, footerAction: footer && footer.action, footerBg: footer && footer.dim ? t.raised : t.ink, footerFg: footer && footer.dim ? t.muted : t.bg,
+      showTabHeader: !!titles[scr], pageTitle: titles[scr] || '', isApps: scr === 'apps', hasHeaderRight: !!headerRight, headerRight,
+      isDeck: scr === 'deck', isAppView: scr === 'appview', isMyApp: scr === 'myapp', isLikes: scr === 'likes', isMatches: scr === 'matches', isChat: scr === 'chat', isFeedback: scr === 'feedback', isInbox: scr === 'inbox', isMe: scr === 'me', isSettings: scr === 'settings',
+      isWeb: scr === 'web', webUrl:'hey100.com/tidepool', webSignup: !!st.webSignup,
+      openWeb:() => set({ share:null, screen:'web', webFrom: scr }), closeWeb:() => set({ screen: st.webFrom || 'myapp', webSignup:false }),
+      pageClick: e => { if (scr !== 'web') return; e.stopPropagation(); e.preventDefault(); set({ webSignup:true }); },
+      openSignup:() => set({ webSignup:true }), closeSignup:() => set({ webSignup:false }),
+      webToSignup:() => set({ webSignup:false, screen:'onb', step:0 }), webGetApp:() => { set({ webSignup:false }); this.flash('Opening the App Store'); },
+      showPage: !!page, page: page || { chips:[], blocks:[] }, pagePad, pageShort,
+      showTabs, tabs, likesLeft: st.likesLeft,
+      setup: st.setup, notSetup: !st.setup, editing: st.editLayout, notEditing: !st.editLayout,
+      toggleEdit:() => set({ editLayout: !st.editLayout }), editLabel: st.editLayout ? 'Done' : 'Edit layout',
+      editBg: st.editLayout ? t.accent : 'transparent', editFg: st.editLayout ? t.accentInk : t.ink, editBd: st.editLayout ? t.accent : t.line,
+      conns, connCount: CONN.filter(x => curConns[x.k]).length,
+      goApps:() => set({ screen:'apps', editLayout:false }), goMe:() => set({ screen:'me' }), goSettings:() => set({ screen:'settings', settingsFrom: scr }), settingsBack:() => set({ screen: st.settingsFrom || 'apps' }),
+      goLikes:() => set({ screen:'likes' }),
+      viewLike, viewPass:() => { this.setState(s => ({ likeState:{ ...s.likeState, [vl.id]:'pass' }, screen:'likes' })); },
+      viewLikeBack:() => { likeBack(vl); this.setState({ screen:'likes' }); },
+      pass:() => set({ deck: st.deck + 1 }),
+      likeTarget: st.likeTarget, comment: st.comment, onComment: e => set({ comment: e.target.value }), closeLike:() => set({ likeTarget:null }),
+      sendLike:() => {
+        if (st.likesLeft <= 0) return;
+        this.setState(s => ({ likeTarget:null, likesLeft: s.likesLeft - 1, deck: s.deck + 1 }));
+        if (deckApp.likesYou && !st.matches.find(m => m.id === deckId)) {
+          const v = MINE[deckApp.via];
+          if (st.paid || matchCount + 1 !== 5) this.setState({ matchOverlay:{ icon: ic(deckApp.hue), initial: deckApp.name[0], builder: deckApp.builder, id: deckId, viaIcon: ic(v.hue), viaInitial: v.name[0] } });
+          this.addMatch({ id:deckId, via:deckApp.via, last:'New match. Say hi.', time:'now', mine:'Not started', theirs:'Not started', turn:true, why:`${deckApp.builder.split(' ')[0].toLowerCase()} liked tidepool's onboarding video` });
+        } else this.flash('Like sent to ' + short(deckApp.name));
+      },
+      matchOverlay: st.matchOverlay,
+      openMatchChat:() => set({ matchOverlay:null, screen:'chat', chatId: st.matchOverlay.id }), closeMatch:() => set({ matchOverlay:null }),
+      likes, likesSub: openLikes ? `${openLikes} builders liked your apps. Tap one to see their page.` : 'All caught up.',
+      matches, goMatches:() => set({ screen:'matches' }),
+      chat, goFeedback:() => set({ screen:'feedback' }), goChat:() => set({ screen:'chat' }),
+      fbBtnLabel: curMatch.mine === 'Feedback sent' ? 'Feedback sent ✓' : 'Send feedback',
+      draft: st.draft, onDraft: e => set({ draft: e.target.value }),
+      sendMsg:() => { if (!st.draft.trim()) return; const id = curMatch.id; this.setState(s => ({ draft:'', msgs:{ ...s.msgs, [id]:[...(s.msgs[id]||[]), { me: s.draft }] } })); },
+      ratings: chips('rate', ['1','2','3','4','5'], true).map(c => ({ ...c, bg: c.on ? t.accent : t.surface, fg: c.on ? t.accentInk : t.ink, bd: c.on ? t.accent : t.line })),
+      keeps: seg('keep', ['Yes','Maybe','No']),
+      prices: chips('price', ["Wouldn't pay",'$1–3/mo','$3–5/mo','$5–10/mo','One-time'], true),
+      myApps, inbox, funnel, ib, inboxApp, appMenu, appMenuOpen: st.appMenu, toggleAppMenu:() => set({ appMenu: !st.appMenu }),
+      share, closeShare:() => set({ share:null }), shareListing:() => openShare('listing', { appId: st.myAppId }), shareLabel: st.setup ? 'Post it' : 'Share', myUrl,
+      milestones, siteBadges, shareInvite:() => openShare('invite'), refCount:'2 joined', refEarned:'+6 matches earned so far · up to +15',
+      paywallInvite:() => this.setState({ paywall:false, screen:'me', share:{ kind:'invite' } }),
+      job: st.job, onJob: e => set({ job: e.target.value }), answeredCount: st.answered.length,
+      socialFields: [['TikTok','tiktok','@yourapp'],['Instagram','instagram','@yourapp'],['X','x','@yourapp (optional)']].map(([label,k,ph]) => ({ label, ph, value: st.socials[k], onChange: e => { const v = e.target.value; this.setState(s => ({ socials:{ ...s.socials, [k]: v } })); } })),
+      promptTags: ['All','Product','Audience','Story','Feedback'].map(label => { const on = st.promptTag === label; return { label, onClick:() => set({ promptTag:label }), bg: on ? t.ink : 'transparent', fg: on ? t.bg : t.ink, bd: on ? t.ink : t.line }; }),
+      answeredLabel: st.answered.length + ' of 5 answered',
+      promptLib: PLIB.filter(p => st.promptTag === 'All' || p.tag === st.promptTag).map(p => { const on = st.answered.includes(p.id); return { ...p, on, action: on ? 'Remove' : '+ Answer', actColor: on ? t.muted : t.accentText, bd: on ? t.mid : t.line, onClick:() => {
+        if (on) this.setState(s => ({ answered: s.answered.filter(x => x !== p.id) }));
+        else if (st.answered.length >= 5) this.flash('Remove one first. You can answer 5.');
+        else this.setState(s => ({ answered: [...s.answered, p.id] })); } }; }),
+      profileRows: [
+        { label:'Day job', tags: [st.job] },
+        { label:'Role and stack', tags: picked('r') },
+        { label:'Devices', tags: picked('d') },
+        { label:'As a user', tags: [...picked('age'), ...picked('l'), ...picked('i')] },
+        { label:'Links', tags:['X','GitHub','jaryd.com'] },
+      ],
+      modes, settingsRows: [['Subscription', st.paid ? 'Launch season' : 'Free'],['Notifications','On'],['Connected accounts','GitHub'],['Account','Apple ID']].map(([label,value],i) => ({ label, value, bt: i ? `1px solid ${t.line}` : 'none' })),
+      paywall: st.paywall, plans, buyLabel: st.plan === 'season' ? 'Start launch season · $24.99' : 'Subscribe · $9.99/mo',
+      buy:() => { this.setState({ paywall:false, paid:true, screen:'matches' }); this.flash('Tidepool is listed. Match away.'); },
+      closePaywall:() => set({ paywall:false, screen:'matches' }),
+      toast: st.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>

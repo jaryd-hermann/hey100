@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>body{margin:0;-webkit-font-smoothing:antialiased}a{color:inherit}a:hover{opacity:.8}*{box-sizing:border-box}::-webkit-scrollbar{display:none}textarea,input{outline:none}</style>
+</helmet>
+<div style="display:flex;justify-content:center;font-family:{{ t.font }}">
+<div style="width:414px;height:868px;padding:12px;background:#0b0b0c;border-radius:64px;box-shadow:0 30px 60px rgba(0,0,0,.18),inset 0 0 0 2px #2a2a2d;flex:none">
+<div style="position:relative;width:390px;height:844px;border-radius:52px;overflow:hidden;background:{{ t.bg }};color:{{ t.ink }}">
+
+<div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:122px;height:36px;border-radius:20px;background:#000;z-index:120"></div>
+<div style="position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 34px 0 44px;z-index:110;font-size:16px;font-weight:600;font-family:-apple-system,system-ui,sans-serif;color:{{ statusInk }}">
+<span>9:41</span>
+<div style="display:flex;align-items:center;gap:6px;font-size:13px"><span>5G</span><div style="width:25px;height:12px;border:1.5px solid currentColor;border-radius:4px;padding:1.5px;opacity:.9"><div style="width:70%;height:100%;background:currentColor;border-radius:1.5px"></div></div></div>
+</div>
+
+<div ref="{{ scrollRef }}" style="position:absolute;top:54px;left:0;right:0;bottom:{{ contentBottom }};overflow-y:auto;scrollbar-width:none">
+
+<sc-if value="{{ s0 }}" hint-placeholder-val="{{ true }}">
+<div style="height:790px;display:flex;flex-direction:column;padding:0 28px 48px">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:64px;line-height:.95;letter-spacing:{{ t.dispLs }}">Hey100</div>
+<div style="font-size:22px;font-weight:600;line-height:1.25">Find early users.</div>
+<div style="font-size:16px;line-height:1.45;color:{{ t.muted }};max-width:290px;text-wrap:pretty">Your first 100 real users, one honest match at a time.</div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+<div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><span style="font-family:{{ t.labelFont }};color:{{ t.accent }};font-weight:700;width:18px">1</span><span>Like a builder's app.</span></div>
+<div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><span style="font-family:{{ t.labelFont }};color:{{ t.accent }};font-weight:700;width:18px">2</span><span>They like yours back. You match.</span></div>
+<div style="display:flex;gap:12px;align-items:baseline;font-size:15px"><span style="font-family:{{ t.labelFont }};color:{{ t.accent }};font-weight:700;width:18px">3</span><span>Try each other's product and trade feedback.</span></div>
+</div>
+</div>
+<button onClick="{{ next }}" style="height:56px;border:none;border-radius:{{ t.btnR }};background:{{ t.ink }};color:{{ t.bg }};font:600 17px {{ t.font }};cursor:pointer">Continue with Apple</button>
+<div style="text-align:center;font-size:13px;color:{{ t.muted }};margin-top:14px">Builders only. Every account lists a product.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ inOnb }}" hint-placeholder-val="{{ false }}">
+<div style="padding:12px 24px 0;display:flex;align-items:center;gap:14px">
+<button onClick="{{ back }}" style="border:none;background:none;color:{{ t.ink }};font-size:24px;cursor:pointer;padding:0;width:24px">‹</button>
+<div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+<sc-for list="{{ progress }}" as="p" hint-placeholder-count="4"><div style="height:4px;border-radius:2px;background:{{ p.c }}"></div></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 120px;display:flex;flex-direction:column;gap:26px">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.h1 }};line-height:1.05;letter-spacing:{{ t.dispLs }}">About you</div>
+<div style="display:flex;gap:16px;align-items:center">
+<div style="width:76px;height:76px;border-radius:50%;flex:none;background:repeating-linear-gradient(45deg,{{ t.soft }} 0 6px,{{ t.surface }} 6px 12px);border:1px solid {{ t.line }};display:flex;align-items:center;justify-content:center;font:500 9px 'JetBrains Mono',monospace;color:{{ t.muted }}">photo</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<div style="height:46px;border-radius:{{ t.inputR }};background:{{ t.surface }};border:1px solid {{ t.line }};display:flex;align-items:center;padding:0 14px;font-size:16px;font-weight:500">Jaryd</div>
+<div style="height:46px;border-radius:{{ t.inputR }};background:{{ t.surface }};border:1px solid {{ t.line }};display:flex;align-items:center;padding:0 14px;font-size:16px;color:{{ t.muted }}">@jaryd</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Role and stack</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ roles }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 15px;border-radius:{{ t.chipR }};border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">I can test on</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ devices }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 15px;border-radius:{{ t.chipR }};border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">I'm also a user who is…</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ lifeTags }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 15px;border-radius:{{ t.chipR }};border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+<div style="font-size:13px;color:{{ t.muted }}">Helps apps for runners, parents, traders find you.</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 120px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.h1 }};line-height:1.05;letter-spacing:{{ t.dispLs }}">Add your product</div>
+<div style="font-size:15px;color:{{ t.muted }};line-height:1.45">Paste an App Store, Play, or web link. We'll fill in the rest.</div>
+</div>
+<div style="display:flex;gap:8px">
+<div style="flex:1;min-width:0;height:50px;border-radius:{{ t.inputR }};background:{{ t.surface }};border:1px solid {{ t.line }};display:flex;align-items:center;padding:0 14px;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">apps.apple.com/app/tidepool/id6471</div>
+<button onClick="{{ fetchApp }}" style="height:50px;padding:0 18px;border:none;border-radius:{{ t.btnR }};background:{{ t.accent }};color:{{ t.accentInk }};font:600 15px {{ t.font }};cursor:pointer">{{ fetchLabel }}</button>
+</div>
+<sc-if value="{{ fetched }}" hint-placeholder-val="{{ false }}">
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:18px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:58px;height:58px;border-radius:14px;background:oklch(0.72 0.11 220);display:flex;align-items:center;justify-content:center;color:#fff;font:700 24px {{ t.font }}">T</div>
+<div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:19px;font-weight:700">Tidepool</div><div style="font-size:14px;color:{{ t.muted }}">Calm budgeting for couples</div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+<div style="aspect-ratio:9/16;border-radius:10px;background:repeating-linear-gradient(135deg,{{ t.soft }} 0 6px,{{ t.bg }} 6px 12px);display:flex;align-items:flex-end;padding:6px;font:9px 'JetBrains Mono',monospace;color:{{ t.muted }}">screen 1</div>
+<div style="aspect-ratio:9/16;border-radius:10px;background:repeating-linear-gradient(135deg,{{ t.soft }} 0 6px,{{ t.bg }} 6px 12px);display:flex;align-items:flex-end;padding:6px;font:9px 'JetBrains Mono',monospace;color:{{ t.muted }}">screen 2</div>
+<div style="aspect-ratio:9/16;border-radius:10px;background:repeating-linear-gradient(135deg,{{ t.soft }} 0 6px,{{ t.bg }} 6px 12px);display:flex;align-items:flex-end;padding:6px;font:9px 'JetBrains Mono',monospace;color:{{ t.muted }}">screen 3</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<span style="font-size:13px;padding:5px 10px;border-radius:{{ t.chipR }};background:{{ t.bg }};border:1px solid {{ t.line }}">Finance</span>
+<span style="font-size:13px;padding:5px 10px;border-radius:{{ t.chipR }};background:{{ t.bg }};border:1px solid {{ t.line }}">iOS</span>
+<span style="font-size:13px;padding:5px 10px;border-radius:{{ t.chipR }};background:{{ t.bg }};border:1px solid {{ t.line }}">Live</span>
+<span style="font-size:13px;padding:5px 10px;border-radius:{{ t.chipR }};background:{{ t.soft }};color:{{ t.ink }};font-weight:600">✓ Shipped</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ notFetched }}" hint-placeholder-val="{{ true }}">
+<div style="font-size:14px;color:{{ t.muted }};line-height:1.5">Works for iOS, Android, web apps, SaaS, browser extensions and AI tools.</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 120px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.h1 }};line-height:1.05;letter-spacing:{{ t.dispLs }}">Answer 3 prompts</div>
+<div style="font-size:15px;color:{{ t.muted }};line-height:1.45">Builders like a specific answer, so make each one worth reacting to.</div>
+</div>
+<sc-for list="{{ myPrompts }}" as="p" hint-placeholder-count="3">
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;gap:10px"><div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">{{ p.label }}</div><span style="font-size:13px;color:{{ t.accentText }};font-weight:600;flex:none">Swap</span></div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.promptSize }};line-height:1.25;text-wrap:pretty">{{ p.text }}</div>
+</div>
+</sc-for>
+<div style="font-size:13px;color:{{ t.muted }};text-align:center">20 prompts available · voice and video coming soon</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 24px 120px;display:flex;flex-direction:column;gap:26px">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.h1 }};line-height:1.05;letter-spacing:{{ t.dispLs }}">What you're looking for</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Ideal tester</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ testers }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 15px;border-radius:{{ t.chipR }};border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Feedback I want</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ fbTypes }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 15px;border-radius:{{ t.chipR }};border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Time I'm asking for</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:{{ t.segR }};background:{{ t.surface }};border:1px solid {{ t.line }}"><sc-for list="{{ times }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.onClick }}" style="height:40px;border:none;border-radius:{{ t.segInR }};background:{{ c.bg }};color:{{ c.fg }};font:600 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDeck }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px;letter-spacing:{{ t.dispLs }}">Discover</div>
+<div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 6px;border-radius:{{ t.chipR }};background:{{ t.surface }};border:1px solid {{ t.line }};font-size:14px;font-weight:600"><div style="width:24px;height:24px;border-radius:7px;background:oklch(0.72 0.11 220);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px">T</div>As Tidepool ▾</div>
+</div>
+<div style="padding:8px 20px 14px;display:flex;justify-content:space-between;font-size:13px;color:{{ t.muted }}"><span>{{ likesLeft }} of 8 likes left today</span><span style="font-weight:600;color:{{ t.ink }}">Filters</span></div>
+<div style="padding:0 14px 120px;display:flex;flex-direction:column;gap:12px">
+<div style="padding:8px 6px 4px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:64px;height:64px;border-radius:16px;flex:none;background:{{ app.icon }};display:flex;align-items:center;justify-content:center;color:#fff;font:700 28px {{ t.font }}">{{ app.initial }}</div>
+<div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.appName }};line-height:1.05;letter-spacing:{{ t.dispLs }}">{{ app.name }}</div>
+<div style="font-size:15px;line-height:1.35;color:{{ t.muted }};text-wrap:pretty">{{ app.tagline }}</div>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px">
+<span style="font-size:13px;padding:5px 10px;border-radius:{{ t.chipR }};border:1px solid {{ t.line }}">{{ app.cat }}</span>
+<span style="font-size:13px;padding:5px 10px;border-radius:{{ t.chipR }};border:1px solid {{ t.line }}">{{ app.plat }}</span>
+<span style="font-size:13px;padding:5px 10px;border-radius:{{ t.chipR }};border:1px solid {{ t.line }}">{{ app.stage }}</span>
+</div>
+<div style="font-size:12.5px;color:{{ t.muted }};display:flex;gap:6px;align-items:center"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.accent }};flex:none"></span>{{ app.fit }}</div>
+</div>
+<sc-for list="{{ app.itemsA }}" as="it" hint-placeholder-count="2">
+<sc-if value="{{ it.isMedia }}" hint-placeholder-val="{{ true }}">
+<div style="position:relative;aspect-ratio:4/4.6;border-radius:{{ t.cardR }};overflow:hidden;background:repeating-linear-gradient(135deg,{{ t.soft }} 0 8px,{{ t.surface }} 8px 16px);border:{{ t.cardBd }}">
+<div style="position:absolute;left:14px;top:14px;font:500 11px 'JetBrains Mono',monospace;color:{{ t.muted }};background:{{ t.surface }};padding:4px 8px;border-radius:6px">{{ it.media }}</div>
+<button onClick="{{ it.onLike }}" style="position:absolute;right:14px;bottom:14px;width:52px;height:52px;border-radius:50%;border:none;background:{{ t.surface }};box-shadow:0 2px 10px rgba(0,0,0,.14);color:{{ t.accent }};font-size:22px;cursor:pointer">♥</button>
+</div>
+</sc-if>
+<sc-if value="{{ it.isPrompt }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:24px 22px 72px;display:flex;flex-direction:column;gap:12px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">{{ it.label }}</div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.promptSize }};line-height:1.22;text-wrap:pretty">{{ it.text }}</div>
+<button onClick="{{ it.onLike }}" style="position:absolute;right:14px;bottom:14px;width:48px;height:48px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.bg }};color:{{ t.accent }};font-size:20px;cursor:pointer">♥</button>
+</div>
+</sc-if>
+</sc-for>
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:16px 18px;display:flex;gap:14px;align-items:center">
+<div style="width:48px;height:48px;border-radius:50%;flex:none;background:repeating-linear-gradient(45deg,{{ t.soft }} 0 5px,{{ t.bg }} 5px 10px);border:1px solid {{ t.line }}"></div>
+<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font-size:16px;font-weight:700">{{ app.builder }}</div><div style="font-size:13.5px;color:{{ t.muted }}">{{ app.role }}</div><div style="font-size:13px;color:{{ t.muted }}">{{ app.style }}</div></div>
+</div>
+<sc-for list="{{ app.itemsB }}" as="it" hint-placeholder-count="3">
+<sc-if value="{{ it.isMedia }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;aspect-ratio:4/4.6;border-radius:{{ t.cardR }};overflow:hidden;background:repeating-linear-gradient(135deg,{{ t.soft }} 0 8px,{{ t.surface }} 8px 16px);border:{{ t.cardBd }}">
+<div style="position:absolute;left:14px;top:14px;font:500 11px 'JetBrains Mono',monospace;color:{{ t.muted }};background:{{ t.surface }};padding:4px 8px;border-radius:6px">{{ it.media }}</div>
+<button onClick="{{ it.onLike }}" style="position:absolute;right:14px;bottom:14px;width:52px;height:52px;border-radius:50%;border:none;background:{{ t.surface }};box-shadow:0 2px 10px rgba(0,0,0,.14);color:{{ t.accent }};font-size:22px;cursor:pointer">♥</button>
+</div>
+</sc-if>
+<sc-if value="{{ it.isPrompt }}" hint-placeholder-val="{{ true }}">
+<div style="position:relative;background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:24px 22px 72px;display:flex;flex-direction:column;gap:12px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">{{ it.label }}</div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.promptSize }};line-height:1.22;text-wrap:pretty">{{ it.text }}</div>
+<button onClick="{{ it.onLike }}" style="position:absolute;right:14px;bottom:14px;width:48px;height:48px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.bg }};color:{{ t.accent }};font-size:20px;cursor:pointer">♥</button>
+</div>
+</sc-if>
+</sc-for>
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:20px;display:flex;flex-direction:column;gap:14px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Looking for</div>
+<div style="display:grid;grid-template-columns:90px 1fr;row-gap:10px;font-size:15px">
+<span style="color:{{ t.muted }}">Tester</span><span style="font-weight:500">{{ app.looking.tester }}</span>
+<span style="color:{{ t.muted }}">Feedback</span><span style="font-weight:500">{{ app.looking.types }}</span>
+<span style="color:{{ t.muted }}">Time</span><span style="font-weight:500">{{ app.looking.time }}</span>
+</div>
+</div>
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:20px;display:flex;flex-direction:column;gap:12px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Verified</div>
+<sc-for list="{{ app.badges }}" as="b" hint-placeholder-count="2"><div style="display:flex;gap:10px;align-items:center;font-size:14.5px"><span style="width:20px;height:20px;border-radius:50%;background:{{ t.soft }};color:{{ t.accentText }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none">✓</span>{{ b }}</div></sc-for>
+<div style="font-size:12px;color:{{ t.muted }}">Verified as of Oct 14</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isLikes }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 30px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px"><div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px;letter-spacing:{{ t.dispLs }}">Likes you</div><div style="font-size:14px;color:{{ t.muted }}">{{ likesSub }}</div></div>
+<sc-for list="{{ likes }}" as="l" hint-placeholder-count="3">
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:12px;align-items:center">
+<div style="width:46px;height:46px;border-radius:12px;flex:none;background:{{ l.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 20px {{ t.font }}">{{ l.initial }}</div>
+<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font-size:16px;font-weight:700">{{ l.name }}</div><div style="font-size:13px;color:{{ t.muted }}">{{ l.builder }} · {{ l.cat }}</div></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:{{ t.innerR }};background:{{ t.bg }}">
+<div style="font-size:12.5px;color:{{ t.muted }}">Liked {{ l.target }}</div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.quoteSize }};line-height:1.3;text-wrap:pretty">{{ l.comment }}</div>
+</div>
+<sc-if value="{{ l.open }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:8px">
+<button onClick="{{ l.onPass }}" style="height:46px;border-radius:{{ t.btnR }};border:1px solid {{ t.line }};background:transparent;color:{{ t.ink }};font:600 15px {{ t.font }};cursor:pointer">Pass</button>
+<button onClick="{{ l.onLike }}" style="height:46px;border-radius:{{ t.btnR }};border:none;background:{{ t.accent }};color:{{ t.accentInk }};font:600 15px {{ t.font }};cursor:pointer">Like back and match</button>
+</div>
+</sc-if>
+<sc-if value="{{ l.matched }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;font-weight:600;color:{{ t.accentText }}">Matched. Say hi in Matches.</div></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMatches }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 30px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px;letter-spacing:{{ t.dispLs }}">Matches</div><div style="font-size:13px;color:{{ t.muted }}">{{ matchCount }} of 5 free</div></div>
+<sc-for list="{{ matches }}" as="m" hint-placeholder-count="3">
+<button onClick="{{ m.onOpen }}" style="display:flex;gap:14px;align-items:center;padding:14px 0;border:none;border-bottom:1px solid {{ t.line }};background:none;color:{{ t.ink }};text-align:left;font-family:{{ t.font }};cursor:pointer;width:100%">
+<div style="position:relative;width:56px;height:56px;flex:none">
+<div style="width:50px;height:50px;border-radius:14px;background:{{ m.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 21px {{ t.font }}">{{ m.initial }}</div>
+<div style="position:absolute;right:0;bottom:0;width:24px;height:24px;border-radius:7px;border:2px solid {{ t.bg }};background:oklch(0.72 0.11 220);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">T</div>
+</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+<div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:16px;font-weight:700">{{ m.name }}</span><span style="font-size:12.5px;color:{{ t.muted }};flex:none">{{ m.time }}</span></div>
+<div style="font-size:14px;color:{{ t.muted }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.last }}</div>
+<div style="display:flex;gap:6px;align-items:center;margin-top:3px"><span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:{{ t.chipR }};background:{{ m.chipBg }};color:{{ m.chipFg }}">{{ m.chip }}</span><span style="font-size:12px;color:{{ t.muted }}">{{ m.tradeLine }}</span></div>
+</div>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;top:0;z-index:5;background:{{ t.bg }};padding:6px 16px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid {{ t.line }}">
+<div style="display:flex;align-items:center;gap:12px">
+<button onClick="{{ goMatches }}" style="border:none;background:none;color:{{ t.ink }};font-size:28px;cursor:pointer;padding:0 4px 0 0;line-height:1">‹</button>
+<div style="width:38px;height:38px;border-radius:11px;background:{{ chat.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 17px {{ t.font }}">{{ chat.initial }}</div>
+<div style="flex:1;display:flex;flex-direction:column"><span style="font-size:16px;font-weight:700">{{ chat.name }}</span><span style="font-size:12.5px;color:{{ t.muted }}">{{ chat.builder }}</span></div>
+<span style="font-size:20px;color:{{ t.muted }}">···</span>
+</div>
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.innerR }};padding:12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Trade</span><span style="font-size:12px;color:{{ t.muted }}">Code {{ chat.code }}</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<div style="display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:10px;background:{{ t.bg }}"><span style="font-size:12px;color:{{ t.muted }}">You try {{ chat.name }}</span><span style="font-size:14px;font-weight:700;color:{{ chat.mineColor }}">{{ chat.mine }}</span></div>
+<div style="display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:10px;background:{{ t.bg }}"><span style="font-size:12px;color:{{ t.muted }}">They try Tidepool</span><span style="font-size:14px;font-weight:700;color:{{ chat.theirsColor }}">{{ chat.theirs }}</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button style="height:40px;border-radius:{{ t.btnR }};border:1px solid {{ t.line }};background:transparent;color:{{ t.ink }};font:600 14px {{ t.font }};cursor:pointer">Open TestFlight</button>
+<button onClick="{{ goFeedback }}" style="height:40px;border-radius:{{ t.btnR }};border:none;background:{{ t.accent }};color:{{ t.accentInk }};font:600 14px {{ t.font }};cursor:pointer">{{ fbBtnLabel }}</button>
+</div>
+</div>
+</div>
+<div style="padding:18px 16px 90px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ chat.msgs }}" as="m" hint-placeholder-count="3">
+<sc-if value="{{ m.isSys }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;font-size:12.5px;color:{{ t.muted }};padding:4px 20px 8px">{{ m.text }}</div></sc-if>
+<sc-if value="{{ m.isText }}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:{{ m.justify }}"><div style="max-width:78%;padding:10px 14px;border-radius:{{ t.bubbleR }};background:{{ m.bg }};color:{{ m.fg }};font-size:15px;line-height:1.4;border:{{ m.bd }}">{{ m.text }}</div></div></sc-if>
+<sc-if value="{{ m.isFb }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:{{ m.justify }}"><div style="width:80%;padding:14px;border-radius:{{ t.innerR }};background:{{ t.surface }};border:1.5px solid {{ t.accent }};display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between"><span style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.accentText }};font-weight:700">Feedback</span><span style="font-size:13px;font-weight:600">{{ m.stars }}</span></div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.quoteSize }};line-height:1.3">{{ m.text }}</div>
+<div style="font-size:13px;color:{{ t.muted }}">{{ m.meta }}</div>
+</div></div></sc-if>
+</sc-for>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:0;padding:10px 14px 34px;background:{{ t.bg }};border-top:1px solid {{ t.line }};display:flex;gap:8px">
+<input value="{{ draft }}" onChange="{{ onDraft }}" placeholder="Message" style="flex:1;min-width:0;height:44px;border-radius:{{ t.chipR }};border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:0 16px;font:15px {{ t.font }}">
+<button onClick="{{ sendMsg }}" style="height:44px;padding:0 16px;border-radius:{{ t.chipR }};border:none;background:{{ t.ink }};color:{{ t.bg }};font:600 15px {{ t.font }};cursor:pointer">Send</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFeedback }}" hint-placeholder-val="{{ false }}">
+<div style="padding:8px 20px 120px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;justify-content:space-between;align-items:center"><button onClick="{{ goChat }}" style="border:none;background:none;color:{{ t.ink }};font:500 16px {{ t.font }};cursor:pointer;padding:0">Cancel</button><span style="font-size:13px;color:{{ t.muted }}">About 3 min</span></div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.h1 }};line-height:1.05;letter-spacing:{{ t.dispLs }}">Feedback for {{ chat.name }}</div>
+<div style="font-size:14px;color:{{ t.muted }}">{{ chat.builder }} asked for {{ chat.asked }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">First impression</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px"><sc-for list="{{ ratings }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:48px;border-radius:{{ t.innerR }};border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:700 17px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+<textarea style="height:72px;resize:none;border-radius:{{ t.inputR }};border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 {{ t.font }}">Feels like a real tool, not a toy. Took me a minute to find where to start.</textarea>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Would you keep using it?</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:{{ t.segR }};background:{{ t.surface }};border:1px solid {{ t.line }}"><sc-for list="{{ keeps }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.onClick }}" style="height:40px;border:none;border-radius:{{ t.segInR }};background:{{ c.bg }};color:{{ c.fg }};font:600 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Biggest confusion</div>
+<textarea style="height:64px;resize:none;border-radius:{{ t.inputR }};border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 {{ t.font }}">The plus button did something different than I expected.</textarea>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Best moment</div>
+<textarea style="height:64px;resize:none;border-radius:{{ t.inputR }};border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 {{ t.font }}">The first screen after sign-up. Clear and quick.</textarea>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Found a bug?</div>
+<div style="height:56px;border-radius:{{ t.inputR }};border:1.5px dashed {{ t.line }};display:flex;align-items:center;justify-content:center;font-size:15px;color:{{ t.muted }}">+ Add screenshot</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">Would you pay? What feels right?</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ prices }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onClick }}" style="height:38px;padding:0 15px;border-radius:{{ t.chipR }};border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font:500 15px {{ t.font }};cursor:pointer">{{ c.label }}</button></sc-for></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isInbox }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 30px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px;letter-spacing:{{ t.dispLs }}">Feedback</div><span style="font-size:14px;font-weight:600">Tidepool ▾</span></div>
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:20px;display:flex;flex-direction:column;gap:18px">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px">12</span><span style="font-size:12.5px;color:{{ t.muted }}">responses</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px">4.1</span><span style="font-size:12.5px;color:{{ t.muted }}">first impression</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px">$3–5</span><span style="font-size:12.5px;color:{{ t.muted }}">fair price</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:13px;color:{{ t.muted }}">Would keep using it</div>
+<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px"><div style="width:58%;background:{{ t.accent }}"></div><div style="width:25%;background:{{ t.mid }}"></div><div style="width:17%;background:{{ t.line }}"></div></div>
+<div style="display:flex;gap:14px;font-size:12.5px"><span><b>58%</b> yes</span><span><b>25%</b> maybe</span><span><b>17%</b> no</span></div>
+</div>
+</div>
+<sc-for list="{{ inbox }}" as="f" hint-placeholder-count="3">
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:10px;align-items:center"><div style="width:32px;height:32px;border-radius:9px;background:{{ f.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px {{ t.font }}">{{ f.initial }}</div><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:14.5px;font-weight:700">{{ f.who }}</span><span style="font-size:12.5px;color:{{ t.muted }}">{{ f.app }} · {{ f.when }}</span></div><span style="font-size:13px;font-weight:600">{{ f.stars }}</span></div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.quoteSize }};line-height:1.3;text-wrap:pretty">{{ f.text }}</div>
+<div style="display:grid;grid-template-columns:96px 1fr;row-gap:6px;font-size:13.5px"><span style="color:{{ t.muted }}">Confusion</span><span>{{ f.conf }}</span><span style="color:{{ t.muted }}">Keep using</span><span>{{ f.keep }}</span></div>
+<div style="display:flex;gap:8px;align-items:center;border-top:1px solid {{ t.line }};padding-top:12px"><span style="font-size:13px;color:{{ t.muted }};flex:1">Was this helpful?</span>
+<button onClick="{{ f.onYes }}" style="height:32px;padding:0 12px;border-radius:{{ t.chipR }};border:1px solid {{ f.yesBd }};background:{{ f.yesBg }};color:{{ f.yesFg }};font:600 13px {{ t.font }};cursor:pointer">Helpful</button>
+<button onClick="{{ f.onNo }}" style="height:32px;padding:0 12px;border-radius:{{ t.chipR }};border:1px solid {{ f.noBd }};background:{{ f.noBg }};color:{{ f.noFg }};font:600 13px {{ t.font }};cursor:pointer">Not really</button></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 30px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;color:{{ t.muted }}">hey100.com/jaryd</span><span style="font-size:14px;font-weight:600">Edit</span></div>
+<div style="display:flex;gap:16px;align-items:center">
+<div style="width:84px;height:84px;border-radius:50%;flex:none;background:repeating-linear-gradient(45deg,{{ t.soft }} 0 6px,{{ t.surface }} 6px 12px);border:1px solid {{ t.line }};display:flex;align-items:center;justify-content:center;font:500 9px 'JetBrains Mono',monospace;color:{{ t.muted }}">photo</div>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:32px;line-height:1;letter-spacing:{{ t.dispLs }}">Jaryd</div><div style="font-size:14px;color:{{ t.muted }}">@jaryd · iOS, Supabase</div><div style="font-size:14.5px;line-height:1.35;margin-top:4px">Building Tidepool, calm budgeting for couples.</div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border:{{ t.cardBd }};border-radius:{{ t.cardR }};background:{{ t.surface }};box-shadow:{{ t.shadow }};padding:16px 0">
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:26px">18</span><span style="font-size:12px;color:{{ t.muted }}">feedback given</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;border-left:1px solid {{ t.line }};border-right:1px solid {{ t.line }}"><span style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:26px">94%</span><span style="font-size:12px;color:{{ t.muted }}">response rate</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:26px">4.7</span><span style="font-size:12px;color:{{ t.muted }}">rated by matches</span></div>
+</div>
+<sc-for list="{{ profileRows }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">{{ r.label }}</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ r.tags }}" as="tg" hint-placeholder-count="3"><span style="font-size:14px;padding:6px 12px;border-radius:{{ t.chipR }};border:1px solid {{ t.line }};background:{{ t.surface }}">{{ tg }}</span></sc-for></div>
+</div>
+</sc-for>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">My products</div>
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.cardR }};box-shadow:{{ t.shadow }};padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:12px;align-items:center"><div style="width:46px;height:46px;border-radius:12px;background:oklch(0.72 0.11 220);color:#fff;display:flex;align-items:center;justify-content:center;font:700 20px {{ t.font }}">T</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:700">Tidepool</span><span style="font-size:13px;color:{{ t.muted }}">{{ listingLine }}</span></div><span style="font-size:13px;font-weight:600;color:{{ t.accentText }}">Primary</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:12.5px;padding:4px 10px;border-radius:{{ t.chipR }};background:{{ t.soft }};font-weight:600">✓ Shipped</span><span style="font-size:12.5px;padding:4px 10px;border-radius:{{ t.chipR }};background:{{ t.soft }};font-weight:600">✓ Revenue $100–1k</span><span style="font-size:12.5px;padding:4px 10px;border-radius:{{ t.chipR }};background:{{ t.soft }};font-weight:600">✓ Active on GitHub</span></div>
+</div>
+<div style="height:52px;border-radius:{{ t.cardR }};border:1.5px dashed {{ t.line }};display:flex;align-items:center;justify-content:center;font-size:15px;color:{{ t.muted }}">+ Add another product</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{ showFooterBtn }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;padding:16px 24px 40px;background:linear-gradient(to top,{{ t.bg }} 70%,transparent);z-index:20">
+<button onClick="{{ footerAction }}" style="width:100%;height:56px;border:none;border-radius:{{ t.btnR }};background:{{ footerBg }};color:{{ footerFg }};font:600 17px {{ t.font }};cursor:pointer">{{ footerLabel }}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDeck }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ pass }}" style="position:absolute;left:20px;bottom:104px;width:58px;height:58px;border-radius:50%;border:1px solid {{ t.line }};background:{{ t.surface }};box-shadow:0 4px 16px rgba(0,0,0,.14);color:{{ t.ink }};font-size:22px;cursor:pointer;z-index:20">✕</button>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;height:84px;padding:8px 8px 0;display:grid;grid-template-columns:repeat(5,1fr);background:{{ t.surface }};border-top:1px solid {{ t.line }};z-index:30">
+<sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="5">
+<button onClick="{{ tb.onClick }}" style="border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:6px;cursor:pointer;color:{{ tb.fg }};font:600 11px {{ t.font }}">
+<div style="position:relative;width:22px;height:22px;border-radius:{{ tb.shapeR }};border:2px solid currentColor;background:{{ tb.fill }}">
+<sc-if value="{{ tb.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-8px;right:-12px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:{{ t.accent }};color:{{ t.accentInk }};font-size:11px;line-height:18px">{{ tb.badge }}</span></sc-if>
+</div>
+<span>{{ tb.label }}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ likeTarget }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:70;background:rgba(0,0,0,.4);display:flex;flex-direction:column;justify-content:flex-end">
+<div onClick="{{ closeLike }}" style="flex:1"></div>
+<div style="background:{{ t.bg }};border-radius:24px 24px 0 0;padding:10px 20px 40px;display:flex;flex-direction:column;gap:16px">
+<div style="width:40px;height:4px;border-radius:2px;background:{{ t.line }};align-self:center"></div>
+<div style="font-size:14px;color:{{ t.muted }}">Liking {{ app.name }}'s {{ likeTarget.kind }}</div>
+<div style="background:{{ t.surface }};border:{{ t.cardBd }};border-radius:{{ t.innerR }};padding:16px;display:flex;flex-direction:column;gap:8px">
+<div style="font-family:{{ t.labelFont }};font-size:{{ t.labelSize }};text-transform:{{ t.labelTf }};letter-spacing:{{ t.labelLs }};color:{{ t.muted }};font-weight:600">{{ likeTarget.label }}</div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:{{ t.quoteSize }};line-height:1.3">{{ likeTarget.text }}</div>
+</div>
+<textarea value="{{ comment }}" onChange="{{ onComment }}" placeholder="Add a comment. Say what you'd test." style="height:88px;resize:none;border-radius:{{ t.inputR }};border:1px solid {{ t.line }};background:{{ t.surface }};color:{{ t.ink }};padding:12px 14px;font:15px/1.4 {{ t.font }}"></textarea>
+<button onClick="{{ sendLike }}" style="height:54px;border:none;border-radius:{{ t.btnR }};background:{{ t.accent }};color:{{ t.accentInk }};font:600 17px {{ t.font }};cursor:pointer">Send like</button>
+<div style="text-align:center;font-size:13px;color:{{ t.muted }}">{{ likesLeft }} likes left today. Comments double your match rate.</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ matchOverlay }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:80;background:{{ t.ink }};color:{{ t.bg }};display:flex;flex-direction:column;padding:120px 28px 48px">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center">
+<div style="display:flex">
+<div style="width:96px;height:96px;border-radius:26px;background:oklch(0.72 0.11 220);color:#fff;display:flex;align-items:center;justify-content:center;font:700 40px {{ t.font }};transform:rotate(-8deg);border:3px solid {{ t.ink }}">T</div>
+<div style="width:96px;height:96px;border-radius:26px;background:{{ matchOverlay.icon }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 40px {{ t.font }};transform:rotate(8deg);margin-left:-18px;border:3px solid {{ t.ink }}">{{ matchOverlay.initial }}</div>
+</div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:46px;line-height:1;letter-spacing:{{ t.dispLs }}">It's a trade</div>
+<div style="font-size:16px;line-height:1.45;opacity:.75;max-width:290px">You and {{ matchOverlay.builder }} agreed to try each other's product. Test links and codes are now unlocked.</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<button onClick="{{ openMatchChat }}" style="height:56px;border:none;border-radius:{{ t.btnR }};background:{{ t.accent }};color:{{ t.accentInk }};font:600 17px {{ t.font }};cursor:pointer">Say hi</button>
+<button onClick="{{ closeMatch }}" style="height:56px;border:none;border-radius:{{ t.btnR }};background:transparent;color:{{ t.bg }};font:600 16px {{ t.font }};cursor:pointer;opacity:.8">Keep browsing</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ paywall }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:90;background:{{ t.bg }};display:flex;flex-direction:column;padding:76px 24px 44px;gap:22px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:96px;line-height:.9;color:{{ t.accentText }};letter-spacing:{{ t.dispLs }}">5</div>
+<div style="font-family:{{ t.disp }};font-weight:{{ t.dispW }};font-size:30px;line-height:1.1;letter-spacing:{{ t.dispLs }};text-wrap:pretty">You've made 5 builder connections.</div>
+<div style="font-size:15px;line-height:1.45;color:{{ t.muted }}">Keep matching as Tidepool with a listing. Your existing chats stay open either way.</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ plans }}" as="p" hint-placeholder-count="2">
+<button onClick="{{ p.onClick }}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:{{ t.cardR }};border:2px solid {{ p.bd }};background:{{ t.surface }};color:{{ t.ink }};text-align:left;font-family:{{ t.font }};cursor:pointer">
+<div style="width:22px;height:22px;border-radius:50%;border:2px solid {{ p.bd }};display:flex;align-items:center;justify-content:center;flex:none"><div style="width:10px;height:10px;border-radius:50%;background:{{ p.dot }}"></div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:16px;font-weight:700">{{ p.name }}</span><span style="font-size:13px;color:{{ t.muted }}">{{ p.sub }}</span></div>
+<span style="font-size:17px;font-weight:700">{{ p.price }}</span>
+</button>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;font-size:14.5px">
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>Unlimited matches for Tidepool</div>
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>Feedback inbox with every response</div>
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>Verified badges on your profile</div>
+<div style="display:flex;gap:10px"><span style="color:{{ t.accentText }};font-weight:700">✓</span>8 likes a day</div>
+</div>
+<div style="flex:1"></div>
+<button onClick="{{ buy }}" style="height:56px;border:none;border-radius:{{ t.btnR }};background:{{ t.accent }};color:{{ t.accentInk }};font:600 17px {{ t.font }};cursor:pointer">{{ buyLabel }}</button>
+<button onClick="{{ closePaywall }}" style="border:none;background:none;color:{{ t.muted }};font:500 15px {{ t.font }};cursor:pointer;margin-top:-8px">Not now</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:95;padding:10px 16px;border-radius:{{ t.chipR }};background:{{ t.ink }};color:{{ t.bg }};font-size:14px;font-weight:600;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.2)">{{ toast }}</div>
+</sc-if>
+
+<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:{{ homeBar }};z-index:100"></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:920},&quot;direction&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Paper&quot;,&quot;Terminal&quot;,&quot;Pop&quot;],&quot;default&quot;:&quot;Paper&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Onboarding&quot;,&quot;Discover&quot;,&quot;Likes you&quot;,&quot;Matches&quot;,&quot;Chat&quot;,&quot;Feedback&quot;,&quot;Inbox&quot;,&quot;Profile&quot;,&quot;Paywall&quot;],&quot;default&quot;:&quot;Onboarding&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const THEMES = {
+  Paper: { bg:'#f5f2ec', surface:'#fffdf9', ink:'#1e1b18', muted:'#6c645c', line:'rgba(30,27,24,.12)', accent:'oklch(0.56 0.16 36)', accentText:'oklch(0.52 0.16 36)', accentInk:'#fff', soft:'oklch(0.93 0.035 50)', mid:'oklch(0.8 0.08 45)',
+    font:"'Instrument Sans', system-ui, sans-serif", disp:"'Instrument Serif', Georgia, serif", dispW:400, dispLs:'-0.01em', labelFont:"'Instrument Sans', sans-serif", labelTf:'none', labelLs:'0', labelSize:'13px',
+    chipR:'999px', btnR:'14px', cardR:'20px', innerR:'14px', inputR:'12px', segR:'14px', segInR:'10px', bubbleR:'18px', cardBd:'1px solid rgba(30,27,24,.08)', shadow:'0 1px 2px rgba(30,27,24,.04)', promptSize:'27px', quoteSize:'20px', h1:'40px', appName:'34px' },
+  Terminal: { bg:'#0e100f', surface:'#171a18', ink:'#e8ece7', muted:'#8e968f', line:'rgba(232,236,231,.11)', accent:'oklch(0.87 0.18 128)', accentText:'oklch(0.87 0.18 128)', accentInk:'#0e100f', soft:'oklch(0.87 0.18 128 / .14)', mid:'oklch(0.55 0.1 128)',
+    font:"'Space Grotesk', system-ui, sans-serif", disp:"'JetBrains Mono', ui-monospace, monospace", dispW:500, dispLs:'-0.03em', labelFont:"'JetBrains Mono', monospace", labelTf:'uppercase', labelLs:'0.08em', labelSize:'11px',
+    chipR:'6px', btnR:'8px', cardR:'10px', innerR:'8px', inputR:'8px', segR:'8px', segInR:'5px', bubbleR:'8px', cardBd:'1px solid rgba(232,236,231,.09)', shadow:'none', promptSize:'19px', quoteSize:'15px', h1:'30px', appName:'26px' },
+  Pop: { bg:'#edeef5', surface:'#ffffff', ink:'#16151f', muted:'#5c5e70', line:'rgba(22,21,31,.11)', accent:'oklch(0.54 0.21 285)', accentText:'oklch(0.5 0.21 285)', accentInk:'#fff', soft:'oklch(0.93 0.045 285)', mid:'oklch(0.78 0.1 285)',
+    font:"'Bricolage Grotesque', system-ui, sans-serif", disp:"'Bricolage Grotesque', system-ui, sans-serif", dispW:800, dispLs:'-0.035em', labelFont:"'Bricolage Grotesque', sans-serif", labelTf:'none', labelLs:'0', labelSize:'13.5px',
+    chipR:'999px', btnR:'999px', cardR:'28px', innerR:'20px', inputR:'18px', segR:'999px', segInR:'999px', bubbleR:'22px', cardBd:'none', shadow:'0 2px 0 rgba(22,21,31,.06), 0 10px 24px -12px rgba(22,21,31,.18)', promptSize:'25px', quoteSize:'18px', h1:'38px', appName:'32px' },
+};
+const ic = h => `oklch(0.68 0.13 ${h})`;
+const APPS = [
+  { id:'brew', name:'Brewlog', tagline:'Dial in every pour-over and remember what worked.', cat:'Food & drink', plat:'iOS', stage:'Live', hue:55, builder:'Nina Park', role:'iOS dev and designer', style:'Balanced feedback · replies 92% of the time', fit:'You both brew daily · iPhone · both live', likesYou:true, code:'BREW-HEY100', asked:'onboarding and UI · 15 min',
+    items:[{media:'screenshot · recipe timer'},{label:'The honest thing I need feedback on…', text:'Whether logging a brew takes too many taps. I count six. It should be two.'},{media:'demo video · 0:34'},{label:"You'll love this app if…", text:"You own a scale you bought for coffee and pretend it's for baking."},{label:'Our first user said…', text:'"I finally know why Tuesday\'s cup was good."'}],
+    looking:{tester:'Home brewers on iPhone', types:'Onboarding, UI', time:'15 minutes'}, badges:['Shipped on the App Store','Real users · 100–500 subscribers'] },
+  { id:'ship', name:'Shipnote', tagline:'A changelog widget your users actually open.', cat:'Dev tools', plat:'Web · SaaS', stage:'Revenue', hue:250, builder:'Omar Haddad', role:'Full-stack, Supabase', style:'Blunt feedback · replies 88% of the time', fit:'You ship weekly · Mac and web · similar stage', likesYou:false,
+    items:[{media:'screenshot · widget on a pricing page'},{label:"The problem I couldn't stop thinking about…", text:'Release notes get written, then nobody reads them. The widget puts them where users already are.'},{media:'GIF · install in 40 seconds'},{label:"Don't download this if…", text:"You ship once a quarter. You'd be paying for a widget with nothing to say."},{label:"I'll know this app works when…", text:'A customer replies to a changelog entry.'}],
+    looking:{tester:'SaaS founders with live users', types:'Pricing, onboarding', time:'5 minutes'}, badges:['Revenue verified · $100–1k MRR','Active on GitHub · committed 2 days ago'] },
+  { id:'lullo', name:'Lullo', tagline:'A baby sleep log you can use one-handed at 3am.', cat:'Parenting', plat:'iOS', stage:'TestFlight', hue:340, builder:'Priya Nair', role:'React Native', style:'Gentle feedback · replies 97% of the time', fit:'You marked "new parent" · iPhone · both early', likesYou:false,
+    items:[{media:'screenshot · night mode log'},{label:"The feature I'm most proud of…", text:'The whole screen is one button. Tap to start, tap to stop. Works with your thumb in the dark.'},{media:'demo video · 0:21'},{label:'Green flag in a tester:', text:"You'll use it for a full week, including the bad nights."},{label:'The weirdest thing I learned building it…', text:'Parents log more at 4am than at any other hour.'}],
+    looking:{tester:'Parents of kids under 2', types:'Retention, bugs', time:'A week of use'}, badges:['Active on GitHub · committed today'] },
+];
+const LIKES = [
+  { id:'fern', name:'Fernly', builder:'Tomás Reyes', hue:150, cat:'Home & garden · iOS', target:'your onboarding video', comment:"The couples invite flow looks smooth. I'd test it with my partner this weekend." },
+  { id:'ink', name:'Inkwell', builder:'Hana Ito', hue:20, cat:'AI journaling · iOS and web', target:'"The honest thing I need feedback on…"', comment:'I can tell you if the pricing screen feels fair. I pay for three budgeting apps.' },
+  { id:'grid', name:'Gridline', builder:'Dev Patel', hue:200, cat:'Chrome extension', target:'a screenshot · shared budget', comment:"Clean. I'm a designer, happy to do a UI pass." },
+];
+const MATCHES0 = [
+  { id:'cad', name:'Cadence', builder:'Lena Vogel', hue:290, last:'Sent my feedback. The streak screen is great.', time:'2h', mine:'Trying', theirs:'Feedback sent', turn:true, code:'CADENCE-1YR', asked:'retention · a week of use' },
+  { id:'lum', name:'Lumen Reader', builder:'Ari Cohen', hue:95, last:'You: Downloading now, will report back tonight.', time:'1d', mine:'Trying', theirs:'Trying', left:'5d left', code:'LUMEN-HEY', asked:'UI · 15 min' },
+  { id:'pt', name:'Pocket Tutor', builder:'Sam Osei', hue:180, last:'Thanks! Fixed the crash you found.', time:'3d', mine:'Feedback sent', theirs:'Feedback sent', code:'TUTOR-FREE', asked:'bugs · 5 min' },
+];
+const MSGS0 = {
+  cad:[{sys:'Matched Oct 12. Lena liked your onboarding video.'},{them:'Hey! Your onboarding video sold me. Downloading Tidepool now.'},{me:'Thanks Lena. TestFlight link is up top, and the code gets you a free year.'},{fb:true, from:'them', stars:'★ 4/5', text:'Calm and clear. I wanted to invite my partner sooner.', meta:'Keep using: Yes · Fair price: $3–5/mo'},{them:'Mostly good! One confusing bit on the partner invite. Your turn on Cadence whenever you have a week.'}],
+  lum:[{sys:'Matched Oct 14. You liked their demo video.'},{them:'Hi! Happy to swap. Code is in the trade card.'},{me:'Downloading now, will report back tonight.'}],
+  pt:[{sys:'Matched Oct 9.'},{me:'Found a crash when switching subjects mid-lesson. Screenshot in my feedback.'},{them:'Thanks! Fixed the crash you found.'}],
+};
+const INBOX = [
+  { who:'Lena Vogel', app:'Cadence', hue:290, when:'2h ago', stars:'★ 4/5', text:'Calm and clear. I wanted to invite my partner sooner.', conf:'Partner invite is buried in settings', keep:'Yes' },
+  { who:'Sam Osei', app:'Pocket Tutor', hue:180, when:'Oct 11', stars:'★ 5/5', text:'The weekly "money date" summary is the best part. I read it out loud.', conf:'None, honestly', keep:'Yes' },
+  { who:'Marco Bellini', app:'Tiny Ledger', hue:40, when:'Oct 8', stars:'★ 3/5', text:'Pretty, but I wasn\'t sure what to do after connecting my bank.', conf:'Empty state after bank sync', keep:'Maybe' },
+];
+
+class Component extends DCLogic {
+  state = this.initial();
+  scrollRef = React.createRef();
+  componentDidUpdate(prev, prevState) {
+    if (prev.startScreen !== this.props.startScreen) this.setState(this.initial());
+    if (prevState && (prevState.screen !== this.state.screen || prevState.step !== this.state.step) && this.scrollRef.current) this.scrollRef.current.scrollTop = 0;
+  }
+  initial() {
+    const s = this.props.startScreen || 'Onboarding';
+    const map = { Onboarding:['onb',0], Discover:['deck'], 'Likes you':['likes'], Matches:['matches'], Chat:['chat'], Feedback:['feedback'], Inbox:['inbox'], Profile:['profile'], Paywall:['likes'] };
+    const [screen, step] = map[s] || ['onb',0];
+    return { screen, step: step||0, sel:{'r:iOS':1,'r:Supabase':1,'d:iPhone':1,'d:Mac':1,'l:Couple':1,'t:Couples':1,'f:Onboarding':1,'f:Pricing':1,'time:15 min':1,'rate:4':1,'keep:Maybe':1,'price:$3–5/mo':1},
+      fetched:false, deck:0, likesLeft:6, likeTarget:null, comment:'', matchOverlay:null, paywall:s==='Paywall', paid:false, plan:'season', toast:'',
+      matches:MATCHES0, msgs:MSGS0, chatId:'cad', likeState:{}, draft:'', helpful:{} };
+  }
+  flash(msg) { this.setState({ toast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast:'' }), 1800); }
+  addMatch(m) {
+    this.setState(s => {
+      const matches = [m, ...s.matches];
+      const msgs = { ...s.msgs, [m.id]: [{ sys:`Matched just now. ${m.why}` }] };
+      return { matches, msgs, chatId:m.id, paywall: !s.paid && matches.length === 5 ? true : s.paywall };
+    });
+  }
+  renderVals() {
+    const t = THEMES[this.props.direction] || THEMES.Paper;
+    const st = this.state, sel = st.sel;
+    const set = patch => this.setState(patch);
+    const toggle = (k, single) => this.setState(s => {
+      const n = { ...s.sel };
+      if (single) Object.keys(n).forEach(x => { if (x.startsWith(single + ':')) delete n[x]; });
+      if (n[k] && !single) delete n[k]; else n[k] = 1;
+      return { sel:n };
+    });
+    const chips = (g, labels, single) => labels.map(label => { const on = !!sel[g+':'+label]; return { label, on, onClick:() => toggle(g+':'+label, single ? g : null), bg: on ? t.ink : 'transparent', fg: on ? t.bg : t.ink, bd: on ? t.ink : t.line }; });
+    const seg = (g, labels) => labels.map(label => { const on = !!sel[g+':'+label]; return { label, onClick:() => toggle(g+':'+label, g), bg: on ? t.ink : 'transparent', fg: on ? t.bg : t.ink }; });
+    const scr = st.screen, onb = scr === 'onb';
+    const raw = APPS[st.deck % APPS.length];
+    const mkItem = (it, i) => ({ ...it, isMedia: !!it.media, isPrompt: !it.media, onLike: () => set({ likeTarget: it.media ? { kind:'media', label:it.media, text:'Photo or video' } : { kind:'prompt', label:it.label, text:it.text }, comment:'' }) });
+    const items = raw.items.map(mkItem);
+    const app = { ...raw, icon: ic(raw.hue), initial: raw.name[0], itemsA: items.slice(0,2), itemsB: items.slice(2) };
+    const nextApp = () => { this.setState(s => ({ deck: s.deck + 1 })); if (this.scrollRef.current) this.scrollRef.current.scrollTop = 0; };
+    const matchCount = st.matches.length;
+    const curMatch = st.matches.find(m => m.id === st.chatId) || st.matches[0];
+    const statusColor = v => v === 'Feedback sent' ? t.accentText : t.ink;
+    const chat = { ...curMatch, icon: ic(curMatch.hue), initial: curMatch.name[0], mineColor: statusColor(curMatch.mine), theirsColor: statusColor(curMatch.theirs),
+      msgs: (st.msgs[curMatch.id] || []).map(m => {
+        const mine = m.me || m.from === 'me';
+        return { isSys: !!m.sys, isFb: !!m.fb, isText: !!(m.me || m.them), text: m.sys || m.me || m.them || m.text, stars:m.stars, meta:m.meta,
+          justify: mine ? 'flex-end' : 'flex-start', bg: mine ? t.ink : t.surface, fg: mine ? t.bg : t.ink, bd: mine ? 'none' : `1px solid ${t.line}` };
+      }) };
+    const tabDefs = [['Discover','deck'],['Likes','likes'],['Matches','matches'],['Feedback','inbox'],['Profile','profile']];
+    const openLikes = LIKES.filter(l => !st.likeState[l.id]).length;
+    const tabs = tabDefs.map(([label, k], i) => { const active = scr === k || (k==='matches' && scr==='chat'); return { label, onClick:() => set({ screen:k }), fg: active ? t.ink : t.muted, fill: active ? t.ink : 'transparent', shapeR: ['50%','6px','50% 50% 50% 4px','4px','50%'][i], hasBadge: k==='likes' && openLikes > 0, badge: openLikes }; });
+    const showTabs = ['deck','likes','matches','inbox','profile'].includes(scr);
+    const showFooterBtn = onb || scr === 'feedback';
+    const fetchApp = () => { this.setState({ fetched:true }); };
+    const footer = scr === 'feedback'
+      ? { label:'Send feedback', action:() => {
+          const id = curMatch.id;
+          this.setState(s => ({ screen:'chat', matches: s.matches.map(m => m.id === id ? { ...m, mine:'Feedback sent', last:'You sent feedback', turn:false, time:'now' } : m),
+            msgs: { ...s.msgs, [id]: [...(s.msgs[id]||[]), { fb:true, from:'me', stars:'★ ' + (Object.keys(s.sel).find(k=>k.startsWith('rate:'))||'rate:4').split(':')[1] + '/5', text:'Feels like a real tool, not a toy. Took me a minute to find where to start.', meta:'Keep using: ' + (Object.keys(s.sel).find(k=>k.startsWith('keep:'))||'keep:Maybe').split(':')[1] }] } }));
+          this.flash('Feedback sent to ' + curMatch.builder.split(' ')[0]);
+        } }
+      : st.step === 0 ? null
+      : st.step === 2 && !st.fetched ? { label:'Paste a link to continue', action: fetchApp, dim:true }
+      : st.step === 4 ? { label:'Start matching', action:() => set({ screen:'deck' }) }
+      : { label:'Continue', action:() => set({ step: st.step + 1 }) };
+    const likes = LIKES.map(l => { const ls = st.likeState[l.id]; return { ...l, icon: ic(l.hue), initial:l.name[0], open: !ls, matched: ls === 'match',
+      onPass: () => this.setState(s => ({ likeState:{ ...s.likeState, [l.id]:'pass' } })),
+      onLike: () => { this.setState(s => ({ likeState:{ ...s.likeState, [l.id]:'match' } })); this.addMatch({ id:l.id, name:l.name, builder:l.builder, hue:l.hue, last:'New match. Say hi.', time:'now', mine:'Not started', theirs:'Not started', turn:true, code:l.name.toUpperCase()+'-100', asked:'onboarding · 15 min', why:`${l.builder.split(' ')[0]} liked ${l.target}.` }); if (st.paid || matchCount + 1 !== 5) this.flash('Matched with ' + l.name); } }; }).filter(l => st.likeState[l.id] !== 'pass');
+    const matches = st.matches.map(m => ({ ...m, icon: ic(m.hue), initial: m.name[0], onOpen: () => set({ chatId:m.id, screen:'chat' }),
+      chip: m.turn ? 'Your turn' : (m.mine === 'Feedback sent' && m.theirs === 'Feedback sent' ? 'Trade complete' : (m.left || 'Waiting')),
+      chipBg: m.turn ? t.accent : t.soft, chipFg: m.turn ? t.accentInk : t.ink,
+      tradeLine: `You: ${m.mine} · Them: ${m.theirs}` }));
+    const inbox = INBOX.map((f, i) => { const h = st.helpful[i]; const on = (v) => ({ bg: h === v ? t.ink : 'transparent', fg: h === v ? t.bg : t.ink, bd: h === v ? t.ink : t.line });
+      const y = on('y'), n = on('n'); return { ...f, icon: ic(f.hue), initial: f.app[0], yesBg:y.bg, yesFg:y.fg, yesBd:y.bd, noBg:n.bg, noFg:n.fg, noBd:n.bd,
+        onYes: () => this.setState(s => ({ helpful:{ ...s.helpful, [i]:'y' } })), onNo: () => this.setState(s => ({ helpful:{ ...s.helpful, [i]:'n' } })) }; });
+    const plans = [['month','Monthly','Cancel anytime','$9.99/mo'],['season','Launch season','90 days, timed to your launch','$24.99']].map(([k,name,sub,price]) => ({ name, sub, price, onClick:() => set({ plan:k }), bd: st.plan === k ? t.accent : t.line, dot: st.plan === k ? t.accent : 'transparent' }));
+    const darkStatus = st.matchOverlay;
+    return {
+      t, statusInk: darkStatus ? t.bg : t.ink, homeBar: darkStatus ? t.bg : t.ink,
+      contentBottom: showTabs ? '84px' : '0px',
+      s0: onb && st.step === 0, s1: onb && st.step === 1, s2: onb && st.step === 2, s3: onb && st.step === 3, s4: onb && st.step === 4,
+      inOnb: onb && st.step > 0,
+      progress: [1,2,3,4].map(i => ({ c: i <= st.step ? t.accent : t.line })),
+      next: () => set({ step: st.step + 1 }), back: () => set({ step: Math.max(0, st.step - 1) }),
+      roles: chips('r', ['iOS','React Native','Web','Supabase','Designer','Marketer']),
+      devices: chips('d', ['iPhone','iPad','Mac','Android','Web','Apple Watch']),
+      lifeTags: chips('l', ['Couple','New parent','Runner','Home cook','Freelancer','Investor']),
+      testers: chips('t', ['Couples','Freelancers','Parents','iPhone users','First-time budgeters']),
+      fbTypes: chips('f', ['Onboarding','UI','Pricing','Bugs','Retention']),
+      times: seg('time', ['5 min','15 min','A week']),
+      fetched: st.fetched, notFetched: !st.fetched, fetchApp, fetchLabel: st.fetched ? 'Found' : 'Fetch',
+      myPrompts: [
+        { label:'The honest thing I need feedback on…', text:'Whether inviting your partner feels exciting or like homework.' },
+        { label:"You'll love this app if…", text:'Money talks with your partner usually end with someone on the couch.' },
+        { label:'In 30 seconds, here\'s how it works:', text:'Connect one account each. Every Sunday you get a short "money date" summary to read together.' },
+      ],
+      showFooterBtn: showFooterBtn && !!footer, footerLabel: footer && footer.label, footerAction: footer && footer.action,
+      footerBg: footer && footer.dim ? t.line : t.ink, footerFg: footer && footer.dim ? t.muted : t.bg,
+      isDeck: scr === 'deck', isLikes: scr === 'likes', isMatches: scr === 'matches', isChat: scr === 'chat', isFeedback: scr === 'feedback', isInbox: scr === 'inbox', isProfile: scr === 'profile',
+      showTabs, tabs, app, likesLeft: st.likesLeft,
+      pass: () => { nextApp(); },
+      likeTarget: st.likeTarget, comment: st.comment, onComment: e => set({ comment: e.target.value }), closeLike: () => set({ likeTarget:null }),
+      sendLike: () => {
+        if (st.likesLeft <= 0) return;
+        this.setState(s => ({ likeTarget:null, likesLeft: s.likesLeft - 1 }));
+        if (raw.likesYou && !st.matches.find(m => m.id === raw.id)) {
+          this.setState({ matchOverlay: { icon: app.icon, initial: app.initial, builder: raw.builder, id: raw.id } });
+          this.addMatch({ id:raw.id, name:raw.name, builder:raw.builder, hue:raw.hue, last:'New match. Say hi.', time:'now', mine:'Not started', theirs:'Not started', turn:true, code:raw.code, asked:raw.asked, why:`${raw.builder.split(' ')[0]} liked your onboarding video.` });
+        } else { this.flash('Like sent to ' + raw.name); }
+        nextApp();
+      },
+      matchOverlay: st.matchOverlay,
+      openMatchChat: () => set({ matchOverlay:null, screen:'chat', chatId: st.matchOverlay.id }), closeMatch: () => set({ matchOverlay:null }),
+      likes, likesSub: openLikes ? `${openLikes} builders want to trade. Like back to match.` : 'All caught up.',
+      matches, matchCount: Math.min(matchCount, 5), goMatches: () => set({ screen:'matches' }),
+      chat, goFeedback: () => set({ screen: 'feedback' }), goChat: () => set({ screen:'chat' }),
+      fbBtnLabel: curMatch.mine === 'Feedback sent' ? 'Feedback sent ✓' : 'Send feedback',
+      draft: st.draft, onDraft: e => set({ draft: e.target.value }),
+      sendMsg: () => { if (!st.draft.trim()) return; const id = curMatch.id; this.setState(s => ({ draft:'', msgs:{ ...s.msgs, [id]:[...(s.msgs[id]||[]), { me: s.draft }] } })); },
+      ratings: chips('rate', ['1','2','3','4','5'], true).map(c => ({ ...c, bg: c.on ? t.accent : t.surface, fg: c.on ? t.accentInk : t.ink, bd: c.on ? t.accent : t.line })),
+      keeps: seg('keep', ['Yes','Maybe','No']),
+      prices: chips('price', ["Wouldn't pay",'$1–3/mo','$3–5/mo','$5–10/mo','One-time'], true),
+      inbox,
+      profileRows: [
+        { label:'Role and stack', tags:['iOS','Supabase','SwiftUI'] },
+        { label:'Tests on', tags:['iPhone','Mac','Web'] },
+        { label:'Also a user who is', tags:['In a couple','Home cook','Runner'] },
+        { label:'Feedback style', tags:['Balanced'] },
+        { label:'Links', tags:['X','GitHub','jaryd.com'] },
+      ],
+      listingLine: st.paid ? (st.plan === 'season' ? 'Launch season · 84 days left' : 'Monthly listing · active') : `Free · ${Math.min(matchCount,5)} of 5 matches used`,
+      paywall: st.paywall, plans, buyLabel: st.plan === 'season' ? 'Start launch season · $24.99' : 'Subscribe · $9.99/mo',
+      buy: () => { this.setState({ paywall:false, paid:true, screen:'matches' }); this.flash('Tidepool is listed. Match away.'); },
+      closePaywall: () => set({ paywall:false, screen:'matches' }),
+      toast: st.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>

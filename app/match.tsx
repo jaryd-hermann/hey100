@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
+import { Glow } from '@/components/ui/Glow';
 import { Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import { useStore } from '@/store/AppStore';
@@ -68,14 +69,7 @@ export default function MatchOverlay() {
           alignItems: 'center',
         }}
       >
-        <View
-          style={{
-            width: 320,
-            height: 320,
-            borderRadius: 160,
-            backgroundColor: c.glow,
-          }}
-        />
+        <Glow size={400} style={{ position: 'relative' }} />
       </View>
 
       <Animated.View

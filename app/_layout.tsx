@@ -105,7 +105,6 @@ function Shell() {
         }}
       >
         <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
-        <Stack.Screen name="hey" options={{ presentation: 'transparentModal', animation: 'none' }} />
         <Stack.Screen
           name="match"
           options={{ presentation: 'fullScreenModal', animation: 'fade' }}

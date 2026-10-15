@@ -246,7 +246,16 @@ export function HeaderLogo({
   right?: React.ReactNode;
 }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        // flexBasis auto keeps the row at content height inside an auto-height column.
+        flexGrow: 1,
+        flexBasis: 'auto',
+      }}
+    >
       {hand ? <HandMark size={24} /> : null}
       <Wordmark size={20} />
       {title ? (

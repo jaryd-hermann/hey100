@@ -26,6 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   newArchEnabled: false,
+  icon: './assets/images/icon.png',
   assetBundlePatterns: ['assets/**/*'],
 
   ios: {
@@ -68,6 +69,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: BUNDLE_ID,
     edgeToEdgeEnabled: true,
+    adaptiveIcon: {
+      foregroundImage: './assets/images/adaptive-icon.png',
+      backgroundColor: '#B2EA5C',
+    },
     intentFilters: [
       {
         action: 'VIEW',
@@ -90,6 +95,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
+        image: './assets/images/splash-logo.png',
+        imageWidth: 240,
         backgroundColor: '#F0D7FF',
         dark: { backgroundColor: '#0E100F' },
         resizeMode: 'contain',
@@ -100,11 +107,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         ios: {
           deploymentTarget: '15.1',
-          newArchEnabled: false,
           ccacheEnabled: true,
-        },
-        android: {
-          newArchEnabled: false,
         },
       },
     ],

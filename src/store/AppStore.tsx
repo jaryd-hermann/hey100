@@ -27,6 +27,9 @@ import type {
 export const FREE_MATCH_LIMIT = 5;
 export const FREE_DAILY_HEYS = 8;
 
+/** A trade only ever moves forward, so opening a link can't undo feedback. */
+const TRADE_STEPS: TradeStatus[] = ['Not started', 'Using', 'Feedback sent'];
+
 export type Plan = 'free' | 'pro';
 
 export type UserProfile = {
@@ -295,7 +298,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const setTradeStatus = useCallback<Store['setTradeStatus']>(
     (matchId, side, status) =>
       patch((prev) => ({
-        matches: prev.matches.map((m) => (m.id === matchId ? { ...m, [side]: status } : m)),
+        matches: prev.matches.map((m) =>
+          m.id === matchId && TRADE_STEPS.indexOf(status) > TRADE_STEPS.indexOf(m[side])
+            ? { ...m, [side]: status }
+            : m,
+        ),
       })),
     [patch],
   );

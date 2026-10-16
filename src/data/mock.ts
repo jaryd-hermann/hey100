@@ -692,3 +692,11 @@ export function stripEmoji(label: string): string {
 export function shortName(name: string): string {
   return name.split(':')[0];
 }
+
+/** The public listing path, as in hey100.com/{slug}. */
+export function slugify(name: string): string {
+  return shortName(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}

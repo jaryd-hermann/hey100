@@ -16,7 +16,7 @@ import { Card } from '@/components/ui/Card';
 import { Glass } from '@/components/ui/Glass';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
-import { EMOJI_TRAY, shortName } from '@/data/mock';
+import { EMOJI_TRAY, shortName, slugify } from '@/data/mock';
 import type { Message } from '@/data/types';
 import { TradeCard } from '@/features/chat/TradeCard';
 import { useStore } from '@/store/AppStore';
@@ -119,6 +119,7 @@ export default function ChatThread() {
 
       <ScrollView
         ref={scrollRef}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingTop: 16, paddingBottom: 20 }}
         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
@@ -135,7 +136,7 @@ export default function ChatThread() {
               const web = listing.links?.find(([kind]) => kind === 'Web');
               router.push({
                 pathname: '/browser',
-                params: { kind: 'Web', value: web?.[1] ?? `${shortName(listing.name).toLowerCase()}.app` },
+                params: { kind: 'Web', value: web?.[1] ?? `${slugify(listing.name)}.app` },
               });
             }}
             onSendFeedback={() =>

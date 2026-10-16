@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -260,22 +261,24 @@ export default function FeedbackForm() {
         </Card>
       </ScrollView>
 
-      <View
-        style={{
-          position: 'absolute',
-          left: layout.gutter,
-          right: layout.gutter,
-          bottom: insets.bottom + 14,
-        }}
-      >
-        <Btn
-          label="Send feedback"
-          variant="accent"
-          size="lg"
-          full
-          dim={!ready}
-          onPress={submit}
-        />
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        <LinearGradient colors={[`${c.bg}00`, c.bg]} style={{ height: 28 }} />
+        <View
+          style={{
+            backgroundColor: c.bg,
+            paddingHorizontal: layout.gutter,
+            paddingBottom: insets.bottom + 14,
+          }}
+        >
+          <Btn
+            label="Send feedback"
+            variant="accent"
+            size="lg"
+            full
+            dim={!ready}
+            onPress={submit}
+          />
+        </View>
       </View>
     </View>
   );

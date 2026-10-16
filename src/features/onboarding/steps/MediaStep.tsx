@@ -51,7 +51,14 @@ export function MediaStep({
             >
               {isFilled ? (
                 <>
-                  <Txt font="mono" size={10.5} center muted numberOfLines={3}>
+                  <Txt
+                    font="mono"
+                    size={10.5}
+                    center
+                    muted
+                    numberOfLines={3}
+                    style={{ marginBottom: index === 0 ? 22 : 0 }}
+                  >
                     {MY_MEDIA[index]}
                   </Txt>
                   <View

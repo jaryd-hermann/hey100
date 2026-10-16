@@ -163,7 +163,7 @@ export const STEPS: Step[] = [
     opts: ['📱 iPhone', '📲 Android', '💻 Mac', '🖥️ Windows', '⌚ Apple Watch', '🌐 Web'],
   },
   { kind: 'summary2', title: "Here's how some of what you share will appear." },
-  { kind: 'username', title: 'Claim your username' },
+  { kind: 'username', title: 'Claim your username\nto get started' },
   { kind: 'auth', title: 'Save your app page' },
 ];
 

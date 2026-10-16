@@ -11,7 +11,7 @@ import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
-import { MILESTONES, shortName } from '@/data/mock';
+import { MILESTONES, shortName, slugify } from '@/data/mock';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -35,7 +35,7 @@ export default function ShareSheet() {
   }>();
 
   const app = store.apps[appId ?? ''] ?? store.primaryApp;
-  const slug = shortName(app.name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const slug = slugify(app.name);
   const inviteUrl = `hey100.com/i/${store.user.referralCode}`;
   const listingUrl = `hey100.com/${slug}`;
 

@@ -83,6 +83,7 @@ export default function Browser() {
         ref={webRef}
         source={{ uri: url }}
         onLoadEnd={() => setLoading(false)}
+        onError={() => setLoading(false)}
         style={{ flex: 1, backgroundColor: c.bg }}
       />
 

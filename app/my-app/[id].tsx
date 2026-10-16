@@ -10,20 +10,13 @@ import { Card } from '@/components/ui/Card';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
-import { INTEGRATIONS, shortName } from '@/data/mock';
+import { INTEGRATIONS, shortName, slugify } from '@/data/mock';
 import type { Integration } from '@/data/types';
 import { AppPage } from '@/features/app-page/AppPage';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, layout, radii } from '@/theme/tokens';
-
-function slugify(name: string): string {
-  return shortName(name)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 export default function OwnerAppPage() {
   const router = useRouter();

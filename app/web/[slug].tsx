@@ -8,7 +8,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
-import { shortName } from '@/data/mock';
+import { LISTINGS, shortName, slugify } from '@/data/mock';
 import { AppPage } from '@/features/app-page/AppPage';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -28,9 +28,9 @@ export default function WebListingPreview() {
   const [signupOpen, setSignupOpen] = useState(false);
 
   const app =
-    store.ownedApps.find(
-      (owned) => shortName(owned.name).toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug,
-    ) ?? store.primaryApp;
+    store.ownedApps.find((owned) => slugify(owned.name) === slug) ??
+    Object.values(LISTINGS).find((listing) => slugify(listing.name) === slug) ??
+    store.primaryApp;
 
   // Any interaction on the public page opens the sign-up sheet.
   const intercept = () => setSignupOpen(true);

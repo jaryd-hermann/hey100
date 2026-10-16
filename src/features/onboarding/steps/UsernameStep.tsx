@@ -35,10 +35,6 @@ export function UsernameStep({
 
   return (
     <View style={{ gap: 16 }}>
-      <Txt font="mono" size={26} weight={500} lh={1.25}>
-        to get started
-      </Txt>
-
       <Card padding={16} style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <Avatar name={realName} size={56} />

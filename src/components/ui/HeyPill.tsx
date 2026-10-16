@@ -2,40 +2,39 @@ import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
 
+import { HandMark } from '@/components/brand/Logo';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
-
-import { Txt } from './Txt';
 
 export type HeyPillProps = {
   onPress: () => void;
   /** 40 on screenshots and prompts, 58 for the floating whole-app Hey. */
   size?: 40 | 58;
+  /** What is being heyed. Used for the accessibility label only. */
   label?: string;
   style?: StyleProp<ViewStyle>;
 };
 
-/** The core verb. Lime pill, waving hand, "Hey". */
-export function HeyPill({ onPress, size = 40, label = 'Hey', style }: HeyPillProps) {
+/** The core verb: a lime circle with the hand mark. No wording, just the hand. */
+export function HeyPill({ onPress, size = 40, label, style }: HeyPillProps) {
   const { c } = useTheme();
   const big = size === 58;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Say hey${label === 'Hey' ? '' : ` — ${label}`}`}
+      accessibilityLabel={label ? `Say hey — ${label}` : 'Say hey'}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         onPress();
       }}
       style={({ pressed }) => [
         {
+          width: size,
           height: size,
           borderRadius: radii.pill,
-          paddingHorizontal: big ? 22 : 13,
-          flexDirection: 'row',
           alignItems: 'center',
-          gap: big ? 8 : 5,
+          justifyContent: 'center',
           backgroundColor: c.accent,
           borderWidth: big ? 2 : 0,
           borderColor: c.ink,
@@ -44,10 +43,7 @@ export function HeyPill({ onPress, size = 40, label = 'Hey', style }: HeyPillPro
         style,
       ]}
     >
-      <Txt size={big ? 20 : 14}>✋</Txt>
-      <Txt size={big ? 17 : 13} weight={700} color={c.accentInk}>
-        {label}
-      </Txt>
+      <HandMark size={big ? 28 : 20} />
     </Pressable>
   );
 }

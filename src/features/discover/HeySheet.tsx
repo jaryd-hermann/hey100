@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
+import { HandMark } from '@/components/brand/Logo';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
@@ -96,7 +97,7 @@ export function HeySheet({
           variant="accent"
           size="lg"
           full
-          left={<Txt size={18}>✋</Txt>}
+          left={<HandMark size={19} />}
           onPress={() => {
             onSend(note.trim());
             setNote('');

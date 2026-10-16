@@ -9,6 +9,7 @@ import {
   LISTINGS,
   MATCH_APPS,
   OWNED_APPS,
+  SENT_HEYS,
   shortName,
 } from '@/data/mock';
 import type {
@@ -18,17 +19,37 @@ import type {
   InboxData,
   IntegrationKey,
   Match,
+  MediaItem,
   Message,
   OwnedApp,
   SectionKey,
+  SentHey,
   TradeStatus,
 } from '@/data/types';
 
-export const FREE_MATCH_LIMIT = 5;
+export const FREE_MATCH_LIMIT = 3;
 export const FREE_DAILY_HEYS = 8;
+
+/** A follow-up on a sent hey only unlocks a day after the original. */
+export const FOLLOW_UP_DELAY_MS = 24 * 60 * 60 * 1000;
+
+/** The chat list needs a line to show when a message is attachments only. */
+function attachmentPreview(media: MediaItem[]): string {
+  if (media.length > 1) return `sent ${media.length} attachments`;
+  return media[0]?.video ? 'sent a video' : 'sent a photo';
+}
 
 /** A trade only ever moves forward, so opening a link can't undo feedback. */
 const TRADE_STEPS: TradeStatus[] = ['Not started', 'Using', 'Feedback sent'];
+
+/** One follow-up per sent hey, and only once the 24h window has elapsed. */
+export function canFollowUp(sentHey: SentHey): boolean {
+  return (
+    sentHey.status === 'Pending' &&
+    !sentHey.followUp &&
+    Date.now() - sentHey.sentAt >= FOLLOW_UP_DELAY_MS
+  );
+}
 
 export type Plan = 'free' | 'pro';
 
@@ -39,6 +60,10 @@ export type UserProfile = {
   showAs: 'username' | 'realName';
   job: string;
   workplace: string;
+  /** Free-text intro shown at the top of the profile. */
+  bio: string;
+  /** Same `[kind, value]` shape as `AppListing.links`. */
+  socials: [kind: string, value: string][];
   /** Multi-select answers keyed by onboarding group, e.g. `look`, `cat`, `l`, `d`. */
   tags: Record<string, string[]>;
   /** Free-text "in your own words" additions, keyed by the same groups. */
@@ -53,12 +78,13 @@ export type UserProfile = {
   rating: string;
 };
 
-export type SentHey = {
+/** What Discover hands to `sayHey`; the stored `SentHey` is built from it. */
+export type SayHeyInput = {
   appId: string;
   targetType: HeyTargetType;
   target: string;
   note: string;
-  viaAppId: string;
+  viaAppId?: string;
 };
 
 type State = {
@@ -70,10 +96,17 @@ type State = {
   heysLeftToday: number;
   /** Incoming heys awaiting a pass or a hey back. */
   heys: IncomingHey[];
+  /** Heys the user sent, newest first. */
   sentHeys: SentHey[];
   passed: string[];
+  /** Why the user passed, keyed by the app they passed on. */
+  passReasons: Record<string, string>;
+  /** The user turned off the "why did you pass?" prompt. */
+  passFeedbackDismissed: boolean;
   matches: Match[];
   messages: Record<string, Message[]>;
+  /** Threads the user deleted; the match itself is kept. */
+  deletedChats: string[];
   inbox: Record<string, InboxData>;
   /** Integrations connected per owned app. */
   connections: Record<string, Partial<Record<IntegrationKey, boolean>>>;
@@ -86,6 +119,13 @@ const initialUser: UserProfile = {
   showAs: 'username',
   job: '',
   workplace: '',
+  bio: 'Building Tidepool and Tally on nights and weekends. Ex-agency iOS dev, now solo. I test every app I say hey to for a full week before I write feedback.',
+  socials: [
+    ['X', '@jarydbuilds'],
+    ['GitHub', 'jaryd'],
+    ['LinkedIn', 'in/jaryd'],
+    ['Web', 'jaryd.dev'],
+  ],
   tags: {},
   ownWords: {},
   hidden: {},
@@ -108,10 +148,13 @@ function initialState(): State {
     appOrder: ['tide', 'tally'],
     heysLeftToday: 6,
     heys: [...INCOMING_HEYS],
-    sentHeys: [],
+    sentHeys: [...SENT_HEYS],
     passed: [],
+    passReasons: {},
+    passFeedbackDismissed: false,
     matches: [...INITIAL_MATCHES],
     messages: { ...INITIAL_MESSAGES },
+    deletedChats: [],
     inbox: { ...INBOX },
     connections: { tide: { github: true }, tally: { github: true, asc: true } },
     seenMatchPaywall: false,
@@ -126,18 +169,31 @@ type Store = State & {
   primaryApp: OwnedApp;
   ownedApps: OwnedApp[];
   displayName: string;
+  /** Profile stat: matches made on Hey100. */
+  matchesMade: number;
+  /** Profile stat: people who tried the user's apps through a completed trade. */
+  usersFound: number;
 
   /** Looks up any app by id, owned or not. */
   listing: (id: string) => AppListing | undefined;
   /** Section 9: a hey is attributed to the owner's best-fitting app. */
   attributedApp: (targetAppId: string) => OwnedApp;
 
-  sayHey: (input: Omit<SentHey, 'viaAppId'> & { viaAppId?: string }) => MatchResult;
+  sayHey: (input: SayHeyInput) => MatchResult;
   passApp: (appId: string) => void;
   heyBack: (heyId: string) => MatchResult;
   dismissHey: (heyId: string) => void;
+  /** Passes an incoming hey and records why, for the Heys queue. */
+  passHey: (heyId: string, reason?: string) => void;
+  sendFollowUp: (sentHeyId: string, note: string) => void;
+  dismissPassFeedback: () => void;
+  /** Settings can turn the pass-reason prompt back on after it was dismissed. */
+  setPassFeedback: (enabled: boolean) => void;
 
-  sendMessage: (matchId: string, body: string) => void;
+  sendMessage: (matchId: string, body: string, media?: MediaItem[]) => void;
+  markChatRead: (matchId: string) => void;
+  /** Hides the thread but keeps the match, which is the only record of a trade. */
+  deleteChat: (matchId: string) => void;
   setTradeStatus: (matchId: string, side: 'mine' | 'theirs', status: TradeStatus) => void;
   submitFeedback: (matchId: string, summary: string, stars: string, meta: string) => void;
   rateFeedback: (appId: string, feedbackId: string, helpful: 'yes' | 'no') => void;
@@ -149,6 +205,8 @@ type Store = State & {
   markMatchPaywallSeen: () => void;
   completeOnboarding: (patch: { user?: Partial<UserProfile>; app?: Partial<OwnedApp> }) => void;
   addApp: (app: OwnedApp) => void;
+  /** Section edits on the owner's own listing. */
+  updateApp: (appId: string, patch: Partial<OwnedApp>) => void;
   updateUser: (patch: Partial<UserProfile>) => void;
 };
 
@@ -225,6 +283,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         return {
           ...prev,
           matches: [match, ...prev.matches],
+          sentHeys: prev.sentHeys.map((hey) =>
+            hey.appId === appId && hey.status === 'Pending' ? { ...hey, status: 'Matched' } : hey,
+          ),
           messages: {
             ...prev.messages,
             [appId]: [{ kind: 'system', body: `matched just now · ${why}` }],
@@ -242,8 +303,18 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       const via = input.viaAppId ?? attributedApp(input.appId).id;
       const theyAlreadySaidHey = state.heys.some((hey) => hey.appId === input.appId);
 
+      const sent: SentHey = {
+        id: `sent-${input.appId}-${Date.now()}`,
+        appId: input.appId,
+        viaAppId: via,
+        target: input.target,
+        note: input.note,
+        sentAt: Date.now(),
+        status: 'Pending',
+      };
+
       patch((prev) => ({
-        sentHeys: [...prev.sentHeys, { ...input, viaAppId: via }],
+        sentHeys: [sent, ...prev.sentHeys],
         heysLeftToday: prev.plan === 'pro' ? prev.heysLeftToday : Math.max(0, prev.heysLeftToday - 1),
         heys: theyAlreadySaidHey ? prev.heys.filter((hey) => hey.appId !== input.appId) : prev.heys,
       }));
@@ -277,21 +348,79 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [patch],
   );
 
-  const sendMessage = useCallback<Store['sendMessage']>(
-    (matchId, body) => {
-      const trimmed = body.trim();
+  const passHey = useCallback<Store['passHey']>(
+    (heyId, reason) =>
+      patch((prev) => {
+        const hey = prev.heys.find((h) => h.id === heyId);
+        if (!hey) return {};
+        return {
+          heys: prev.heys.filter((h) => h.id !== heyId),
+          passed: prev.passed.includes(hey.appId) ? prev.passed : [...prev.passed, hey.appId],
+          passReasons: reason ? { ...prev.passReasons, [hey.appId]: reason } : prev.passReasons,
+        };
+      }),
+    [patch],
+  );
+
+  const sendFollowUp = useCallback<Store['sendFollowUp']>(
+    (sentHeyId, note) => {
+      const trimmed = note.trim();
       if (!trimmed) return;
+
+      patch((prev) => {
+        const hey = prev.sentHeys.find((h) => h.id === sentHeyId);
+        if (!hey || !canFollowUp(hey)) return {};
+        return {
+          sentHeys: prev.sentHeys.map((h) =>
+            h.id === sentHeyId ? { ...h, followUp: { note: trimmed, sentAt: Date.now() } } : h,
+          ),
+        };
+      });
+    },
+    [patch],
+  );
+
+  const sendMessage = useCallback<Store['sendMessage']>(
+    (matchId, body, media) => {
+      const trimmed = body.trim();
+      if (!trimmed && !media?.length) return;
+
+      const preview = trimmed || attachmentPreview(media ?? []);
 
       patch((prev) => ({
         messages: {
           ...prev.messages,
-          [matchId]: [...(prev.messages[matchId] ?? []), { kind: 'me', body: trimmed }],
+          [matchId]: [
+            ...(prev.messages[matchId] ?? []),
+            { kind: 'me', body: trimmed || undefined, media: media?.length ? media : undefined },
+          ],
         },
+        // Sending is also reading, so the thread can't stay unread for the sender.
         matches: prev.matches.map((m) =>
-          m.id === matchId ? { ...m, last: `You: ${trimmed}`, time: 'now', turn: false } : m,
+          m.id === matchId
+            ? { ...m, last: `You: ${preview}`, time: 'now', turn: false, unread: 0 }
+            : m,
         ),
       }));
     },
+    [patch],
+  );
+
+  const deleteChat = useCallback<Store['deleteChat']>(
+    (matchId) =>
+      patch((prev) =>
+        prev.deletedChats.includes(matchId)
+          ? {}
+          : { deletedChats: [...prev.deletedChats, matchId] },
+      ),
+    [patch],
+  );
+
+  const markChatRead = useCallback<Store['markChatRead']>(
+    (matchId) =>
+      patch((prev) => ({
+        matches: prev.matches.map((m) => (m.id === matchId ? { ...m, unread: 0 } : m)),
+      })),
     [patch],
   );
 
@@ -399,6 +528,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [patch],
   );
 
+  const updateApp = useCallback<Store['updateApp']>(
+    (appId, appPatch) =>
+      patch((prev) =>
+        prev.apps[appId] ? { apps: { ...prev.apps, [appId]: { ...prev.apps[appId], ...appPatch } } } : {},
+      ),
+    [patch],
+  );
+
   const value = useMemo<Store>(
     () => ({
       ...state,
@@ -408,13 +545,21 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       primaryApp: state.apps.tide ?? state.apps[state.appOrder[0]],
       displayName:
         state.user.showAs === 'username' ? `@${state.user.username}` : state.user.realName,
+      matchesMade: state.matches.length,
+      usersFound: state.appOrder.reduce((sum, id) => sum + (state.apps[id]?.trades ?? 0), 0),
       listing,
       attributedApp,
       sayHey,
       passApp,
       heyBack,
       dismissHey,
+      passHey,
+      sendFollowUp,
+      dismissPassFeedback: () => patch({ passFeedbackDismissed: true }),
+      setPassFeedback: (enabled: boolean) => patch({ passFeedbackDismissed: !enabled }),
       sendMessage,
+      markChatRead,
+      deleteChat,
       setTradeStatus,
       submitFeedback,
       rateFeedback,
@@ -424,22 +569,27 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       markMatchPaywallSeen: () => patch({ seenMatchPaywall: true }),
       completeOnboarding,
       addApp,
+      updateApp,
       updateUser: (next) => patch((prev) => ({ user: { ...prev.user, ...next } })),
     }),
     [
       addApp,
+      updateApp,
       attributedApp,
       completeOnboarding,
       dismissHey,
       heyBack,
       isPro,
       listing,
+      markChatRead,
       matchesLeft,
       moveSection,
       passApp,
+      passHey,
       patch,
       rateFeedback,
       sayHey,
+      sendFollowUp,
       sendMessage,
       setTradeStatus,
       state,

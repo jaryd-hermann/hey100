@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HandMark } from '@/components/brand/Logo';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
@@ -12,6 +13,7 @@ import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import { AppPage, CompactAppBar, useCompactBar } from '@/features/app-page/AppPage';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
+import { PassReasonSheet } from '@/features/heys/PassReasonSheet';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -27,6 +29,7 @@ export default function LikerProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { compact, onScroll } = useCompactBar();
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [passOpen, setPassOpen] = useState(false);
 
   const hey = store.heys.find((item) => item.id === id);
   const listing = hey ? store.listing(hey.appId) : undefined;
@@ -40,6 +43,20 @@ export default function LikerProfile() {
       </View>
     );
   }
+
+  const commitPass = (reason?: string) => {
+    store.passHey(hey.id, reason);
+    captureEvent('hey_passed', { source: 'liker_profile', reason: reason ?? null });
+    toast(reason ? 'Passed. That tunes Discover.' : 'Passed, silently');
+    router.back();
+  };
+
+  /** Dismissing the sheet must still pass, or the tap is silently lost. */
+  const closePassSheet = (stopAsking: boolean, reason?: string) => {
+    if (stopAsking) store.dismissPassFeedback();
+    setPassOpen(false);
+    commitPass(reason);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
@@ -117,17 +134,18 @@ export default function LikerProfile() {
           size="lg"
           style={{ flex: 1 }}
           onPress={() => {
-            store.dismissHey(hey.id);
-            store.passApp(hey.appId);
-            toast('Passed, silently');
-            router.back();
+            if (store.passFeedbackDismissed) {
+              commitPass();
+              return;
+            }
+            setPassOpen(true);
           }}
         />
         <Btn
           label="Hey back"
           variant="accent"
           size="lg"
-          left={<Txt size={17}>✋</Txt>}
+          left={<HandMark size={20} />}
           style={{ flex: 1.4 }}
           onPress={() => {
             const result = store.heyBack(hey.id);
@@ -143,6 +161,13 @@ export default function LikerProfile() {
           }}
         />
       </View>
+
+      <PassReasonSheet
+        visible={passOpen}
+        appName={shortName(listing.name)}
+        onClose={(stopAsking) => closePassSheet(stopAsking)}
+        onSubmit={(reason, stopAsking) => closePassSheet(stopAsking, reason)}
+      />
 
       <BuilderSheet
         visible={builderOpen}

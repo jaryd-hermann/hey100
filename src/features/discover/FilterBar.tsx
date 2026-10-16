@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Chip } from '@/components/ui/Chip';
 import { OptionRow } from '@/components/ui/OptionRow';
@@ -31,9 +31,12 @@ type GroupKey = keyof typeof FILTER_GROUPS;
 export function FilterBar({
   filters,
   onChange,
+  style,
 }: {
   filters: FilterState;
   onChange: (next: FilterState) => void;
+  /** Lets the bar share the header row with the wordmark. */
+  style?: StyleProp<ViewStyle>;
 }) {
   const { c } = useTheme();
   const [open, setOpen] = useState<GroupKey | null>(null);
@@ -82,7 +85,8 @@ export function FilterBar({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 7, paddingRight: layout.gutter }}
+        contentContainerStyle={{ gap: 7, paddingRight: layout.gutter, alignItems: 'center' }}
+        style={style}
       >
         {dropdown('sort', 'Sort')}
         {dropdown('cat', 'Category')}

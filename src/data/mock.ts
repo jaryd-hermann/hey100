@@ -7,7 +7,10 @@ import type {
   Message,
   OwnedApp,
   SectionKey,
+  SentHey,
 } from './types';
+
+const HOUR = 60 * 60 * 1000;
 
 const P = {
   honest: 'The honest thing I need feedback on…',
@@ -57,6 +60,7 @@ export const LISTINGS: Record<string, AppListing> = {
     code: 'BREW-HEY100',
     asked: 'onboarding and UI',
     media: media('Demo video · 0:34', 'Recipe timer', 'Bean library', 'Brew history'),
+    shotLayout: 'vertical',
     prompts: [
       [P.honest, 'Whether logging a brew takes too many taps. I count six. It should be two.'],
       [P.love, "You own a scale you bought for coffee and pretend it's for baking."],
@@ -100,6 +104,7 @@ export const LISTINGS: Record<string, AppListing> = {
     code: 'SHIPNOTE-100',
     asked: 'pricing',
     media: media('Widget on a pricing page', 'Install in 40 seconds', 'Analytics'),
+    shotLayout: 'horizontal',
     prompts: [
       [P.honest, 'Is $12/mo the right price, or am I leaving money on the table?'],
       [
@@ -140,6 +145,7 @@ export const LISTINGS: Record<string, AppListing> = {
     code: 'LULLO-TF',
     asked: 'retention and bugs',
     media: media('Night mode log', 'Demo video · 0:21', 'Weekly chart'),
+    shotLayout: 'vertical',
     prompts: [
       [
         P.proud,
@@ -179,6 +185,7 @@ export const LISTINGS: Record<string, AppListing> = {
     code: 'FERNLY-YEAR',
     asked: 'UI and retention',
     media: media('Watering schedule', 'Plant ID', 'Care tips'),
+    shotLayout: 'vertical',
     prompts: [
       [P.love, 'You have more plants than chairs.'],
       [P.honest, 'Does the plant ID feel trustworthy, or like a guess?'],
@@ -215,6 +222,7 @@ export const LISTINGS: Record<string, AppListing> = {
     code: 'INKWELL-90',
     asked: 'pricing',
     media: media('Weekly reflection', 'Demo video · 0:40'),
+    shotLayout: 'vertical',
     prompts: [
       [P.how, 'Write three lines a night. Sunday you get a letter about your week.'],
       [P.dont, 'You want an AI to write for you. It only asks questions.'],
@@ -251,6 +259,7 @@ export const LISTINGS: Record<string, AppListing> = {
     code: 'GRIDLINE-PRO',
     asked: 'pricing and UI',
     media: media('Grid on a landing page', 'Toggle with ⌥G'),
+    shotLayout: 'horizontal',
     prompts: [
       [P.love, "You've ever zoomed to 400% to check a margin."],
       [P.proud, 'It reads your CSS grid and draws it. No setup.'],
@@ -352,6 +361,7 @@ export const OWNED_APPS: Record<string, OwnedApp> = {
     matches: 3,
     primary: true,
     media: media(...MY_MEDIA.slice(0, 4)),
+    shotLayout: 'vertical',
     prompts: [],
     ideal: {
       age: '25–34, 35–44',
@@ -386,6 +396,7 @@ export const OWNED_APPS: Record<string, OwnedApp> = {
     matches: 1,
     listedUntilDays: 84,
     media: media('Shared list', 'Aisle sort'),
+    shotLayout: 'vertical',
     prompts: [
       [P.love, 'You and your housemates buy three bottles of ketchup a month by accident.'],
       [P.honest, 'Is aisle sorting useful or a gimmick?'],
@@ -456,6 +467,10 @@ export const INCOMING_HEYS: IncomingHey[] = [
     viaAppId: 'tide',
     target: '"honest thing" prompt',
     note: 'I can tell you if the pricing feels fair. I pay for three budgeting apps.',
+    followUp: {
+      note: "Still keen. I set aside Saturday to run a full money date in Tidepool if you're in.",
+      when: 'yesterday',
+    },
   },
   {
     id: 'hey-grid',
@@ -463,6 +478,61 @@ export const INCOMING_HEYS: IncomingHey[] = [
     viaAppId: 'tally',
     target: 'aisle sort screenshot',
     note: "Clean. I'm a designer and do the shopping, happy to do a UI pass.",
+  },
+];
+
+/** One entry per `SentHeyStatus`, plus both sides of the 24h follow-up window. */
+export const SENT_HEYS: SentHey[] = [
+  {
+    id: 'sent-brew',
+    appId: 'brew',
+    viaAppId: 'tide',
+    target: 'demo video',
+    note: "Six taps to log a brew is the bit I'd poke at. I weigh my beans, so I'm your user.",
+    sentAt: Date.now() - 5 * HOUR,
+    status: 'Pending',
+  },
+  {
+    id: 'sent-ship',
+    appId: 'ship',
+    viaAppId: 'tide',
+    target: '"honest thing" prompt',
+    note: "I ship weekly and pay for a changelog tool already. Happy to say whether $12 lands.",
+    sentAt: Date.now() - 30 * HOUR,
+    status: 'Pending',
+  },
+  {
+    id: 'sent-lullo',
+    appId: 'lullo',
+    viaAppId: 'tally',
+    target: 'night mode log screenshot',
+    note: 'One-button logging is the right call. I can test the bad nights for a week.',
+    sentAt: Date.now() - 52 * HOUR,
+    status: 'Pending',
+    followUp: {
+      note: "Still up for this if you want a tester. TestFlight link whenever you're ready.",
+      sentAt: Date.now() - 28 * HOUR,
+    },
+  },
+  {
+    id: 'sent-fern',
+    appId: 'fern',
+    viaAppId: 'tally',
+    target: 'plant ID screenshot',
+    note: 'I kill a plant a season. Happy to stress-test whether the ID feels trustworthy.',
+    sentAt: Date.now() - 72 * HOUR,
+    status: 'Passed',
+    passReason: 'Not my audience',
+  },
+  {
+    // Points at a matched app that has a real thread, so Matched can open it.
+    id: 'sent-cad',
+    appId: 'cad',
+    viaAppId: 'tide',
+    target: 'streak recovery screenshot',
+    note: 'I break every streak by day nine. I can tell you if the recovery flow saves me.',
+    sentAt: Date.now() - 96 * HOUR,
+    status: 'Matched',
   },
 ];
 
@@ -476,6 +546,7 @@ export const INITIAL_MATCHES: Match[] = [
     mine: 'Using',
     theirs: 'Feedback sent',
     turn: true,
+    unread: 2,
   },
   {
     id: 'lum',
@@ -495,6 +566,7 @@ export const INITIAL_MATCHES: Match[] = [
     time: '3d',
     mine: 'Feedback sent',
     theirs: 'Feedback sent',
+    unread: 1,
   },
 ];
 
@@ -528,6 +600,7 @@ export const INITIAL_MESSAGES: Record<string, Message[]> = {
     {
       kind: 'me',
       body: 'Found a crash when switching subjects mid-lesson. Screenshot in my feedback.',
+      media: media('Crash on subject switch', 'Demo video · repro 0:11'),
     },
     { kind: 'them', body: 'Thanks! Fixed the crash you found.' },
   ],

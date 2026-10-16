@@ -13,7 +13,7 @@ import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { SPLASH_BG, layout, radii } from '@/theme/tokens';
-import type { OwnedApp } from '@/data/types';
+import type { OwnedApp, ShotLayout } from '@/data/types';
 
 import { ADD_APP_RANGE, LAST_STEP, STEPS } from './steps';
 import { useOnboardingDraft } from './useOnboardingDraft';
@@ -48,6 +48,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const [writing, setWriting] = useState<string | null>(null);
   const [promptTag, setPromptTag] = useState('All');
   const [answerDraft, setAnswerDraft] = useState('');
+  // Orientation for every screenshot in this listing, picked on the media step.
+  const [shotLayout, setShotLayout] = useState<ShotLayout>('vertical');
 
   const step = STEPS[draft.step];
   const lastStep = addApp ? ADD_APP_RANGE.last : LAST_STEP;
@@ -106,6 +108,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         label,
         video: /demo video/i.test(label),
       })),
+      shotLayout,
       prompts: draft.answered.map((id) => [promptLabel(id), draft.answers[id]] as [string, string]),
       ideal: {
         age: picked('ia').join(', ') || 'Any',
@@ -136,6 +139,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         views: 0,
         matches: 0,
         media: app.media!,
+        shotLayout: app.shotLayout ?? 'vertical',
         prompts: app.prompts!,
         ideal: app.ideal!,
         badges: [],
@@ -461,7 +465,14 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         );
 
       case 'media':
-        return <MediaStep filled={draft.shots} onChange={(shots) => update({ shots })} />;
+        return (
+          <MediaStep
+            filled={draft.shots}
+            onChange={(shots) => update({ shots })}
+            shotLayout={shotLayout}
+            onChangeShotLayout={setShotLayout}
+          />
+        );
 
       case 'pick':
         return (

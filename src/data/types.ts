@@ -21,7 +21,12 @@ export type MediaItem = {
   /** Stand-in for the real asset until listings are fetched from the store. */
   label: string;
   video?: boolean;
+  /** Absent until a real upload exists, so renderers fall back to the placeholder. */
+  uri?: string;
 };
+
+/** Every screenshot in one listing shares an orientation, picked by the owner. */
+export type ShotLayout = 'vertical' | 'horizontal';
 
 /** A listing as shown in Discover, Heys, the owner preview and the web page. */
 export type AppListing = {
@@ -43,6 +48,8 @@ export type AppListing = {
   /** The subtle "why you're seeing this" line under the header. */
   fit?: string;
   media: MediaItem[];
+  /** Carousel orientation for every item in `media`. */
+  shotLayout: ShotLayout;
   prompts: [label: string, answer: string][];
   ideal: IdealUsers;
   badges: string[];
@@ -76,6 +83,15 @@ export type SectionKey =
 
 export type HeyTargetType = 'app' | 'prompt' | 'media';
 
+export const PASS_REASONS = [
+  'Not my audience',
+  'Already use something similar',
+  'Not a category I test',
+  'Listing looks unfinished',
+  'Something else',
+] as const;
+export type PassReason = (typeof PASS_REASONS)[number];
+
 /** An incoming hey in the Heys queue. */
 export type IncomingHey = {
   id: string;
@@ -84,6 +100,27 @@ export type IncomingHey = {
   viaAppId: string;
   target: string;
   note: string;
+  /** A second note from the sender, shown under the first as "Very interested". */
+  followUp?: { note: string; when: string };
+};
+
+export type SentHeyStatus = 'Pending' | 'Passed' | 'Matched';
+
+/** A hey the user sent. Sent heys are what the Sent tab lists. */
+export type SentHey = {
+  id: string;
+  /** The listing they heyed. */
+  appId: string;
+  /** Which of the user's apps it was sent from. */
+  viaAppId: string;
+  target: string;
+  note: string;
+  /** Epoch ms; the follow-up only unlocks 24h after this. */
+  sentAt: number;
+  status: SentHeyStatus;
+  /** Only set when the other side passed. */
+  passReason?: string;
+  followUp?: { note: string; sentAt: number };
 };
 
 export type TradeStatus = 'Not started' | 'Using' | 'Feedback sent';
@@ -100,12 +137,15 @@ export type Match = {
   turn?: boolean;
   expiresInDays?: number;
   why?: string;
+  /** Unread messages waiting in this thread. */
+  unread?: number;
 };
 
 export type Message =
   | { kind: 'system'; body: string }
-  | { kind: 'them'; body: string }
-  | { kind: 'me'; body: string }
+  /** `body` is absent on a media-only message. */
+  | { kind: 'them'; body?: string; media?: MediaItem[] }
+  | { kind: 'me'; body?: string; media?: MediaItem[] }
   | { kind: 'announcement'; body: string; when: string }
   | {
       kind: 'feedback';

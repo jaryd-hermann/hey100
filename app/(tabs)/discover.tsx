@@ -13,7 +13,12 @@ import { Txt } from '@/components/ui/Txt';
 import { DECK_IDS, LISTINGS, shortName } from '@/data/mock';
 import { AppPage, CompactAppBar, useCompactBar, type HeyTarget } from '@/features/app-page/AppPage';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
-import { FilterBar, INITIAL_FILTERS, applyFilters } from '@/features/discover/FilterBar';
+import {
+  FilterBar,
+  INITIAL_FILTERS,
+  applyFilters,
+  type FilterState,
+} from '@/features/discover/FilterBar';
 import { HeySheet } from '@/features/discover/HeySheet';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
@@ -104,11 +109,8 @@ export default function DiscoverScreen() {
           paddingHorizontal: layout.gutter,
         }}
       >
-        <View style={{ paddingVertical: 10, gap: 10 }}>
-          <HeaderLogo hand />
-          {/* The filters stay reachable, since they are the likely cause. */}
-          <FilterBar filters={filters} onChange={setFilters} />
-        </View>
+        {/* The filters stay reachable, since they are the likely cause. */}
+        <DiscoverHeader filters={filters} onChange={setFilters} inset={false} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
           <Txt font="mono" size={19} weight={500} center>
             That&apos;s everyone for now.
@@ -137,10 +139,7 @@ export default function DiscoverScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
-      <View style={{ paddingHorizontal: layout.gutter, paddingTop: 6, gap: 10 }}>
-        <HeaderLogo hand />
-        <FilterBar filters={filters} onChange={setFilters} />
-      </View>
+      <DiscoverHeader filters={filters} onChange={setFilters} />
 
       <View style={{ height: 14 }} />
 
@@ -219,6 +218,41 @@ export default function DiscoverScreen() {
           setBuilderOpen(false);
           router.push({ pathname: '/browser', params: { kind, value } });
         }}
+      />
+    </View>
+  );
+}
+
+/** Wordmark and filters share one row, so the deck gets the vertical space. */
+function DiscoverHeader({
+  filters,
+  onChange,
+  inset = true,
+}: {
+  filters: FilterState;
+  onChange: (next: FilterState) => void;
+  /** Off when the parent already applies the page gutter. */
+  inset?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: inset ? layout.gutter : 0,
+        paddingTop: 6,
+        minHeight: 48,
+      }}
+    >
+      <View style={{ flexShrink: 0 }}>
+        <HeaderLogo hand />
+      </View>
+      {/* The chips scroll out under the right edge of the screen. */}
+      <FilterBar
+        filters={filters}
+        onChange={onChange}
+        style={{ flex: 1, marginRight: inset ? -layout.gutter : 0 }}
       />
     </View>
   );

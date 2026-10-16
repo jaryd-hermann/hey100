@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HandMark } from '@/components/brand/Logo';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Glow } from '@/components/ui/Glow';
@@ -95,7 +96,7 @@ export default function MatchOverlay() {
               borderColor: c.bg,
             }}
           >
-            <Txt size={20}>✋</Txt>
+            <HandMark size={22} />
           </View>
           <AppIcon hue={theirs.hue} name={theirs.name} size={88} style={{ marginLeft: -16 }} />
         </View>

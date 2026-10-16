@@ -11,8 +11,9 @@ import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { INTEGRATIONS, shortName, slugify } from '@/data/mock';
-import type { Integration } from '@/data/types';
+import type { Integration, SectionKey } from '@/data/types';
 import { AppPage } from '@/features/app-page/AppPage';
+import { EditSectionSheet } from '@/features/app-page/EditSectionSheet';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -29,6 +30,7 @@ export default function OwnerAppPage() {
   const app = store.apps[id] ?? store.primaryApp;
 
   const [editLayout, setEditLayout] = useState(false);
+  const [editSection, setEditSection] = useState<SectionKey | null>(null);
   const [badge, setBadge] = useState<string | null>(null);
   const [badgeStyle, setBadgeStyle] = useState<'Dark' | 'Light'>('Dark');
 
@@ -183,11 +185,17 @@ export default function OwnerAppPage() {
 
         <View style={{ gap: 12, marginTop: 6 }}>
           <Label>How builders see your page</Label>
+          <Txt size={12.5} lh={1.45} muted>
+            {editLayout
+              ? 'Reordering sections. Tap Done to edit what they say.'
+              : 'Tap any section to edit it. Use Edit layout to reorder them.'}
+          </Txt>
           <AppPage
             listing={app}
             mode="owner"
             editLayout={editLayout}
             onMoveSection={(index, direction) => store.moveSection(app.id, index, direction)}
+            onEditSection={setEditSection}
             onOpenLink={(kind, value) =>
               router.push({ pathname: '/browser', params: { kind, value } })
             }
@@ -213,6 +221,18 @@ export default function OwnerAppPage() {
           />
         </View>
       ) : null}
+
+      <EditSectionSheet
+        section={editSection}
+        app={app}
+        onClose={() => setEditSection(null)}
+        onSave={(patch) => {
+          store.updateApp(app.id, patch);
+          captureEvent('listing_section_edited', { section: editSection ?? '' });
+          setEditSection(null);
+          toast('Listing updated');
+        }}
+      />
 
       <Sheet visible={!!badge} onClose={() => setBadge(null)}>
         <View style={{ gap: 16 }}>

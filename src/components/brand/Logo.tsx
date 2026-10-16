@@ -84,7 +84,14 @@ function StickerText({ children, size, weight = 0.113 }: StickerTextProps) {
   );
 }
 
-export function HandMark({ size = 64, wave = false }: { size?: number; wave?: boolean }) {
+export type HandMarkProps = {
+  size?: number;
+  wave?: boolean;
+  /** The sticker outline stays black; only the inner fill changes. */
+  fill?: string;
+};
+
+export function HandMark({ size = 64, wave = false, fill = '#FFFFFF' }: HandMarkProps) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -126,7 +133,7 @@ export function HandMark({ size = 64, wave = false }: { size?: number; wave?: bo
           strokeWidth={14}
           strokeLinejoin="round"
         />
-        <Path d={HAND_PATH} fill="#FFFFFF" stroke={STICKER} strokeWidth={7} strokeLinejoin="round" />
+        <Path d={HAND_PATH} fill={fill} stroke={STICKER} strokeWidth={7} strokeLinejoin="round" />
       </Svg>
     </Animated.View>
   );

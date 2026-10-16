@@ -72,7 +72,7 @@ export default function FeedbackInbox() {
             ))}
           </View>
           <Txt size={11.5} muted style={{ marginTop: -6 }}>
-            Last 30 days · only you can see these numbers
+            All time · only you can see these numbers
           </Txt>
 
           <Card padding={16} radius={radii.cardLg} style={{ gap: 14 }}>

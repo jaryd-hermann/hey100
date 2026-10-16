@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import { captureEvent } from '@/lib/analytics';
-import { FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
+import { FREE_DAILY_HEYS, FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
@@ -31,7 +31,10 @@ const PERKS: [string, string][] = [
     'More analytics',
     'Views, skips, hey ratio and which part of your page gets the most heys.',
   ],
-  ['Unlimited matches', 'Keep trading past the 5 free matches.'],
+  [
+    'Unlimited matches',
+    `Keep trading past the ${FREE_MATCH_LIMIT} free matches.`,
+  ],
 ];
 
 export default function Paywall() {
@@ -101,7 +104,7 @@ export default function Paywall() {
               {FREE_MATCH_LIMIT}
             </Txt>
             <Txt font="mono" size={25} weight={500} lh={1.25} style={{ marginTop: 10 }}>
-              You&apos;ve made 5 builder connections.
+              You&apos;ve made {FREE_MATCH_LIMIT} builder connections.
             </Txt>
             <Txt size={15.5} lh={1.5} muted style={{ marginTop: 12 }}>
               List {shortName(store.primaryApp.name)} to keep matching. Your existing chats stay
@@ -207,7 +210,11 @@ export default function Paywall() {
           onPress={purchase}
         />
         <Btn
-          label={atMatchLimit ? 'Not now' : 'Start free · 8 heys a day, 5 matches'}
+          label={
+            atMatchLimit
+              ? 'Not now'
+              : `Start free · ${FREE_DAILY_HEYS} heys a day, ${FREE_MATCH_LIMIT} matches`
+          }
           variant="ghost"
           size="md"
           full

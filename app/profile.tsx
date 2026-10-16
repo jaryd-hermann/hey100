@@ -12,17 +12,19 @@ import { Chip } from '@/components/ui/Chip';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { stripEmoji } from '@/data/mock';
+import { TAG_ROWS } from '@/features/profile/fields';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
-const TAG_ROWS: [label: string, group: string][] = [
-  ['Day job', 'job'],
-  ['Looking for', 'look'],
-  ["Apps I'd try", 'cat'],
-  ['Outside building', 'l'],
-  ['Tests on', 'd'],
-];
+/** Network icons for the social pills, matching the developer sheet. */
+const SOCIAL_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  X: 'logo-twitter',
+  GitHub: 'logo-github',
+  LinkedIn: 'logo-linkedin',
+  TikTok: 'logo-tiktok',
+  Instagram: 'logo-instagram',
+};
 
 export default function Profile() {
   const router = useRouter();
@@ -33,6 +35,7 @@ export default function Profile() {
 
   const { user } = store;
   const handle = user.username;
+  const socials = user.socials.filter(([, value]) => !!value);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
@@ -51,7 +54,7 @@ export default function Profile() {
         <Txt font="mono" size={17} weight={500} style={{ flex: 1 }}>
           Profile
         </Txt>
-        <Pressable onPress={() => toast('Profile editing lands next')} hitSlop={10}>
+        <Pressable onPress={() => router.push('/profile/edit')} hitSlop={10}>
           <Txt size={14} weight={600}>
             Edit
           </Txt>
@@ -76,16 +79,51 @@ export default function Profile() {
           </Txt>
         </View>
 
+        {user.bio || socials.length ? (
+          <View style={{ gap: 12 }}>
+            {user.bio ? (
+              <Txt size={15} lh={1.5}>
+                {user.bio}
+              </Txt>
+            ) : null}
+
+            {socials.length ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+                {socials.map(([kind, value]) => (
+                  <Chip
+                    key={kind}
+                    label={value}
+                    size="sm"
+                    tone="accent"
+                    onPress={() => router.push({ pathname: '/browser', params: { kind, value } })}
+                    left={
+                      <Ionicons
+                        name={SOCIAL_ICONS[kind] ?? 'globe-outline'}
+                        size={13}
+                        color={c.accentText}
+                      />
+                    }
+                    right={<Ionicons name="open-outline" size={12} color={c.accentText} />}
+                  />
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Five stats sit on a three-column grid so both rows stay aligned. */}
         <Card padding={16} radius={radii.cardLg}>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 15 }}>
             {(
               [
                 ['Feedback given', String(user.feedbackGiven)],
                 ['Reply rate', user.replyRate],
                 ['Rating', user.rating],
+                ['Matches', String(store.matchesMade)],
+                ['Users found', String(store.usersFound)],
               ] as const
             ).map(([label, value]) => (
-              <View key={label} style={{ flex: 1, gap: 3 }}>
+              <View key={label} style={{ width: '33.33%', gap: 3 }}>
                 <Txt font="mono" size={19} weight={500}>
                   {value}
                 </Txt>

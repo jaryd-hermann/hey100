@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
+import { INTEGRATIONS } from '@/data/mock';
 import { useStore } from '@/store/AppStore';
 import { useTheme, type ThemePref } from '@/theme/ThemeProvider';
 import { palettes } from '@/theme/tokens';
@@ -18,12 +19,12 @@ const THEMES: { id: ThemePref; label: string }[] = [
   { id: 'dark', label: 'Dark' },
 ];
 
-const ROWS: { label: string; detail?: string }[] = [
-  { label: 'Subscription' },
-  { label: 'Notifications' },
-  { label: 'Connected accounts' },
-  { label: 'Account' },
-];
+const ROWS = [
+  { label: 'Subscription', href: '/settings/subscription' },
+  { label: 'Notifications', href: '/settings/notifications' },
+  { label: 'Connected accounts', href: '/settings/connected' },
+  { label: 'Account', href: '/settings/account' },
+] as const;
 
 export default function Settings() {
   const router = useRouter();
@@ -31,6 +32,16 @@ export default function Settings() {
   const { c, pref, setPref } = useTheme();
   const toast = useToast();
   const store = useStore();
+
+  const connected = Object.values(store.connections[store.primaryApp.id] ?? {}).filter(
+    Boolean,
+  ).length;
+
+  const details: Record<string, string | undefined> = {
+    Subscription: store.isPro ? 'Pro' : 'Free',
+    'Connected accounts': `${connected} of ${INTEGRATIONS.length} connected`,
+    Account: `@${store.user.username}`,
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
@@ -135,7 +146,7 @@ export default function Settings() {
             <Pressable
               key={row.label}
               accessibilityRole="button"
-              onPress={() => toast(`${row.label} lands next`)}
+              onPress={() => router.push(row.href)}
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -150,9 +161,9 @@ export default function Settings() {
               <Txt size={15} weight={500} style={{ flex: 1 }}>
                 {row.label}
               </Txt>
-              {row.label === 'Subscription' ? (
-                <Txt size={13} color={c.accentText}>
-                  {store.isPro ? 'Pro' : 'Free'}
+              {details[row.label] ? (
+                <Txt size={13} color={row.label === 'Subscription' ? c.accentText : c.muted}>
+                  {details[row.label]}
                 </Txt>
               ) : null}
               <Ionicons name="chevron-forward" size={16} color={c.muted} />

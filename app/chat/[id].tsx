@@ -1,27 +1,49 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
-import { Card } from '@/components/ui/Card';
 import { Glass } from '@/components/ui/Glass';
+import { Lightbox } from '@/components/ui/Lightbox';
 import { useToast } from '@/components/ui/Toast';
-import { Label, Txt } from '@/components/ui/Txt';
-import { EMOJI_TRAY, shortName, slugify } from '@/data/mock';
-import type { Message } from '@/data/types';
+import { Txt } from '@/components/ui/Txt';
+import { shortName, slugify } from '@/data/mock';
+import type { AppListing, MediaItem } from '@/data/types';
+import { BuilderSheet } from '@/features/app-page/BuilderSheet';
+import { ChatMenu } from '@/features/chat/ChatMenu';
+import { Composer } from '@/features/chat/Composer';
+import { avatarName, TEAM_ID } from '@/features/chat/chatMeta';
+import { MessageBubble } from '@/features/chat/MessageBubble';
+import { TeamMark } from '@/features/chat/TeamMark';
+import { TradeAppSheet } from '@/features/chat/TradeAppSheet';
 import { TradeCard } from '@/features/chat/TradeCard';
+import { useMediaPicker } from '@/features/chat/useMediaPicker';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
-import { fonts, layout, radii } from '@/theme/tokens';
+import { layout } from '@/theme/tokens';
+
+/** A bubble carries at most four attachments. */
+const ATTACHMENT_LIMIT = 4;
+
+/** Matched apps are stored as stubs, so a sheet built for a full listing needs these. */
+const LISTING_FALLBACK = {
+  cat: '',
+  plat: '',
+  stage: '',
+  role: 'Builder',
+  style: 'Matched with you on Hey100.',
+  likes: '—',
+  reply: '—',
+  trades: 0,
+  media: [],
+  shotLayout: 'vertical',
+  prompts: [],
+  badges: [],
+  links: [],
+  ideal: { age: '', gender: '', interests: '', plat: '', wants: '' },
+} satisfies Omit<AppListing, 'id' | 'name' | 'sub' | 'hue' | 'builder'>;
 
 export default function ChatThread() {
   const router = useRouter();
@@ -29,18 +51,37 @@ export default function ChatThread() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const pickMedia = useMediaPicker();
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const scrollRef = useRef<ScrollView>(null);
 
   const [draft, setDraft] = useState('');
-  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [attachments, setAttachments] = useState<MediaItem[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [appOpen, setAppOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [viewer, setViewer] = useState<{ items: MediaItem[]; index: number } | null>(null);
 
-  const isTeam = id === 'team';
+  const isTeam = id === TEAM_ID;
   const match = store.matches.find((item) => item.id === id);
   const listing = store.listing(id);
   const viaApp = match ? store.apps[match.viaAppId] : undefined;
-  const messages = store.messages[id] ?? [];
+  const stored = useMemo(() => store.messages[id] ?? [], [id, store.messages]);
+
+  // Where the unread run started when the thread was opened, before it was read.
+  const [unreadStart] = useState(() => {
+    const unread = store.matches.find((item) => item.id === id)?.unread ?? 0;
+    const count = (store.messages[id] ?? []).length;
+    return unread > 0 ? Math.max(0, count - unread) : -1;
+  });
+
+  const { markChatRead } = store;
+  useEffect(() => {
+    markChatRead(id);
+  }, [id, markChatRead]);
+
+  const messages = stored;
 
   if (!listing) {
     return (
@@ -50,13 +91,39 @@ export default function ChatThread() {
     );
   }
 
+  const builder = avatarName(listing.builder);
+  const webLink = listing.links?.find(([kind]) => kind === 'Web');
+  const link: [string, string] = isTeam
+    ? ['Web', 'hey100.com']
+    : (webLink ?? ['Web', `${slugify(listing.name)}.app`]);
+
   const send = () => {
-    if (!draft.trim()) return;
-    store.sendMessage(id, draft);
+    const body = draft.trim();
+    if (!body && !attachments.length) return;
+
+    store.sendMessage(id, body, attachments);
+    setAttachments([]);
+
     setDraft('');
-    setEmojiOpen(false);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };
+
+  const attach = async () => {
+    try {
+      const { items, denied } = await pickMedia();
+      if (denied) {
+        toast('Photo access is off in Settings');
+        return;
+      }
+      if (!items.length) return;
+      setAttachments((prev) => [...prev, ...items].slice(0, ATTACHMENT_LIMIT));
+    } catch {
+      toast("Couldn't open your photo library");
+    }
+  };
+
+  const openBrowser = (kind: string, value: string) =>
+    router.push({ pathname: '/browser', params: { kind, value } });
 
   return (
     <KeyboardAvoidingView
@@ -71,7 +138,9 @@ export default function ChatThread() {
               alignItems: 'center',
               gap: 11,
               paddingHorizontal: layout.gutter,
-              paddingBottom: 11,
+              // Clear of the status bar, like every other pushed screen.
+              paddingTop: 10,
+              paddingBottom: 12,
               borderBottomWidth: 1,
               borderColor: c.line,
             }}
@@ -80,25 +149,29 @@ export default function ChatThread() {
               <Ionicons name="chevron-back" size={26} color={c.ink} />
             </Pressable>
 
-            <View style={{ width: 46, height: 38 }}>
-              <AppIcon hue={listing.hue} name={listing.name} size={38} />
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 20,
-                  bottom: -4,
-                  borderRadius: 13,
-                  borderWidth: 2,
-                  borderColor: c.bg,
-                }}
-              >
-                <Avatar name={listing.builder} size={24} />
+            {isTeam ? (
+              <TeamMark size={38} badge={24} ring={c.bg} />
+            ) : (
+              <View style={{ width: 46, height: 38 }}>
+                <AppIcon hue={listing.hue} name={listing.name} size={38} />
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: 20,
+                    bottom: -4,
+                    borderRadius: 13,
+                    borderWidth: 2,
+                    borderColor: c.bg,
+                  }}
+                >
+                  <Avatar name={builder} size={24} />
+                </View>
               </View>
-            </View>
+            )}
 
             <View style={{ flex: 1 }}>
               <Txt font="mono" size={15} weight={500} numberOfLines={1}>
-                {shortName(listing.name)}
+                {isTeam ? listing.name : shortName(listing.name)}
               </Txt>
               {/* Chat always shows the real name, since this is a match. */}
               <Txt size={12.5} muted numberOfLines={1}>
@@ -106,11 +179,7 @@ export default function ChatThread() {
               </Txt>
             </View>
 
-            <Pressable
-              hitSlop={10}
-              accessibilityLabel="More"
-              onPress={() => toast('Report, block and unmatch land here')}
-            >
+            <Pressable hitSlop={10} accessibilityLabel="More" onPress={() => setMenuOpen(true)}>
               <Ionicons name="ellipsis-horizontal" size={21} color={c.muted} />
             </Pressable>
           </View>
@@ -133,11 +202,7 @@ export default function ChatThread() {
             onCopyCode={() => toast('Code copied')}
             onOpenLink={() => {
               store.setTradeStatus(match.id, 'mine', 'Using');
-              const web = listing.links?.find(([kind]) => kind === 'Web');
-              router.push({
-                pathname: '/browser',
-                params: { kind: 'Web', value: web?.[1] ?? `${slugify(listing.name)}.app` },
-              });
+              openBrowser(link[0], link[1]);
             }}
             onSendFeedback={() =>
               router.push({ pathname: '/feedback-form', params: { matchId: match.id } })
@@ -147,7 +212,16 @@ export default function ChatThread() {
 
         <View style={{ gap: 12 }}>
           {messages.map((message, index) => (
-            <Bubble key={index} message={message} />
+            <React.Fragment key={index}>
+              {index === unreadStart ? <UnreadDivider /> : null}
+              <MessageBubble
+                message={message}
+                hue={listing.hue}
+                unread={unreadStart >= 0 && index >= unreadStart}
+                avatar={<Avatar name={isTeam ? 'Jaryd' : builder} size={26} />}
+                onOpenMedia={(items, at) => setViewer({ items, index: at })}
+              />
+            </React.Fragment>
           ))}
         </View>
 
@@ -160,166 +234,105 @@ export default function ChatThread() {
         ) : null}
       </ScrollView>
 
-      {emojiOpen ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: 6,
-            paddingHorizontal: layout.gutter,
-            paddingVertical: 8,
-          }}
-        >
-          {EMOJI_TRAY.map((emoji) => (
-            <Pressable key={emoji} onPress={() => setDraft((prev) => prev + emoji)} hitSlop={4}>
-              <Txt size={23}>{emoji}</Txt>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      <Composer
+        value={draft}
+        onChangeText={setDraft}
+        attachments={attachments}
+        onAttach={attach}
+        onRemoveAttachment={(index) =>
+          setAttachments((prev) => prev.filter((_, at) => at !== index))
+        }
+        onSend={send}
+        hue={listing.hue}
+        bottomInset={insets.bottom}
+      />
 
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          gap: 9,
-          paddingHorizontal: layout.gutter,
-          paddingTop: 8,
-          paddingBottom: insets.bottom + 8,
-          borderTopWidth: 1,
-          borderColor: c.line,
+      <ChatMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        appName={isTeam ? listing.name : shortName(listing.name)}
+        builder={listing.builder}
+        isTeam={isTeam}
+        link={link}
+        onViewApp={() => {
+          setMenuOpen(false);
+          setAppOpen(true);
         }}
-      >
-        <Pressable
-          onPress={() => setEmojiOpen((prev) => !prev)}
-          hitSlop={8}
-          accessibilityLabel="Emoji"
-          style={{ height: 44, justifyContent: 'center' }}
-        >
-          <Ionicons name="happy-outline" size={23} color={emojiOpen ? c.accentText : c.muted} />
-        </Pressable>
+        onViewProfile={() => {
+          setMenuOpen(false);
+          setBuilderOpen(true);
+        }}
+        onOpenLink={() => {
+          setMenuOpen(false);
+          openBrowser(link[0], link[1]);
+        }}
+        onDelete={() => {
+          setMenuOpen(false);
+          store.deleteChat(id);
+          toast('Chat deleted');
+          router.back();
+        }}
+        onReport={() => {
+          setMenuOpen(false);
+          toast('Report sent to the Hey100 team');
+        }}
+      />
 
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Message"
-          placeholderTextColor={c.muted}
-          multiline
-          style={{
-            flex: 1,
-            maxHeight: 112,
-            minHeight: 44,
-            borderRadius: radii.input,
-            backgroundColor: c.surface,
-            borderWidth: 1,
-            borderColor: c.line,
-            paddingHorizontal: 14,
-            paddingTop: 12,
-            paddingBottom: 12,
-            color: c.ink,
-            fontFamily: fonts.body,
-            fontSize: 15.5,
-          }}
-        />
+      <TradeAppSheet
+        visible={appOpen}
+        listing={{ ...LISTING_FALLBACK, ...listing }}
+        onClose={() => setAppOpen(false)}
+        onOpenLink={(kind, value) => {
+          setAppOpen(false);
+          openBrowser(kind, value);
+        }}
+        onOpenProfile={() => {
+          setAppOpen(false);
+          setBuilderOpen(true);
+        }}
+        onOpenFullListing={
+          listing.media?.length
+            ? () => {
+                setAppOpen(false);
+                router.push({ pathname: '/web/[slug]', params: { slug: slugify(listing.name) } });
+              }
+            : undefined
+        }
+      />
 
-        <Pressable
-          onPress={send}
-          accessibilityLabel="Send"
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: draft.trim() ? c.accent : c.raised,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name="arrow-up" size={20} color={draft.trim() ? c.accentInk : c.muted} />
-        </Pressable>
-      </View>
+      <BuilderSheet
+        visible={builderOpen}
+        listing={{ ...LISTING_FALLBACK, ...listing }}
+        onClose={() => setBuilderOpen(false)}
+        onOpenLink={(kind, value) => {
+          setBuilderOpen(false);
+          openBrowser(kind, value);
+        }}
+      />
+
+      <Lightbox
+        visible={!!viewer}
+        items={viewer?.items ?? []}
+        index={viewer?.index ?? 0}
+        hue={listing.hue}
+        layout="vertical"
+        onClose={() => setViewer(null)}
+      />
     </KeyboardAvoidingView>
   );
 }
 
-function Bubble({ message }: { message: Message }) {
+/** Marks where the messages the user has not seen start. */
+function UnreadDivider() {
   const { c } = useTheme();
 
-  if (message.kind === 'system') {
-    return (
-      <Txt font="mono" size={11} muted center upper tracking={0.8} lh={1.5}>
-        {message.body}
-      </Txt>
-    );
-  }
-
-  if (message.kind === 'announcement') {
-    return (
-      <Card tone="soft" padding={14} radius={radii.cardLg} style={{ gap: 8 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Label size={10}>Announcement · all builders</Label>
-          <Txt size={11} color={c.accentText}>
-            {message.when}
-          </Txt>
-        </View>
-        <Txt size={15} lh={1.5} color={c.accentText}>
-          {message.body}
-        </Txt>
-      </Card>
-    );
-  }
-
-  if (message.kind === 'feedback') {
-    const mine = message.from === 'me';
-    return (
-      <View
-        style={{
-          borderRadius: radii.cardLg,
-          borderWidth: 1.5,
-          borderColor: c.accent,
-          backgroundColor: c.surface,
-          padding: 15,
-          gap: 9,
-          maxWidth: '92%',
-          alignSelf: mine ? 'flex-end' : 'flex-start',
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Label size={10} style={{ flex: 1 }}>
-            {mine ? 'Feedback you sent' : 'Feedback received'}
-          </Label>
-          <Txt font="mono" size={13} weight={600} color={c.accentText}>
-            {message.stars}
-          </Txt>
-        </View>
-        <Txt size={15} lh={1.45}>
-          {message.body}
-        </Txt>
-        <Txt size={12} muted>
-          {message.meta}
-        </Txt>
-      </View>
-    );
-  }
-
-  const mine = message.kind === 'me';
-
   return (
-    <View
-      style={{
-        maxWidth: '82%',
-        alignSelf: mine ? 'flex-end' : 'flex-start',
-        backgroundColor: mine ? c.ink : c.surface,
-        borderWidth: mine ? 0 : 1,
-        borderColor: c.line,
-        borderRadius: 18,
-        borderBottomRightRadius: mine ? 6 : 18,
-        borderBottomLeftRadius: mine ? 18 : 6,
-        paddingHorizontal: 14,
-        paddingVertical: 11,
-      }}
-    >
-      <Txt size={15.5} lh={1.4} color={mine ? c.bg : c.ink}>
-        {message.body}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: c.accent, opacity: 0.6 }} />
+      <Txt font="mono" size={10.5} weight={500} upper tracking={0.9} color={c.accentText}>
+        new
       </Txt>
+      <View style={{ flex: 1, height: 1, backgroundColor: c.accent, opacity: 0.6 }} />
     </View>
   );
 }

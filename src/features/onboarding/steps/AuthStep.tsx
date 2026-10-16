@@ -16,6 +16,46 @@ const PROVIDERS: { id: AuthProvider; icon: React.ComponentProps<typeof Ionicons>
   { id: 'GitHub', icon: 'logo-github' },
 ];
 
+/** Shared so signing up and logging back in can never drift apart. */
+export function ProviderButtons({
+  onPress,
+  verb = 'Continue with',
+}: {
+  onPress: (provider: AuthProvider) => void;
+  verb?: string;
+}) {
+  const { c } = useTheme();
+
+  return (
+    <View style={{ gap: 10 }}>
+      {PROVIDERS.map((provider) => (
+        <Pressable
+          key={provider.id}
+          accessibilityRole="button"
+          onPress={() => onPress(provider.id)}
+          style={({ pressed }) => ({
+            height: 56,
+            borderRadius: radii.pill,
+            backgroundColor: provider.id === 'Apple' ? c.ink : c.surface,
+            borderWidth: provider.id === 'Apple' ? 0 : 1.5,
+            borderColor: c.line,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
+          <Ionicons name={provider.icon} size={19} color={provider.id === 'Apple' ? c.bg : c.ink} />
+          <Txt size={15.5} weight={600} color={provider.id === 'Apple' ? c.bg : c.ink}>
+            {verb} {provider.id}
+          </Txt>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 export type AuthStepProps = {
   appName: string;
   appSub: string;
@@ -71,36 +111,7 @@ export function AuthStep({
         </View>
       </Card>
 
-      <View style={{ gap: 10 }}>
-        {PROVIDERS.map((provider) => (
-          <Pressable
-            key={provider.id}
-            accessibilityRole="button"
-            onPress={() => onSignIn(provider.id)}
-            style={({ pressed }) => ({
-              height: 56,
-              borderRadius: radii.pill,
-              backgroundColor: provider.id === 'Apple' ? c.ink : c.surface,
-              borderWidth: provider.id === 'Apple' ? 0 : 1.5,
-              borderColor: c.line,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            <Ionicons
-              name={provider.icon}
-              size={19}
-              color={provider.id === 'Apple' ? c.bg : c.ink}
-            />
-            <Txt size={15.5} weight={600} color={provider.id === 'Apple' ? c.bg : c.ink}>
-              Continue with {provider.id}
-            </Txt>
-          </Pressable>
-        ))}
-      </View>
+      <ProviderButtons onPress={onSignIn} />
 
       <Txt size={12} lh={1.5} muted center>
         By continuing you agree to the Terms of Use and Privacy Policy.

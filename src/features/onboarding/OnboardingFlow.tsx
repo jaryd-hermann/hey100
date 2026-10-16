@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Progress } from '@/components/ui/Progress';
+import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
 import { useToast } from '@/components/ui/Toast';
 import { DEFAULT_LAYOUT, MY_MEDIA, stripEmoji } from '@/data/mock';
@@ -18,7 +19,7 @@ import type { OwnedApp, ShotLayout } from '@/data/types';
 import { ADD_APP_RANGE, LAST_STEP, STEPS } from './steps';
 import { useOnboardingDraft } from './useOnboardingDraft';
 import { AddAppStep } from './steps/AddAppStep';
-import { AuthStep } from './steps/AuthStep';
+import { AuthStep, ProviderButtons, type AuthProvider } from './steps/AuthStep';
 import { CheckStep } from './steps/CheckStep';
 import { InviteStep } from './steps/InviteStep';
 import { MediaStep } from './steps/MediaStep';
@@ -44,6 +45,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   );
 
   // Prompt picker and answer writer are sub-screens of the prompts step.
+  const [logIn, setLogIn] = useState(false);
   const [picker, setPicker] = useState<number | null>(null);
   const [writing, setWriting] = useState<string | null>(null);
   const [promptTag, setPromptTag] = useState('All');
@@ -177,6 +179,14 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     router.replace('/paywall?from=onboarding');
   };
 
+  /** Logging back in skips the listing flow and the new-signup paywall. */
+  const logInWith = (provider: AuthProvider) => {
+    captureEvent('logged_in', { provider });
+    setLogIn(false);
+    store.completeOnboarding({});
+    router.replace('/(tabs)/discover');
+  };
+
   const next = () => {
     if (!valid) {
       toast(invalidMessage());
@@ -217,7 +227,20 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   if (isWelcome) {
     return (
       <View style={{ flex: 1, backgroundColor: background, paddingTop: insets.top + 8 }}>
-        <WelcomeStep onContinue={() => update({ step: 1 })} />
+        <WelcomeStep onContinue={() => update({ step: 1 })} onLogIn={() => setLogIn(true)} />
+
+        <Sheet visible={logIn} onClose={() => setLogIn(false)} scroll={false}>
+          <View style={{ gap: 16 }}>
+            <Txt font="mono" size={18} weight={500}>
+              Welcome back
+            </Txt>
+            <Txt size={14.5} lh={1.5} muted>
+              Log in with whichever account you listed your app with.
+            </Txt>
+
+            <ProviderButtons verb="Log in with" onPress={logInWith} />
+          </View>
+        </Sheet>
       </View>
     );
   }

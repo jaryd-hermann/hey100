@@ -1,10 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { HeroLogo } from '@/components/brand/Logo';
 import { Btn } from '@/components/ui/Btn';
 import { Txt } from '@/components/ui/Txt';
 import { useTheme } from '@/theme/ThemeProvider';
+import { radii } from '@/theme/tokens';
 
 const STEPS = [
   ['01', 'Build a "dating profile" for your product.'],
@@ -12,11 +14,42 @@ const STEPS = [
   ['03', 'Trade: you use theirs, they use yours.'],
 ];
 
-export function WelcomeStep({ onContinue }: { onContinue: () => void }) {
+export function WelcomeStep({
+  onContinue,
+  onLogIn,
+}: {
+  onContinue: () => void;
+  onLogIn: () => void;
+}) {
   const { c } = useTheme();
 
   return (
     <View style={{ flex: 1, paddingHorizontal: 28, paddingBottom: 44 }}>
+      {/* Returning users need a way in that skips building a listing. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Log in"
+        onPress={onLogIn}
+        hitSlop={10}
+        style={({ pressed }) => ({
+          alignSelf: 'flex-end',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingHorizontal: 13,
+          height: 34,
+          borderRadius: radii.pill,
+          borderWidth: 1.5,
+          borderColor: c.line,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Ionicons name="log-in-outline" size={16} color={c.ink} />
+        <Txt size={13.5} weight={600}>
+          Log in
+        </Txt>
+      </Pressable>
+
       <View style={{ flex: 1, justifyContent: 'center', gap: 18 }}>
         <Txt size={15.5} weight={600} lh={1.45} muted>
           Building is now the easy part.{'\n'}Finding users is what&apos;s hard!

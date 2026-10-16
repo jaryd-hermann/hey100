@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,7 @@ export type SheetProps = {
 export function Sheet({ visible, onClose, children, scroll = true }: SheetProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -56,7 +58,9 @@ export function Sheet({ visible, onClose, children, scroll = true }: SheetProps)
             borderTopRightRadius: radii.sheet,
             borderTopWidth: 1,
             borderColor: c.line,
-            maxHeight: '88%',
+            // A percentage has no definite parent height to resolve against
+            // here, since the wrapper is positioned absolutely.
+            maxHeight: height * 0.88,
             transform: [
               { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] }) },
             ],

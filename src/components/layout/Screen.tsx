@@ -64,6 +64,9 @@ export function Screen({
 
       {scroll ? (
         <ScrollView
+          // Without flex the scroller sizes to its content and iOS stops
+          // delivering touches to anything past the parent's frame.
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{

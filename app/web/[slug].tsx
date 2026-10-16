@@ -69,6 +69,7 @@ export default function WebListingPreview() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
       >

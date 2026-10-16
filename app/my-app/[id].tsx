@@ -76,6 +76,7 @@ export default function OwnerAppPage() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,

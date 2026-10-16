@@ -102,6 +102,7 @@ export default function FeedbackForm() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{

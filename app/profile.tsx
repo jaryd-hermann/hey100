@@ -59,6 +59,7 @@ export default function Profile() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingBottom: 60, gap: 16 }}
       >

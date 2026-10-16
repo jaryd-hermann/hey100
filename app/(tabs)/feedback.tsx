@@ -160,14 +160,15 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
   const matchId = store.matches.find((match) => store.listing(match.appId)?.builder === entry.who)?.id;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => {
-        if (matchId) router.push({ pathname: '/chat/[id]', params: { id: matchId } });
-      }}
-      style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
-    >
-      <Card padding={16} radius={radii.cardLg} style={{ gap: 13 }}>
+    <Card padding={16} radius={radii.cardLg} style={{ gap: 13 }}>
+      {/* The footer stays outside the press target: RN has no stopPropagation. */}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          if (matchId) router.push({ pathname: '/chat/[id]', params: { id: matchId } });
+        }}
+        style={({ pressed }) => ({ gap: 13, opacity: pressed ? 0.9 : 1 })}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
           <Avatar name={entry.who} size={38} />
           <View style={{ flex: 1 }}>
@@ -206,58 +207,58 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
             </Txt>
           </View>
         </View>
+      </Pressable>
 
-        <View style={{ borderTopWidth: 1, borderColor: c.line, paddingTop: 13, gap: 10 }}>
-          {entry.helpful ? (
-            entry.optIn ? (
-              <Btn
-                label="Make testimonial card"
-                variant="surface"
-                size="sm"
-                onPress={() =>
-                  router.push({
-                    pathname: '/share',
-                    params: { kind: 'testimonial', appId, feedbackId: entry.id },
-                  })
-                }
-                style={{ alignSelf: 'flex-start' }}
-              />
-            ) : (
-              <Btn
-                label={`Ask ${entry.who.split(' ')[0]} to share it`}
-                variant="surface"
-                size="sm"
-                onPress={() => toast(`Asked ${entry.who.split(' ')[0]} in chat`)}
-                style={{ alignSelf: 'flex-start' }}
-              />
-            )
+      <View style={{ borderTopWidth: 1, borderColor: c.line, paddingTop: 13, gap: 10 }}>
+        {entry.helpful ? (
+          entry.optIn ? (
+            <Btn
+              label="Make testimonial card"
+              variant="surface"
+              size="sm"
+              onPress={() =>
+                router.push({
+                  pathname: '/share',
+                  params: { kind: 'testimonial', appId, feedbackId: entry.id },
+                })
+              }
+              style={{ alignSelf: 'flex-start' }}
+            />
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Txt size={13} muted style={{ flex: 1 }}>
-                Was this helpful?
-              </Txt>
-              <Btn
-                label="Helpful"
-                variant="surface"
-                size="sm"
-                onPress={() => {
-                  store.rateFeedback(appId, entry.id, 'yes');
-                  captureEvent('feedback_rated', { helpful: true });
-                }}
-              />
-              <Btn
-                label="Not really"
-                variant="ghost"
-                size="sm"
-                onPress={() => {
-                  store.rateFeedback(appId, entry.id, 'no');
-                  captureEvent('feedback_rated', { helpful: false });
-                }}
-              />
-            </View>
-          )}
-        </View>
-      </Card>
-    </Pressable>
+            <Btn
+              label={`Ask ${entry.who.split(' ')[0]} to share it`}
+              variant="surface"
+              size="sm"
+              onPress={() => toast(`Asked ${entry.who.split(' ')[0]} in chat`)}
+              style={{ alignSelf: 'flex-start' }}
+            />
+          )
+        ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Txt size={13} muted style={{ flex: 1 }}>
+              Was this helpful?
+            </Txt>
+            <Btn
+              label="Helpful"
+              variant="surface"
+              size="sm"
+              onPress={() => {
+                store.rateFeedback(appId, entry.id, 'yes');
+                captureEvent('feedback_rated', { helpful: true });
+              }}
+            />
+            <Btn
+              label="Not really"
+              variant="ghost"
+              size="sm"
+              onPress={() => {
+                store.rateFeedback(appId, entry.id, 'no');
+                captureEvent('feedback_rated', { helpful: false });
+              }}
+            />
+          </View>
+        )}
+      </View>
+    </Card>
   );
 }

@@ -52,6 +52,7 @@ export default function Settings() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingBottom: 60, gap: 22 }}
       >

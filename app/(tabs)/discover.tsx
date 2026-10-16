@@ -87,6 +87,13 @@ export default function DiscoverScreen() {
     advance();
   };
 
+  const filtered =
+    filters.sort !== INITIAL_FILTERS.sort ||
+    filters.quick.join() !== INITIAL_FILTERS.quick.join() ||
+    filters.cat.length > 0 ||
+    filters.plat.length > 0 ||
+    filters.stage.length > 0;
+
   if (!listing) {
     return (
       <View
@@ -97,20 +104,28 @@ export default function DiscoverScreen() {
           paddingHorizontal: layout.gutter,
         }}
       >
-        <View style={{ paddingVertical: 10 }}>
+        <View style={{ paddingVertical: 10, gap: 10 }}>
           <HeaderLogo hand />
+          {/* The filters stay reachable, since they are the likely cause. */}
+          <FilterBar filters={filters} onChange={setFilters} />
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
           <Txt font="mono" size={19} weight={500} center>
             That&apos;s everyone for now.
           </Txt>
           <Txt size={15} lh={1.5} muted center style={{ maxWidth: 280 }}>
-            New apps are listed every day. Clear your filters, or check who said hey to you.
+            {filtered
+              ? 'New apps are listed every day. Clear your filters, or check who said hey to you.'
+              : 'New apps are listed every day. Check who said hey to you in the meantime.'}
           </Txt>
           <Btn
-            label="Clear filters"
+            label={filtered ? 'Clear filters' : 'See your heys'}
             variant="surface"
             onPress={() => {
+              if (!filtered) {
+                router.navigate('/(tabs)/heys');
+                return;
+              }
               setFilters(INITIAL_FILTERS);
               setIndex(0);
             }}
@@ -130,6 +145,7 @@ export default function DiscoverScreen() {
       <View style={{ height: 14 }} />
 
       <ScrollView
+        style={{ flex: 1 }}
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={64}

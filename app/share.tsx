@@ -99,6 +99,7 @@ export default function ShareSheet() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingBottom: 40, gap: 16 }}
       >

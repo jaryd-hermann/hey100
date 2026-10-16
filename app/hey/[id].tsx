@@ -61,6 +61,7 @@ export default function LikerProfile() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={64}
         onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}

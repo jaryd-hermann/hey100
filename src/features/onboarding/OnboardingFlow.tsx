@@ -289,6 +289,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{

@@ -34,8 +34,9 @@ export function WelcomeStep({ onContinue }: { onContinue: () => void }) {
 
         <View style={{ gap: 12, marginTop: 8 }}>
           {STEPS.map(([n, copy]) => (
-            <View key={n} style={{ flexDirection: 'row', gap: 14, alignItems: 'baseline' }}>
-              <Txt font="mono" size={13} weight={600} color={c.accentText}>
+            <View key={n} style={{ flexDirection: 'row', gap: 14 }}>
+              {/* Matching line boxes keeps the number on the copy's first line when it wraps. */}
+              <Txt font="mono" size={13} weight={600} lh={1.615} color={c.accentText}>
                 {n}
               </Txt>
               <Txt size={15} lh={1.4} style={{ flex: 1 }}>

@@ -14,6 +14,160 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_media: {
+        Row: {
+          app_id: string
+          created_at: string
+          kind: string
+          position: number
+          storage_path: string
+        }
+        Insert: {
+          app_id: string
+          created_at?: string
+          kind: string
+          position: number
+          storage_path: string
+        }
+        Update: {
+          app_id?: string
+          created_at?: string
+          kind?: string
+          position?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_media_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_prompts: {
+        Row: {
+          answer: string
+          app_id: string
+          created_at: string
+          prompt_id: string
+          slot: number
+        }
+        Insert: {
+          answer: string
+          app_id: string
+          created_at?: string
+          prompt_id: string
+          slot: number
+        }
+        Update: {
+          answer?: string
+          app_id?: string
+          created_at?: string
+          prompt_id?: string
+          slot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_prompts_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_prompts_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apps: {
+        Row: {
+          category: string
+          cover_path: string | null
+          created_at: string
+          feedback_wanted: string[]
+          hue: number
+          icon_path: string | null
+          id: string
+          ideal_users: Json
+          is_primary: boolean
+          layout: string[]
+          links: Json
+          listed_until: string | null
+          name: string
+          owner_id: string
+          platform: string
+          published_at: string | null
+          shot_layout: string
+          slug: string
+          stage: string
+          store_url: string | null
+          subtitle: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cover_path?: string | null
+          created_at?: string
+          feedback_wanted?: string[]
+          hue?: number
+          icon_path?: string | null
+          id?: string
+          ideal_users?: Json
+          is_primary?: boolean
+          layout?: string[]
+          links?: Json
+          listed_until?: string | null
+          name: string
+          owner_id: string
+          platform?: string
+          published_at?: string | null
+          shot_layout?: string
+          slug: string
+          stage: string
+          store_url?: string | null
+          subtitle?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cover_path?: string | null
+          created_at?: string
+          feedback_wanted?: string[]
+          hue?: number
+          icon_path?: string | null
+          id?: string
+          ideal_users?: Json
+          is_primary?: boolean
+          layout?: string[]
+          links?: Json
+          listed_until?: string | null
+          name?: string
+          owner_id?: string
+          platform?: string
+          published_at?: string | null
+          shot_layout?: string
+          slug?: string
+          stage?: string
+          store_url?: string | null
+          subtitle?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apps_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_codes: {
         Row: {
           code: string

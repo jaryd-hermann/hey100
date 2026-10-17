@@ -5,7 +5,8 @@ import { Pressable, TextInput, View } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Label, Txt } from '@/components/ui/Txt';
-import { ANSWER_MAX, PROMPT_LIBRARY, PROMPT_TAGS, promptLabel } from '@/data/prompts';
+import { ANSWER_MAX, PROMPT_TAGS } from '@/data/prompts';
+import { usePromptLabel, usePromptLibrary } from '@/data/repo/prompts';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
@@ -22,6 +23,7 @@ export type PromptsStepProps = {
 /** Five slots: three suggested, two optional. */
 export function PromptsStep({ answered, answers, onPickSlot, onEditSlot }: PromptsStepProps) {
   const { c } = useTheme();
+  const label = usePromptLabel();
 
   return (
     <View style={{ gap: 12 }}>
@@ -62,7 +64,7 @@ export function PromptsStep({ answered, answers, onPickSlot, onEditSlot }: Promp
         return (
           <Card key={slot} padding={16} radius={radii.cardLg} style={{ gap: 8 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Label style={{ flex: 1 }}>{promptLabel(promptId)}</Label>
+              <Label style={{ flex: 1 }}>{label(promptId)}</Label>
               <Pressable onPress={() => onEditSlot(slot, promptId)} hitSlop={8}>
                 <Txt size={13} weight={600} color={c.accentText}>
                   Edit
@@ -90,8 +92,9 @@ export type PromptPickerProps = {
 
 export function PromptPicker({ tag, onChangeTag, used, keepVisible, onSelect }: PromptPickerProps) {
   const { c } = useTheme();
+  const library = usePromptLibrary();
 
-  const list = PROMPT_LIBRARY.filter(
+  const list = library.filter(
     (prompt) =>
       (tag === 'All' || prompt.tag === tag) &&
       (!used.includes(prompt.id) || prompt.id === keepVisible),
@@ -157,12 +160,13 @@ export type WriteAnswerProps = {
 
 export function WriteAnswer({ promptId, value, onChange, onChangePrompt }: WriteAnswerProps) {
   const { c } = useTheme();
+  const label = usePromptLabel();
 
   return (
     <View style={{ gap: 14 }}>
       <Card padding={16} radius={radii.cardLg} style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Label style={{ flex: 1 }}>{promptLabel(promptId)}</Label>
+          <Label style={{ flex: 1 }}>{label(promptId)}</Label>
           <Pressable onPress={onChangePrompt} hitSlop={8}>
             <Txt size={13} weight={600} color={c.accentText}>
               ✎ Change prompt

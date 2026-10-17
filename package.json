@@ -13,7 +13,10 @@
     "android": "expo run:android",
     "prebuild": "expo prebuild --clean",
     "typecheck": "tsc --noEmit",
-    "doctor": "npx expo-doctor"
+    "doctor": "npx expo-doctor",
+    "env:pull": "vercel env pull .env.local --yes",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --linked --schema public > src/types/supabase.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

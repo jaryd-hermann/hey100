@@ -93,6 +93,7 @@ export function Composer({
                   label={item.label}
                   hue={hue}
                   video={item.video}
+                  uri={item.uri}
                   radius={12}
                   style={{ width: THUMB, height: THUMB }}
                 />

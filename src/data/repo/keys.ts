@@ -7,9 +7,12 @@
  */
 export const queryKeys = {
   prompts: ['prompts'] as const,
+  myListings: (userId: string | null) => ['listings', 'mine', userId] as const,
 };
 
 export const staleTimes = {
   /** Reference data. Only a migration changes it. */
   prompts: 24 * 60 * 60 * 1000,
+  /** The owner's own listings, which only they can change. */
+  myListings: 5 * 60 * 1000,
 };

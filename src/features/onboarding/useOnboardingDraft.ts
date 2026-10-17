@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { PickedShot } from '@/data/types';
+
 const ADJECTIVES = [
   'ship',
   'quiet',
@@ -39,8 +41,8 @@ export type Draft = {
   appHue: number;
   appCats: string[];
   links: { web: string; tiktok: string; instagram: string };
-  /** Number of filled media slots; real assets land here once uploads exist. */
-  shots: number;
+  /** Picked shots in carousel order. The first one is the cover. */
+  shots: PickedShot[];
 
   /** Multi-select answers keyed by step group. */
   sel: Record<string, string[]>;
@@ -73,7 +75,7 @@ function initialDraft(startStep: number): Draft {
     appHue: 220,
     appCats: [],
     links: { web: '', tiktok: '', instagram: '' },
-    shots: 0,
+    shots: [],
     sel: {},
     own: {},
     vis: {},
@@ -109,6 +111,9 @@ export function useOnboardingDraft(startStep = 0, storageKey: string | null = nu
       .then((stored) => {
         if (!active || !stored) return;
         const parsed = JSON.parse(stored) as Partial<Draft>;
+        // A draft written by an older build can hold the wrong shape, which is
+        // worse than losing the field.
+        if (!Array.isArray(parsed.shots)) delete parsed.shots;
         // Spread over a fresh draft so a shape change in a new build cannot
         // leave a field undefined.
         setDraft((prev) => ({ ...prev, ...parsed }));

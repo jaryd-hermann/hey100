@@ -10,6 +10,7 @@ import { PostHogProvider } from 'posthog-react-native';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/Toast';
+import { useListingsSync } from '@/features/apps/useListingsSync';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { useProfileSync } from '@/features/profile/useProfileSync';
 import { getPostHog } from '@/lib/analytics';
@@ -99,8 +100,9 @@ export default function RootLayout() {
 function Shell() {
   const { c, isDark } = useTheme();
 
-  // Hydrates the store from the signed-in user's row; a no-op when signed out.
+  // Hydrates the store from the signed-in user's rows; no-ops when signed out.
   useProfileSync();
+  useListingsSync();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>

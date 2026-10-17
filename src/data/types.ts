@@ -25,6 +25,15 @@ export type MediaItem = {
   uri?: string;
 };
 
+/** A shot straight out of the picker, before it has been uploaded. */
+export type PickedShot = {
+  /** Local file uri. */
+  uri: string;
+  kind: 'image' | 'video';
+  /** Caption shown under the shot on the listing. */
+  label?: string;
+};
+
 /** Every screenshot in one listing shares an orientation, picked by the owner. */
 export type ShotLayout = 'vertical' | 'horizontal';
 

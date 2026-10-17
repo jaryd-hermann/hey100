@@ -69,7 +69,10 @@ export type AuthStepProps = {
   promptCount: number;
   shots: number;
   pending?: boolean;
+  /** Set when a session already exists, e.g. the app was killed mid-flow. */
+  signedIn?: boolean;
   onSignIn: (provider: AuthProvider) => void;
+  onPublish: () => void;
 };
 
 /** Sign-in comes last, once the user has put the work in. */
@@ -80,14 +83,18 @@ export function AuthStep({
   promptCount,
   shots,
   pending = false,
+  signedIn = false,
   onSignIn,
+  onPublish,
 }: AuthStepProps) {
   const { c } = useTheme();
 
   return (
     <View style={{ gap: 18 }}>
       <Txt size={15.5} lh={1.5} muted>
-        Sign in so your listing is saved and you can get back to it.
+        {signedIn
+          ? "You're signed in. Publishing puts this listing in Discover."
+          : 'Sign in so your listing is saved and you can get back to it.'}
       </Txt>
 
       <Card padding={16} style={{ gap: 14 }}>
@@ -119,7 +126,27 @@ export function AuthStep({
         </View>
       </Card>
 
-      <ProviderButtons onPress={onSignIn} pending={pending} />
+      {signedIn ? (
+        <Pressable
+          accessibilityRole="button"
+          disabled={pending}
+          onPress={onPublish}
+          style={({ pressed }) => ({
+            height: 56,
+            borderRadius: radii.pill,
+            backgroundColor: c.ink,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pending ? 0.5 : pressed ? 0.8 : 1,
+          })}
+        >
+          <Txt size={15.5} weight={600} color={c.bg}>
+            {pending ? 'Publishing…' : 'Publish my listing'}
+          </Txt>
+        </Pressable>
+      ) : (
+        <ProviderButtons onPress={onSignIn} pending={pending} />
+      )}
 
       <Txt size={12} lh={1.5} muted center>
         By continuing you agree to the Terms of Use and Privacy Policy.

@@ -8,10 +8,14 @@ import { Progress } from '@/components/ui/Progress';
 import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
 import { useToast } from '@/components/ui/Toast';
-import { DEFAULT_LAYOUT, MY_MEDIA, stripEmoji } from '@/data/mock';
+import { DEFAULT_LAYOUT, stripEmoji } from '@/data/mock';
 import { promptLabel } from '@/data/prompts';
 import { checkInviteCode, redeemInvite } from '@/data/repo/invites';
+import { createListing, isListingLimitError } from '@/data/repo/listings';
 import { updateMyProfile } from '@/data/repo/profile';
+import { toListingInsert } from '@/features/apps/mapListing';
+import { uploadShots } from '@/features/apps/uploadShots';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { SignInError, signIn } from '@/features/auth/signIn';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
@@ -44,6 +48,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const { c, isDark } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const { userId } = useAuth();
 
   const addApp = mode === 'addApp';
   const { draft, ready, update, toggle, picked, isVisible, toggleVisible, clear } =
@@ -53,6 +58,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const [logIn, setLogIn] = useState(false);
   const [checkingCode, setCheckingCode] = useState(false);
   const [authPending, setAuthPending] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [picker, setPicker] = useState<number | null>(null);
   const [writing, setWriting] = useState<string | null>(null);
   const [promptTag, setPromptTag] = useState('All');
@@ -109,32 +115,68 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     update((prev) => ({ step: prev.step - 1 }));
   };
 
-  /** Builds the listing and hands off to the paywall, or publishes a second app. */
-  const finish = () => {
-    const app: Partial<OwnedApp> = {
-      name: draft.appName || 'Your app',
-      sub: draft.appSub,
-      hue: draft.appHue,
-      cat: draft.appCats[0] ?? 'Productivity',
-      stage: stripEmoji(picked('stage')[0] ?? '🧪 In beta or TestFlight'),
-      media: MY_MEDIA.slice(0, Math.max(1, draft.shots)).map((label) => ({
-        label,
-        video: /demo video/i.test(label),
-      })),
-      shotLayout,
-      prompts: draft.answered.map((id) => [promptLabel(id), draft.answers[id]] as [string, string]),
-      ideal: {
-        age: picked('ia').join(', ') || 'Any',
-        gender: picked('ig')[0] ?? 'Anyone',
-        interests: picked('ii').map(stripEmoji).join(', ') || 'Anyone',
-        plat: picked('ip').map(stripEmoji).join(', ') || 'iPhone',
-        wants: picked('f').join(', ').toLowerCase() || 'anything',
-      },
-      links: draft.links.web ? [['Web', draft.links.web]] : [],
-    };
+  /** Everything the listing steps collected, in the shape the app renders. */
+  const draftListing = (): Partial<OwnedApp> => ({
+    name: draft.appName || 'Your app',
+    sub: draft.appSub,
+    hue: draft.appHue,
+    cat: draft.appCats[0] ?? 'Productivity',
+    stage: stripEmoji(picked('stage')[0] ?? '🧪 In beta or TestFlight'),
+    media: draft.shots.map((shot) => ({
+      label: shot.label ?? '',
+      video: shot.kind === 'video',
+      uri: shot.uri,
+    })),
+    shotLayout,
+    prompts: draft.answered.map((id) => [promptLabel(id), draft.answers[id]] as [string, string]),
+    ideal: {
+      age: picked('ia').join(', ') || 'Any',
+      gender: picked('ig')[0] ?? 'Anyone',
+      interests: picked('ii').map(stripEmoji).join(', ') || 'Anyone',
+      plat: picked('ip').map(stripEmoji).join(', ') || 'iPhone',
+      wants: picked('f').join(', ').toLowerCase() || 'anything',
+    },
+    links: draft.links.web ? [['Web', draft.links.web]] : [],
+  });
+
+  /** Uploads the shots, then writes the listing and its children in one go. */
+  const publish = (ownerId: string, app: Partial<OwnedApp>) =>
+    uploadShots(ownerId, draft.shots).then((media) =>
+      createListing(ownerId, {
+        app: toListingInsert(app),
+        prompts: draft.answered.map((id) => ({ promptId: id, answer: draft.answers[id] ?? '' })),
+        media,
+      }),
+    );
+
+  /**
+   * Publishes the listing and hands off to the paywall. `signedInAs` comes from
+   * the sign-in that just happened, since the session context has not updated
+   * by the time this runs.
+   */
+  const finish = async (signedInAs?: string) => {
+    const app = draftListing();
+    const owner = signedInAs ?? userId;
+    let serverId: string | null = null;
+
+    if (owner) {
+      setPublishing(true);
+      try {
+        serverId = await publish(owner, app);
+      } catch (error) {
+        if (isListingLimitError(error)) {
+          router.replace('/paywall?from=listing_limit');
+          return;
+        }
+        toast('Could not publish your listing. Try again.');
+        return;
+      } finally {
+        setPublishing(false);
+      }
+    }
 
     if (addApp) {
-      const id = `app${store.ownedApps.length + 1}`;
+      const id = serverId ?? `app${store.ownedApps.length + 1}`;
       store.addApp({
         id,
         name: app.name!,
@@ -144,8 +186,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         stage: app.stage!,
         hue: app.hue!,
         builder: store.user.realName,
-        role: 'iOS · Supabase',
-        style: 'Balanced feedback · replies within a day',
+        role: '',
+        style: '',
         likes: '—',
         trades: 0,
         reply: '—',
@@ -176,16 +218,18 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           Object.entries(draft.vis).filter(([, visible]) => visible === false),
         ),
         invitedBy: draft.invitedBy ?? undefined,
+        // The server grants the real bonus on publish; this keeps the number on
+        // screen honest until the profile refetches.
         bonusMatches: draft.invitedBy ? 3 : 0,
       },
-      app,
+      app: serverId ? { ...app, id: serverId } : app,
     });
 
     void clear();
 
     captureEvent('onboarding_completed', {
       prompts: draft.answered.length,
-      screenshots: draft.shots,
+      screenshots: draft.shots.length,
       invited_by: draft.invitedBy,
     });
 
@@ -261,9 +305,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           toast('Signed in, but your invite code could not be applied.');
         }
         await saveProfile(outcome.userId, outcome.fullName);
+        await finish(outcome.userId);
+        return;
       }
 
-      finish();
+      await finish();
     } catch (error) {
       toast(error instanceof SignInError ? error.message : 'Could not sign in. Try again.');
     } finally {
@@ -297,7 +343,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       return;
     }
     if (draft.step >= lastStep) {
-      finish();
+      void finish();
       return;
     }
     update((prev) => ({ step: prev.step + 1 }));
@@ -308,7 +354,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       return [
         { icon: '▣', text: draft.appName || 'Your app' },
         { icon: '◷', text: stripEmoji(picked('stage')[0] ?? 'Stage not set') },
-        { icon: '▤', text: `${draft.shots} screenshots` },
+        { icon: '▤', text: `${draft.shots.length} screenshots` },
         { icon: '◎', text: picked('ii').map(stripEmoji).join(', ') || 'Ideal users' },
         { icon: '◔', text: picked('ia').join(', ') || 'Ages' },
         { icon: '⊘', text: 'Prompts', pending: true },
@@ -575,7 +621,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
                 appSub: prev.appSub || result.sub,
                 appHue: result.hue,
                 appCats: result.cats,
-                shots: Math.max(prev.shots, 3),
                 links: { ...prev.links, web: result.web },
               }))
             }
@@ -590,10 +635,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'media':
         return (
           <MediaStep
-            filled={draft.shots}
+            shots={draft.shots}
             onChange={(shots) => update({ shots })}
             shotLayout={shotLayout}
             onChangeShotLayout={setShotLayout}
+            onError={toast}
           />
         );
 
@@ -680,9 +726,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             appSub={draft.appSub}
             appHue={draft.appHue}
             promptCount={draft.answered.length}
-            shots={draft.shots}
-            pending={authPending}
+            shots={draft.shots.length}
+            pending={authPending || publishing}
+            signedIn={!!userId}
             onSignIn={signUpWith}
+            onPublish={() => void finish()}
           />
         );
 

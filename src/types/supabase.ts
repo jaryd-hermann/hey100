@@ -19,6 +19,7 @@ export type Database = {
           app_id: string
           created_at: string
           kind: string
+          label: string | null
           position: number
           storage_path: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           app_id: string
           created_at?: string
           kind: string
+          label?: string | null
           position: number
           storage_path: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           app_id?: string
           created_at?: string
           kind?: string
+          label?: string | null
           position?: number
           storage_path?: string
         }
@@ -87,6 +90,8 @@ export type Database = {
       }
       apps: {
         Row: {
+          builder_role: string | null
+          builder_style: string | null
           category: string
           cover_path: string | null
           created_at: string
@@ -108,9 +113,12 @@ export type Database = {
           stage: string
           store_url: string | null
           subtitle: string
+          test_code: string | null
           updated_at: string
         }
         Insert: {
+          builder_role?: string | null
+          builder_style?: string | null
           category: string
           cover_path?: string | null
           created_at?: string
@@ -128,13 +136,16 @@ export type Database = {
           platform?: string
           published_at?: string | null
           shot_layout?: string
-          slug: string
+          slug?: string
           stage: string
           store_url?: string | null
           subtitle?: string
+          test_code?: string | null
           updated_at?: string
         }
         Update: {
+          builder_role?: string | null
+          builder_style?: string | null
           category?: string
           cover_path?: string | null
           created_at?: string
@@ -156,6 +167,7 @@ export type Database = {
           stage?: string
           store_url?: string | null
           subtitle?: string
+          test_code?: string | null
           updated_at?: string
         }
         Relationships: [

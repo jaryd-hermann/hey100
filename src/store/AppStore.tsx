@@ -42,6 +42,19 @@ function attachmentPreview(media: MediaItem[]): string {
 /** A trade only ever moves forward, so opening a link can't undo feedback. */
 const TRADE_STEPS: TradeStatus[] = ['Not started', 'Using', 'Feedback sent'];
 
+/** Swaps a section with its neighbour, or returns the order unchanged. */
+export function moveSectionIn(
+  layout: SectionKey[],
+  index: number,
+  direction: -1 | 1,
+): SectionKey[] {
+  const next = [...layout];
+  const target = index + direction;
+  if (target < 0 || target >= next.length) return next;
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
 /** One follow-up per sent hey, and only once the 24h window has elapsed. */
 export function canFollowUp(sentHey: SentHey): boolean {
   return (
@@ -205,6 +218,8 @@ type Store = State & {
   markMatchPaywallSeen: () => void;
   completeOnboarding: (patch: { user?: Partial<UserProfile>; app?: Partial<OwnedApp> }) => void;
   addApp: (app: OwnedApp) => void;
+  /** Swaps the bundled sample apps for the listings the server returned. */
+  replaceApps: (apps: OwnedApp[]) => void;
   /** Section edits on the owner's own listing. */
   updateApp: (appId: string, patch: Partial<OwnedApp>) => void;
   updateUser: (patch: Partial<UserProfile>) => void;
@@ -221,7 +236,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const listing = useCallback(
     (id: string): AppListing | undefined =>
-      state.apps[id] ?? LISTINGS[id] ?? (MATCH_APPS[id] as AppListing | undefined),
+      state.apps[id] ??
+      LISTINGS[id] ??
+      (MATCH_APPS[id] as AppListing | undefined) ??
+      // Bundled heys and matches still point at the sample owned apps, so they
+      // stay resolvable as listings after real ones replace them in `apps`.
+      (OWNED_APPS[id] as AppListing | undefined),
     [state.apps],
   );
 
@@ -499,21 +519,43 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       patch((prev) => {
         const app = prev.apps[appId];
         if (!app) return {};
-        const next: SectionKey[] = [...app.layout];
-        const target = index + direction;
-        if (target < 0 || target >= next.length) return {};
-        [next[index], next[target]] = [next[target], next[index]];
-        return { apps: { ...prev.apps, [appId]: { ...app, layout: next } } };
+        return {
+          apps: { ...prev.apps, [appId]: { ...app, layout: moveSectionIn(app.layout, index, direction) } },
+        };
       }),
     [patch],
   );
 
   const completeOnboarding = useCallback<Store['completeOnboarding']>(
     ({ user, app }) =>
+      patch((prev) => {
+        if (!app) return { onboarded: true, user: { ...prev.user, ...user } };
+
+        // A listing created on the server arrives with its own id and becomes
+        // the only app; without one, the sample listing is edited in place so
+        // the flow still works with no backend configured.
+        const id = app.id ?? 'tide';
+        const base = prev.apps[id] ?? prev.apps.tide;
+
+        return {
+          onboarded: true,
+          user: { ...prev.user, ...user },
+          apps: app.id ? { [id]: { ...base, ...app, id } } : { ...prev.apps, [id]: { ...base, ...app } },
+          appOrder: app.id ? [id] : prev.appOrder,
+          connections: app.id ? { [id]: {} } : prev.connections,
+        };
+      }),
+    [patch],
+  );
+
+  const replaceApps = useCallback<Store['replaceApps']>(
+    (apps) =>
       patch((prev) => ({
-        onboarded: true,
-        user: { ...prev.user, ...user },
-        apps: app ? { ...prev.apps, tide: { ...prev.apps.tide, ...app } } : prev.apps,
+        apps: Object.fromEntries(apps.map((app) => [app.id, app])),
+        appOrder: apps.map((app) => app.id),
+        connections: Object.fromEntries(
+          apps.map((app) => [app.id, prev.connections[app.id] ?? {}]),
+        ),
       })),
     [patch],
   );
@@ -536,13 +578,18 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [patch],
   );
 
+  const owned = useMemo(
+    () => state.appOrder.map((id) => state.apps[id]).filter(Boolean),
+    [state.appOrder, state.apps],
+  );
+
   const value = useMemo<Store>(
     () => ({
       ...state,
       isPro,
       matchesLeft,
-      ownedApps: state.appOrder.map((id) => state.apps[id]).filter(Boolean),
-      primaryApp: state.apps.tide ?? state.apps[state.appOrder[0]],
+      ownedApps: owned,
+      primaryApp: owned.find((app) => app.primary) ?? owned[0],
       displayName:
         state.user.showAs === 'username' ? `@${state.user.username}` : state.user.realName,
       matchesMade: state.matches.length,
@@ -569,11 +616,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       markMatchPaywallSeen: () => patch({ seenMatchPaywall: true }),
       completeOnboarding,
       addApp,
+      replaceApps,
       updateApp,
       updateUser: (next) => patch((prev) => ({ user: { ...prev.user, ...next } })),
     }),
     [
       addApp,
+      owned,
+      replaceApps,
       updateApp,
       attributedApp,
       completeOnboarding,

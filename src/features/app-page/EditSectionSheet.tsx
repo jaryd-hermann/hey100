@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -7,9 +8,11 @@ import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Sheet } from '@/components/ui/Sheet';
+import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { PROMPT_LIBRARY, promptLabel } from '@/data/prompts';
 import type { IdealUsers, MediaItem, OwnedApp, SectionKey, ShotLayout } from '@/data/types';
+import { pickShots } from '@/features/apps/pickShots';
 import { PromptPicker, WriteAnswer } from '@/features/onboarding/steps/PromptsStep';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
@@ -116,8 +119,28 @@ function Actions({
 
 function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
   const { c } = useTheme();
+  const toast = useToast();
   const [items, setItems] = useState<MediaItem[]>(app.media ?? []);
   const [shotLayout, setShotLayout] = useState<ShotLayout>(app.shotLayout ?? 'vertical');
+  const [picking, setPicking] = useState(false);
+
+  const addShots = async () => {
+    if (picking) return;
+    setPicking(true);
+
+    const result = await pickShots(MEDIA_MAX - items.length);
+    setPicking(false);
+
+    if ('error' in result) {
+      toast(result.error);
+      return;
+    }
+
+    setItems((prev) => [
+      ...prev,
+      ...result.shots.map((shot) => ({ label: '', video: shot.kind === 'video', uri: shot.uri })),
+    ]);
+  };
 
   return (
     <View style={{ gap: 14 }}>
@@ -150,6 +173,13 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
 
         {items.map((item, index) => (
           <View key={index} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {item.uri ? (
+              <Image
+                source={{ uri: item.uri }}
+                style={{ width: 34, height: 48, borderRadius: 8, backgroundColor: c.raised }}
+                contentFit="cover"
+              />
+            ) : null}
             <Field
               value={item.label}
               placeholder="What this screenshot shows"
@@ -188,7 +218,7 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
         {items.length < MEDIA_MAX ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => setItems((prev) => [...prev, { label: 'New screenshot' }])}
+            onPress={() => void addShots()}
             style={({ pressed }) => ({
               minHeight: 48,
               borderRadius: radii.option,
@@ -202,9 +232,9 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Ionicons name="add" size={18} color={c.muted} />
+            <Ionicons name={picking ? 'hourglass-outline' : 'add'} size={18} color={c.muted} />
             <Txt size={14.5} weight={500} muted>
-              Add a slot
+              {picking ? 'Opening photos…' : 'Add a screenshot'}
             </Txt>
           </Pressable>
         ) : null}

@@ -169,6 +169,7 @@ export function AppPage({
             <MediaPlaceholder
               label={cover.label}
               hue={listing.hue}
+              uri={cover.uri}
               radius={radii.cardLg}
               style={{ aspectRatio: COVER_RATIO }}
             />
@@ -372,6 +373,7 @@ function Section({
                 <MediaPlaceholder
                   label={item.label}
                   hue={listing.hue}
+                  uri={item.uri}
                   radius={radii.cardLg}
                   style={{ flex: 1 }}
                 />

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -11,11 +12,14 @@ import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { INTEGRATIONS, shortName, slugify } from '@/data/mock';
-import type { Integration, SectionKey } from '@/data/types';
+import { queryKeys } from '@/data/repo/keys';
+import type { Integration, OwnedApp, SectionKey } from '@/data/types';
 import { AppPage } from '@/features/app-page/AppPage';
 import { EditSectionSheet } from '@/features/app-page/EditSectionSheet';
+import { persistListing } from '@/features/apps/persistListing';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { captureEvent } from '@/lib/analytics';
-import { useStore } from '@/store/AppStore';
+import { moveSectionIn, useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, layout, radii } from '@/theme/tokens';
 
@@ -26,8 +30,24 @@ export default function OwnerAppPage() {
   const toast = useToast();
   const store = useStore();
 
+  const { userId } = useAuth();
+  const queryClient = useQueryClient();
+
   const { id, setup } = useLocalSearchParams<{ id: string; setup?: string }>();
   const app = store.apps[id] ?? store.primaryApp;
+
+  /**
+   * The store already has the edit, so a failure here means the screen and the
+   * server disagree; refetching is what settles it.
+   */
+  const persist = (patch: Partial<OwnedApp>) => {
+    persistListing(userId, app.id, patch)
+      .then(() => queryClient.invalidateQueries({ queryKey: queryKeys.myListings(userId) }))
+      .catch(() => {
+        toast('That change did not save. Pull to refresh.');
+        void queryClient.invalidateQueries({ queryKey: queryKeys.myListings(userId) });
+      });
+  };
 
   const [editLayout, setEditLayout] = useState(false);
   const [editSection, setEditSection] = useState<SectionKey | null>(null);
@@ -194,7 +214,10 @@ export default function OwnerAppPage() {
             listing={app}
             mode="owner"
             editLayout={editLayout}
-            onMoveSection={(index, direction) => store.moveSection(app.id, index, direction)}
+            onMoveSection={(index, direction) => {
+              store.moveSection(app.id, index, direction);
+              persist({ layout: moveSectionIn(app.layout, index, direction) });
+            }}
             onEditSection={setEditSection}
             onOpenLink={(kind, value) =>
               router.push({ pathname: '/browser', params: { kind, value } })
@@ -228,6 +251,7 @@ export default function OwnerAppPage() {
         onClose={() => setEditSection(null)}
         onSave={(patch) => {
           store.updateApp(app.id, patch);
+          persist(patch);
           captureEvent('listing_section_edited', { section: editSection ?? '' });
           setEditSection(null);
           toast('Listing updated');

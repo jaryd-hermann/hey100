@@ -35,3 +35,19 @@ export function getSupabase(): Db | null {
 
   return client;
 }
+
+/**
+ * Both media buckets are public, so an image URL is just a string. Building it
+ * here rather than calling getPublicUrl keeps the mappers free of the client.
+ */
+export function publicUrl(bucket: 'listing-media' | 'avatars', path: string): string {
+  return `${config.supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+/**
+ * Server rows carry a uuid. Bundled mock listings use short ids like `tide`,
+ * and writes for those have to stay local.
+ */
+export function isServerId(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}

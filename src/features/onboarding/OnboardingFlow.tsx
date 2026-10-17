@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -11,6 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 import { DEFAULT_LAYOUT, stripEmoji } from '@/data/mock';
 import { promptLabel } from '@/data/prompts';
 import { checkInviteCode, redeemInvite } from '@/data/repo/invites';
+import { queryKeys } from '@/data/repo/keys';
 import { createListing, isListingLimitError } from '@/data/repo/listings';
 import { updateMyProfile } from '@/data/repo/profile';
 import { toListingInsert } from '@/features/apps/mapListing';
@@ -49,6 +51,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const toast = useToast();
   const store = useStore();
   const { userId } = useAuth();
+  const queryClient = useQueryClient();
 
   const addApp = mode === 'addApp';
   const { draft, ready, update, toggle, picked, isVisible, toggleVisible, clear } =
@@ -194,6 +197,9 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       setPublishing(true);
       try {
         serverId = await publish(owner, app);
+        // The listings query may already hold the empty result from just after
+        // sign-in, which would otherwise stand for the whole stale window.
+        void queryClient.invalidateQueries({ queryKey: queryKeys.myListings(owner) });
       } catch (error) {
         if (isListingLimitError(error)) {
           router.replace('/paywall?from=listing_limit');

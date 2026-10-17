@@ -531,18 +531,25 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       patch((prev) => {
         if (!app) return { onboarded: true, user: { ...prev.user, ...user } };
 
-        // A listing created on the server arrives with its own id and becomes
-        // the only app; without one, the sample listing is edited in place so
-        // the flow still works with no backend configured.
-        const id = app.id ?? 'tide';
-        const base = prev.apps[id] ?? prev.apps.tide;
+        // A listing created on the server arrives complete and becomes the only
+        // app. Merging it over the sample listing instead would hand a brand
+        // new app Tidepool's view and trade counts.
+        if (app.id) {
+          return {
+            onboarded: true,
+            user: { ...prev.user, ...user },
+            apps: { [app.id]: app as OwnedApp },
+            appOrder: [app.id],
+            connections: { [app.id]: {} },
+          };
+        }
 
+        // No backend configured: the sample listing is edited in place so the
+        // whole flow still works.
         return {
           onboarded: true,
           user: { ...prev.user, ...user },
-          apps: app.id ? { [id]: { ...base, ...app, id } } : { ...prev.apps, [id]: { ...base, ...app } },
-          appOrder: app.id ? [id] : prev.appOrder,
-          connections: app.id ? { [id]: {} } : prev.connections,
+          apps: { ...prev.apps, tide: { ...prev.apps.tide, ...app } },
         };
       }),
     [patch],

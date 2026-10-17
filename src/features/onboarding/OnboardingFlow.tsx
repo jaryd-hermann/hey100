@@ -137,6 +137,37 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       wants: picked('f').join(', ').toLowerCase() || 'anything',
     },
     links: draft.links.web ? [['Web', draft.links.web]] : [],
+    // The first listing is the one heys are attributed to by default.
+    primary: !addApp,
+    // Stored rather than left empty, so a reorder starts from what was shown.
+    layout: [...DEFAULT_LAYOUT],
+  });
+
+  /** Fills in what the server owns, so a new listing starts from zero. */
+  const asOwnedApp = (id: string, app: Partial<OwnedApp>): OwnedApp => ({
+    id,
+    name: app.name ?? 'Your app',
+    sub: app.sub ?? '',
+    cat: app.cat ?? 'Productivity',
+    plat: 'iOS',
+    stage: app.stage ?? 'Idea',
+    hue: app.hue ?? 220,
+    builder: store.user.realName,
+    role: '',
+    style: '',
+    likes: '—',
+    trades: 0,
+    reply: '—',
+    views: 0,
+    matches: 0,
+    media: app.media ?? [],
+    shotLayout: app.shotLayout ?? 'vertical',
+    prompts: app.prompts ?? [],
+    ideal: app.ideal!,
+    badges: [],
+    links: app.links ?? [],
+    primary: app.primary,
+    layout: [...DEFAULT_LAYOUT],
   });
 
   /** Uploads the shots, then writes the listing and its children in one go. */
@@ -177,30 +208,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
     if (addApp) {
       const id = serverId ?? `app${store.ownedApps.length + 1}`;
-      store.addApp({
-        id,
-        name: app.name!,
-        sub: app.sub ?? '',
-        cat: app.cat!,
-        plat: 'iOS',
-        stage: app.stage!,
-        hue: app.hue!,
-        builder: store.user.realName,
-        role: '',
-        style: '',
-        likes: '—',
-        trades: 0,
-        reply: '—',
-        views: 0,
-        matches: 0,
-        media: app.media!,
-        shotLayout: app.shotLayout ?? 'vertical',
-        prompts: app.prompts!,
-        ideal: app.ideal!,
-        badges: [],
-        links: app.links!,
-        layout: [...DEFAULT_LAYOUT],
-      });
+      store.addApp(asOwnedApp(id, app));
       captureEvent('listing_published', { source: 'add_app' });
       router.replace({ pathname: '/my-app/[id]', params: { id, setup: '1' } });
       return;
@@ -222,7 +230,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         // screen honest until the profile refetches.
         bonusMatches: draft.invitedBy ? 3 : 0,
       },
-      app: serverId ? { ...app, id: serverId } : app,
+      app: serverId ? asOwnedApp(serverId, app) : app,
     });
 
     void clear();

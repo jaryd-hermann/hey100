@@ -172,7 +172,7 @@ export const LAST_STEP = STEPS.length - 1;
 /** Steps 2–12 are reused by the "List another app" flow in the Apps tab. */
 export const ADD_APP_RANGE = { first: 2, last: 12 } as const;
 
-/** Any valid code works until invites are server-side. */
+/** Fallback for a build with no Supabase credentials. Real codes live in the database. */
 export const VALID_INVITE_CODES = ['HEY100', 'BUILD100', 'DIFF100'];
 
 export const INVITERS: Record<string, string> = {

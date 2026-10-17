@@ -10,6 +10,9 @@ import { Txt } from '@/components/ui/Txt';
 import { useToast } from '@/components/ui/Toast';
 import { DEFAULT_LAYOUT, MY_MEDIA, stripEmoji } from '@/data/mock';
 import { promptLabel } from '@/data/prompts';
+import { checkInviteCode, redeemInvite } from '@/data/repo/invites';
+import { updateMyProfile } from '@/data/repo/profile';
+import { SignInError, signIn } from '@/features/auth/signIn';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -46,6 +49,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   // Prompt picker and answer writer are sub-screens of the prompts step.
   const [logIn, setLogIn] = useState(false);
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [authPending, setAuthPending] = useState(false);
   const [picker, setPicker] = useState<number | null>(null);
   const [writing, setWriting] = useState<string | null>(null);
   const [promptTag, setPromptTag] = useState('All');
@@ -179,12 +184,103 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     router.replace('/paywall?from=onboarding');
   };
 
+  const redeemCode = async () => {
+    const code = draft.inviteCode.trim();
+    if (!code || checkingCode) return;
+
+    setCheckingCode(true);
+    try {
+      const status = await checkInviteCode(code);
+      if (!status.valid) {
+        toast("That code isn't valid");
+        return;
+      }
+
+      const invitedBy = status.inviter ?? 'a builder';
+      update({ inviteOk: true, invitedBy });
+      captureEvent('invite_redeemed', { invited_by: invitedBy });
+    } catch {
+      toast('Could not check that code. Try again.');
+    } finally {
+      setCheckingCode(false);
+    }
+  };
+
+  /**
+   * Saves what the profile steps collected. The listing itself still lives in
+   * the store until listings move server-side.
+   */
+  const saveProfile = async (userId: string, fullName?: string) => {
+    const fields = {
+      ...(fullName ? { real_name: fullName } : {}),
+      display_pref: draft.showAs === 'username' ? ('username' as const) : ('real_name' as const),
+      job: draft.job || null,
+      workplace: draft.workplace || null,
+      looking_for: picked('look'),
+      app_interests: picked('cat'),
+      life_tags: picked('l'),
+      test_devices: picked('d'),
+      own_words: draft.own,
+      visibility: draft.vis,
+    };
+
+    try {
+      await updateMyProfile(userId, { ...fields, username: draft.username || null });
+    } catch (error) {
+      // Someone else claimed the handle between the username step and sign-in.
+      // Keep the account and everything else; the handle can be set later.
+      if ((error as { code?: string }).code !== '23505') throw error;
+      await updateMyProfile(userId, fields);
+      toast('That username was taken. Pick another in Profile.');
+    }
+  };
+
+  const signUpWith = async (provider: AuthProvider) => {
+    if (authPending) return;
+    setAuthPending(true);
+
+    try {
+      const outcome = await signIn(provider);
+      if (outcome.status === 'cancelled') return;
+
+      captureEvent('signed_up', { provider });
+
+      if (outcome.status === 'signed-in') {
+        // A failed redemption must not cost the user their account.
+        try {
+          if (draft.inviteCode) await redeemInvite(draft.inviteCode);
+        } catch {
+          toast('Signed in, but your invite code could not be applied.');
+        }
+        await saveProfile(outcome.userId, outcome.fullName);
+      }
+
+      finish();
+    } catch (error) {
+      toast(error instanceof SignInError ? error.message : 'Could not sign in. Try again.');
+    } finally {
+      setAuthPending(false);
+    }
+  };
+
   /** Logging back in skips the listing flow and the new-signup paywall. */
-  const logInWith = (provider: AuthProvider) => {
-    captureEvent('logged_in', { provider });
-    setLogIn(false);
-    store.completeOnboarding({});
-    router.replace('/(tabs)/discover');
+  const logInWith = async (provider: AuthProvider) => {
+    if (authPending) return;
+    setAuthPending(true);
+
+    try {
+      const outcome = await signIn(provider);
+      if (outcome.status === 'cancelled') return;
+
+      captureEvent('logged_in', { provider });
+      setLogIn(false);
+      store.completeOnboarding({});
+      router.replace('/(tabs)/discover');
+    } catch (error) {
+      toast(error instanceof SignInError ? error.message : 'Could not log in. Try again.');
+    } finally {
+      setAuthPending(false);
+    }
   };
 
   const next = () => {
@@ -238,7 +334,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
               Log in with whichever account you listed your app with.
             </Txt>
 
-            <ProviderButtons verb="Log in with" onPress={logInWith} />
+            <ProviderButtons verb="Log in with" onPress={logInWith} pending={authPending} />
           </View>
         </Sheet>
       </View>
@@ -442,14 +538,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             onChangeCode={(code) => update({ inviteCode: code })}
             redeemed={draft.inviteOk}
             invitedBy={draft.invitedBy}
-            onRedeem={(invitedBy) => {
-              if (!invitedBy) {
-                toast("That code isn't valid");
-                return;
-              }
-              update({ inviteOk: true, invitedBy });
-              captureEvent('invite_redeemed', { invited_by: invitedBy });
-            }}
+            checking={checkingCode}
+            onRedeem={redeemCode}
             onWaitlist={() => toast("We'll email you when a spot opens")}
           />
         );
@@ -580,10 +670,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             appHue={draft.appHue}
             promptCount={draft.answered.length}
             shots={draft.shots}
-            onSignIn={(provider) => {
-              captureEvent('signed_up', { provider });
-              finish();
-            }}
+            pending={authPending}
+            onSignIn={signUpWith}
           />
         );
 

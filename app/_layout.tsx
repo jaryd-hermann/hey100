@@ -10,6 +10,7 @@ import { PostHogProvider } from 'posthog-react-native';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/Toast';
+import { AuthProvider } from '@/features/auth/AuthProvider';
 import { getPostHog } from '@/lib/analytics';
 import { isPostHogConfigured, warnOnMissingConfig } from '@/lib/config';
 import { AppStoreProvider } from '@/store/AppStore';
@@ -78,11 +79,14 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <ThemeProvider>
             <QueryClientProvider client={queryClient}>
-              <AppStoreProvider>
-                <ToastProvider>
-                  <Shell />
-                </ToastProvider>
-              </AppStoreProvider>
+              {/* Inside the query client, so signing out can drop the cache. */}
+              <AuthProvider>
+                <AppStoreProvider>
+                  <ToastProvider>
+                    <Shell />
+                  </ToastProvider>
+                </AppStoreProvider>
+              </AuthProvider>
             </QueryClientProvider>
           </ThemeProvider>
         </SafeAreaProvider>

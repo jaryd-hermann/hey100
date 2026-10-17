@@ -1,0 +1,112 @@
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
+
+import { getSupabase } from '@/lib/supabase';
+
+export type AuthProviderId = 'Apple' | 'Google' | 'GitHub';
+
+/**
+ * Literal rather than built with `Linking.createURL`, which returns a
+ * triple-slash form in a dev client. This exact string is what has to be on the
+ * Supabase redirect allow list.
+ */
+const REDIRECT_URL = 'hey100://auth/callback';
+
+export type SignInOutcome =
+  | { status: 'signed-in'; userId: string; fullName?: string }
+  | { status: 'cancelled' }
+  | { status: 'unavailable' };
+
+/** Thrown for failures worth showing the user; cancellation is not one. */
+export class SignInError extends Error {}
+
+export async function signIn(provider: AuthProviderId): Promise<SignInOutcome> {
+  const db = getSupabase();
+  if (!db) return { status: 'unavailable' };
+
+  return provider === 'Apple' ? signInWithApple() : signInWithBrowser(provider);
+}
+
+async function signInWithApple(): Promise<SignInOutcome> {
+  const db = getSupabase()!;
+
+  let credential: AppleAuthentication.AppleAuthenticationCredential;
+  try {
+    credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+  } catch (error) {
+    if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED') {
+      return { status: 'cancelled' };
+    }
+    throw error;
+  }
+
+  if (!credential.identityToken) throw new SignInError('Apple did not return a token');
+
+  const { data, error } = await db.auth.signInWithIdToken({
+    provider: 'apple',
+    token: credential.identityToken,
+  });
+  if (error) throw new SignInError(error.message);
+  if (!data.user) throw new SignInError('Sign in did not return a user');
+
+  // Apple hands over the name only on the very first authorization, so if it is
+  // here it has to be kept now or it is gone for good.
+  const { givenName, familyName } = credential.fullName ?? {};
+  const fullName = [givenName, familyName].filter(Boolean).join(' ').trim();
+
+  return { status: 'signed-in', userId: data.user.id, fullName: fullName || undefined };
+}
+
+async function signInWithBrowser(provider: 'Google' | 'GitHub'): Promise<SignInOutcome> {
+  const db = getSupabase()!;
+
+  const { data, error } = await db.auth.signInWithOAuth({
+    provider: provider === 'Google' ? 'google' : 'github',
+    options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
+  });
+  if (error) throw new SignInError(error.message);
+  if (!data.url) throw new SignInError('No authorization URL to open');
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT_URL);
+  if (result.type !== 'success') return { status: 'cancelled' };
+
+  const session = await sessionFromRedirect(result.url);
+  return { status: 'signed-in', userId: session };
+}
+
+/**
+ * The client uses the implicit flow, so the provider sends the tokens back in
+ * the URL fragment and the session has to be installed by hand.
+ */
+async function sessionFromRedirect(url: string): Promise<string> {
+  const db = getSupabase()!;
+
+  const [, fragment = ''] = url.split('#');
+  const params = new URLSearchParams(fragment);
+
+  const errorDescription = params.get('error_description') ?? params.get('error');
+  if (errorDescription) throw new SignInError(errorDescription);
+
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  if (!accessToken || !refreshToken) throw new SignInError('No session in the callback');
+
+  const { data, error } = await db.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) throw new SignInError(error.message);
+  if (!data.user) throw new SignInError('Sign in did not return a user');
+
+  return data.user.id;
+}
+
+export async function signOut(): Promise<void> {
+  const db = getSupabase();
+  if (db) await db.auth.signOut();
+}

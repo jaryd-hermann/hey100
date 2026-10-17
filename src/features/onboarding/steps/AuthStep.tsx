@@ -5,10 +5,12 @@ import { Pressable, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
 import { Label, Txt } from '@/components/ui/Txt';
+import type { AuthProviderId } from '@/features/auth/signIn';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
-export type AuthProvider = 'Apple' | 'Google' | 'GitHub';
+/** Aliased so the buttons and the sign-in calls cannot drift apart. */
+export type AuthProvider = AuthProviderId;
 
 const PROVIDERS: { id: AuthProvider; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
   { id: 'Apple', icon: 'logo-apple' },
@@ -20,9 +22,12 @@ const PROVIDERS: { id: AuthProvider; icon: React.ComponentProps<typeof Ionicons>
 export function ProviderButtons({
   onPress,
   verb = 'Continue with',
+  pending = false,
 }: {
   onPress: (provider: AuthProvider) => void;
   verb?: string;
+  /** Stops a second provider being started while one is still in flight. */
+  pending?: boolean;
 }) {
   const { c } = useTheme();
 
@@ -32,6 +37,7 @@ export function ProviderButtons({
         <Pressable
           key={provider.id}
           accessibilityRole="button"
+          disabled={pending}
           onPress={() => onPress(provider.id)}
           style={({ pressed }) => ({
             height: 56,
@@ -43,7 +49,7 @@ export function ProviderButtons({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
-            opacity: pressed ? 0.8 : 1,
+            opacity: pending ? 0.5 : pressed ? 0.8 : 1,
           })}
         >
           <Ionicons name={provider.icon} size={19} color={provider.id === 'Apple' ? c.bg : c.ink} />
@@ -62,6 +68,7 @@ export type AuthStepProps = {
   appHue: number;
   promptCount: number;
   shots: number;
+  pending?: boolean;
   onSignIn: (provider: AuthProvider) => void;
 };
 
@@ -72,6 +79,7 @@ export function AuthStep({
   appHue,
   promptCount,
   shots,
+  pending = false,
   onSignIn,
 }: AuthStepProps) {
   const { c } = useTheme();
@@ -111,7 +119,7 @@ export function AuthStep({
         </View>
       </Card>
 
-      <ProviderButtons onPress={onSignIn} />
+      <ProviderButtons onPress={onSignIn} pending={pending} />
 
       <Txt size={12} lh={1.5} muted center>
         By continuing you agree to the Terms of Use and Privacy Policy.

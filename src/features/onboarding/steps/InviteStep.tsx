@@ -7,14 +7,14 @@ import { Txt } from '@/components/ui/Txt';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
-import { INVITERS, VALID_INVITE_CODES } from '../steps';
-
 export type InviteStepProps = {
   code: string;
   onChangeCode: (code: string) => void;
   redeemed: boolean;
   invitedBy: string | null;
-  onRedeem: (invitedBy: string | null) => void;
+  /** The server decides whether a code is valid, so the step only reports the press. */
+  onRedeem: () => void;
+  checking?: boolean;
   onWaitlist: () => void;
 };
 
@@ -24,14 +24,10 @@ export function InviteStep({
   redeemed,
   invitedBy,
   onRedeem,
+  checking = false,
   onWaitlist,
 }: InviteStepProps) {
   const { c } = useTheme();
-
-  const redeem = () => {
-    const normalized = code.trim().toUpperCase();
-    onRedeem(VALID_INVITE_CODES.includes(normalized) ? (INVITERS[normalized] ?? 'a builder') : null);
-  };
 
   return (
     <View style={{ gap: 18 }}>
@@ -48,7 +44,7 @@ export function InviteStep({
           autoCapitalize="characters"
           autoCorrect={false}
           maxLength={16}
-          editable={!redeemed}
+          editable={!redeemed && !checking}
           style={{
             flex: 1,
             height: 58,
@@ -64,11 +60,11 @@ export function InviteStep({
           }}
         />
         <Btn
-          label={redeemed ? 'Redeemed' : 'Redeem'}
+          label={redeemed ? 'Redeemed' : checking ? 'Checking…' : 'Redeem'}
           variant={redeemed ? 'surface' : 'ink'}
           size="lg"
-          disabled={redeemed || !code.trim()}
-          onPress={redeem}
+          disabled={redeemed || checking || !code.trim()}
+          onPress={onRedeem}
         />
       </View>
 

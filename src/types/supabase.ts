@@ -14,6 +14,179 @@ export type Database = {
   }
   public: {
     Tables: {
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          max_redemptions: number
+          owner_id: string | null
+          redemption_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          max_redemptions?: number
+          owner_id?: string | null
+          redemption_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          max_redemptions?: number
+          owner_id?: string | null
+          redemption_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invite_redemptions: {
+        Row: {
+          bonus_granted_at: string | null
+          code: string
+          id: string
+          invited_user_id: string
+          redeemed_at: string
+          referrer_id: string | null
+        }
+        Insert: {
+          bonus_granted_at?: string | null
+          code: string
+          id?: string
+          invited_user_id: string
+          redeemed_at?: string
+          referrer_id?: string | null
+        }
+        Update: {
+          bonus_granted_at?: string | null
+          code?: string
+          id?: string
+          invited_user_id?: string
+          redeemed_at?: string
+          referrer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_redemptions_code_fkey"
+            columns: ["code"]
+            isOneToOne: false
+            referencedRelation: "invite_codes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invite_redemptions_invited_user_id_fkey"
+            columns: ["invited_user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_redemptions_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          app_interests: string[]
+          bonus_matches: number
+          created_at: string
+          display_pref: string
+          id: string
+          job: string | null
+          life_tags: string[]
+          links: Json
+          looking_for: string[]
+          onboarded_at: string | null
+          own_words: Json
+          photo_url: string | null
+          plan: string
+          plan_expires_at: string | null
+          real_name: string | null
+          referral_code: string
+          referred_by: string | null
+          role_tags: string[]
+          test_devices: string[]
+          theme_pref: string
+          updated_at: string
+          username: string | null
+          visibility: Json
+          workplace: string | null
+        }
+        Insert: {
+          app_interests?: string[]
+          bonus_matches?: number
+          created_at?: string
+          display_pref?: string
+          id: string
+          job?: string | null
+          life_tags?: string[]
+          links?: Json
+          looking_for?: string[]
+          onboarded_at?: string | null
+          own_words?: Json
+          photo_url?: string | null
+          plan?: string
+          plan_expires_at?: string | null
+          real_name?: string | null
+          referral_code: string
+          referred_by?: string | null
+          role_tags?: string[]
+          test_devices?: string[]
+          theme_pref?: string
+          updated_at?: string
+          username?: string | null
+          visibility?: Json
+          workplace?: string | null
+        }
+        Update: {
+          app_interests?: string[]
+          bonus_matches?: number
+          created_at?: string
+          display_pref?: string
+          id?: string
+          job?: string | null
+          life_tags?: string[]
+          links?: Json
+          looking_for?: string[]
+          onboarded_at?: string | null
+          own_words?: Json
+          photo_url?: string | null
+          plan?: string
+          plan_expires_at?: string | null
+          real_name?: string | null
+          referral_code?: string
+          referred_by?: string | null
+          role_tags?: string[]
+          test_devices?: string[]
+          theme_pref?: string
+          updated_at?: string
+          username?: string | null
+          visibility?: Json
+          workplace?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prompts: {
         Row: {
           created_at: string
@@ -46,7 +219,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      invite_code_status: { Args: { p_code: string }; Returns: Json }
+      redeem_invite: { Args: { p_code: string }; Returns: Json }
+      username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

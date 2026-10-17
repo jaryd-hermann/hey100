@@ -12,6 +12,9 @@ import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { USERNAME_PATTERN, generateUsername } from '@/features/onboarding/useOnboardingDraft';
 import { EDITABLE_GROUPS, SOCIAL_FIELDS } from '@/features/profile/fields';
+import { updateMyProfile } from '@/data/repo/profile';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { toProfilePatch } from '@/features/profile/mapProfile';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout } from '@/theme/tokens';
@@ -29,6 +32,7 @@ export default function EditProfile() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const { userId } = useAuth();
 
   const { user } = store;
 
@@ -41,6 +45,7 @@ export default function EditProfile() {
   const [tags, setTags] = useState<Record<string, string[]>>(user.tags);
   const [ownWords, setOwnWords] = useState<Record<string, string>>(user.ownWords);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Any network the user already has but the editor doesn't offer still gets a row.
   const socialRows = useMemo<[kind: string, placeholder: string][]>(() => {
@@ -88,7 +93,7 @@ export default function EditProfile() {
     router.back();
   };
 
-  const save = () => {
+  const save = async () => {
     if (!nameOk) {
       toast('Add your name');
       return;
@@ -97,8 +102,9 @@ export default function EditProfile() {
       toast('Pick a username to continue');
       return;
     }
+    if (saving) return;
 
-    store.updateUser({
+    const edits = {
       realName: realName.trim(),
       username,
       bio: bio.trim(),
@@ -107,13 +113,29 @@ export default function EditProfile() {
       socials: nextSocials,
       tags,
       ownWords,
-    });
+    };
 
-    toast(dirty ? 'Profile saved' : 'Nothing to save');
-    router.back();
+    setSaving(true);
+    try {
+      // The server first, so "Profile saved" is never shown for a write that
+      // the database refused.
+      if (userId) await updateMyProfile(userId, toProfilePatch(edits));
+
+      store.updateUser(edits);
+      toast(dirty ? 'Profile saved' : 'Nothing to save');
+      router.back();
+    } catch (error) {
+      toast(
+        (error as { code?: string }).code === '23505'
+          ? 'That username is taken'
+          : 'Could not save. Try again.',
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const canSave = nameOk && usernameOk;
+  const canSave = nameOk && usernameOk && !saving;
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>

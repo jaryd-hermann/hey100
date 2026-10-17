@@ -8,6 +8,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
 import { USERNAME_PATTERN, generateUsername } from '../useOnboardingDraft';
+import type { UsernameState } from '../useUsernameState';
 
 export type UsernameStepProps = {
   realName: string;
@@ -15,6 +16,8 @@ export type UsernameStepProps = {
   onChangeUsername: (username: string) => void;
   showAs: 'username' | 'realName';
   onChangeShowAs: (showAs: 'username' | 'realName') => void;
+  /** Server-checked availability, so a collision surfaces before sign-in. */
+  state: UsernameState;
   terms: boolean;
   onToggleTerms: () => void;
 };
@@ -25,6 +28,7 @@ export function UsernameStep({
   onChangeUsername,
   showAs,
   onChangeShowAs,
+  state,
   terms,
   onToggleTerms,
 }: UsernameStepProps) {
@@ -32,6 +36,7 @@ export function UsernameStep({
   const [editing, setEditing] = useState(false);
 
   const valid = USERNAME_PATTERN.test(username);
+  const taken = state === 'taken';
 
   return (
     <View style={{ gap: 16 }}>
@@ -54,7 +59,7 @@ export function UsernameStep({
                   borderRadius: 10,
                   backgroundColor: c.bg,
                   borderWidth: 1.5,
-                  borderColor: valid ? c.line : c.danger,
+                  borderColor: valid && !taken ? c.line : c.danger,
                   paddingHorizontal: 10,
                   color: c.ink,
                   fontFamily: fonts.monoMedium,
@@ -85,6 +90,18 @@ export function UsernameStep({
         {!valid ? (
           <Txt size={12.5} color={c.danger}>
             Lowercase letters, numbers and underscores, up to 20 characters.
+          </Txt>
+        ) : state === 'taken' ? (
+          <Txt size={12.5} color={c.danger}>
+            @{username} is taken. Try another, or shuffle.
+          </Txt>
+        ) : state === 'checking' ? (
+          <Txt size={12.5} muted>
+            Checking…
+          </Txt>
+        ) : state === 'available' ? (
+          <Txt size={12.5} color={c.accentText}>
+            @{username} is yours.
           </Txt>
         ) : null}
       </Card>

@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const ADJECTIVES = [
   'ship',
@@ -86,8 +87,59 @@ function initialDraft(startStep: number): Draft {
   };
 }
 
-export function useOnboardingDraft(startStep = 0) {
+/** Writes are debounced because the text steps patch on every keystroke. */
+const SAVE_DELAY_MS = 400;
+
+/**
+ * `storageKey` null means do not persist. The "list another app" flow reuses
+ * these steps but is not a signup, so it must not overwrite a signup draft.
+ */
+export function useOnboardingDraft(startStep = 0, storageKey: string | null = null) {
   const [draft, setDraft] = useState<Draft>(() => initialDraft(startStep));
+  // Onboarding is long enough that losing it to a backgrounded app would be a
+  // real loss, so it is restored before the first step renders.
+  const [ready, setReady] = useState(!storageKey);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!storageKey) return;
+
+    let active = true;
+    AsyncStorage.getItem(storageKey)
+      .then((stored) => {
+        if (!active || !stored) return;
+        const parsed = JSON.parse(stored) as Partial<Draft>;
+        // Spread over a fresh draft so a shape change in a new build cannot
+        // leave a field undefined.
+        setDraft((prev) => ({ ...prev, ...parsed }));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!storageKey || !ready) return;
+
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      AsyncStorage.setItem(storageKey, JSON.stringify(draft)).catch(() => {});
+    }, SAVE_DELAY_MS);
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [draft, ready, storageKey]);
+
+  const clear = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (storageKey) await AsyncStorage.removeItem(storageKey).catch(() => {});
+  }, [storageKey]);
 
   const update = useCallback(
     (patch: Partial<Draft> | ((prev: Draft) => Partial<Draft>)) =>
@@ -118,5 +170,5 @@ export function useOnboardingDraft(startStep = 0) {
     [],
   );
 
-  return { draft, update, toggle, picked, isVisible, toggleVisible };
+  return { draft, ready, update, toggle, picked, isVisible, toggleVisible, clear };
 }

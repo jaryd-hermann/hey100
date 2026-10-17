@@ -12,6 +12,10 @@ import { OptionRow } from '@/components/ui/OptionRow';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
+import { updateMyProfile } from '@/data/repo/profile';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { signOut } from '@/features/auth/signIn';
+import { toProfilePatch } from '@/features/profile/mapProfile';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
@@ -31,6 +35,7 @@ export default function Account() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const { userId } = useAuth();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -38,8 +43,27 @@ export default function Account() {
   const publicUrl = `hey100.com/${user.username}`;
   const inviteUrl = `hey100.com/i/${user.referralCode}`;
 
-  const toggleVisible = (key: string) =>
-    store.updateUser({ hidden: { ...user.hidden, [key]: !user.hidden[key] } });
+  const toggleVisible = (key: string) => {
+    const hidden = { ...user.hidden, [key]: !user.hidden[key] };
+    store.updateUser({ hidden });
+
+    // The switch moves straight away; only a failure is worth interrupting for.
+    if (userId) {
+      updateMyProfile(userId, toProfilePatch({ hidden })).catch(() =>
+        toast('Could not save that. Try again.'),
+      );
+    }
+  };
+
+  const signOutAndLeave = async () => {
+    try {
+      await signOut();
+    } finally {
+      // Back to the splash either way: a half-signed-out session is worse than
+      // asking the user to sign in again.
+      router.replace('/onboarding');
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
@@ -187,7 +211,7 @@ export default function Account() {
         <View style={{ gap: 2, marginTop: 4 }}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => toast('Sign out lands with real auth')}
+            onPress={signOutAndLeave}
             style={({ pressed }) => ({ paddingVertical: 14, opacity: pressed ? 0.7 : 1 })}
           >
             <Txt size={15} weight={600} color={c.danger}>

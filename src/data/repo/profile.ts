@@ -4,6 +4,17 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
+/** Handles are claimed on a first-come basis, so this is only ever a hint. The
+ *  unique constraint is what actually decides. */
+export async function isUsernameAvailable(candidate: string): Promise<boolean> {
+  const db = getSupabase();
+  if (!db) return true;
+
+  const { data, error } = await db.rpc('username_available', { p_username: candidate });
+  if (error) throw error;
+  return data === true;
+}
+
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfilePatch = Database['public']['Tables']['profiles']['Update'];
 

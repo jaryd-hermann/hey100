@@ -21,6 +21,7 @@ import type { OwnedApp, ShotLayout } from '@/data/types';
 
 import { ADD_APP_RANGE, LAST_STEP, STEPS } from './steps';
 import { useOnboardingDraft } from './useOnboardingDraft';
+import { useUsernameState } from './useUsernameState';
 import { AddAppStep } from './steps/AddAppStep';
 import { AuthStep, ProviderButtons, type AuthProvider } from './steps/AuthStep';
 import { CheckStep } from './steps/CheckStep';
@@ -35,6 +36,8 @@ import { WelcomeStep } from './steps/WelcomeStep';
 
 export type OnboardingMode = 'full' | 'addApp';
 
+const DRAFT_KEY = 'hey100.onboarding-draft';
+
 export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -43,9 +46,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const store = useStore();
 
   const addApp = mode === 'addApp';
-  const { draft, update, toggle, picked, isVisible, toggleVisible } = useOnboardingDraft(
-    addApp ? ADD_APP_RANGE.first : 0,
-  );
+  const { draft, ready, update, toggle, picked, isVisible, toggleVisible, clear } =
+    useOnboardingDraft(addApp ? ADD_APP_RANGE.first : 0, addApp ? null : DRAFT_KEY);
 
   // Prompt picker and answer writer are sub-screens of the prompts step.
   const [logIn, setLogIn] = useState(false);
@@ -57,6 +59,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const [answerDraft, setAnswerDraft] = useState('');
   // Orientation for every screenshot in this listing, picked on the media step.
   const [shotLayout, setShotLayout] = useState<ShotLayout>('vertical');
+
+  const usernameState = useUsernameState(draft.username);
 
   const step = STEPS[draft.step];
   const lastStep = addApp ? ADD_APP_RANGE.last : LAST_STEP;
@@ -71,13 +75,13 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'link':
         return draft.fetched;
       case 'username':
-        return draft.terms;
+        return draft.terms && usernameState !== 'taken' && usernameState !== 'invalid';
       case 'pick':
         return picked(step.group!).length > 0 || !!draft.own[step.group!];
       default:
         return true;
     }
-  }, [draft.fetched, draft.inviteOk, draft.own, draft.terms, picked, step]);
+  }, [draft.fetched, draft.inviteOk, draft.own, draft.terms, picked, step, usernameState]);
 
   const invalidMessage = () => {
     switch (step.kind) {
@@ -86,6 +90,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'link':
         return 'Fetch your app first';
       case 'username':
+        if (usernameState === 'taken') return 'That username is taken';
+        if (usernameState === 'invalid') return 'Pick a valid username';
         return 'Agree to the terms to continue';
       default:
         return 'Pick at least one';
@@ -174,6 +180,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       },
       app,
     });
+
+    void clear();
 
     captureEvent('onboarding_completed', {
       prompts: draft.answered.length,
@@ -319,6 +327,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   // The splash is the one screen that breaks the palette, in light mode only.
   const background = isWelcome && !isDark ? SPLASH_BG.light : c.bg;
+
+  if (!ready) return <View style={{ flex: 1, backgroundColor: background }} />;
 
   if (isWelcome) {
     return (
@@ -657,6 +667,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             onChangeUsername={(username) => update({ username })}
             showAs={draft.showAs}
             onChangeShowAs={(showAs) => update({ showAs })}
+            state={usernameState}
             terms={draft.terms}
             onToggleTerms={() => update((prev) => ({ terms: !prev.terms }))}
           />

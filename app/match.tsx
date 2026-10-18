@@ -82,7 +82,7 @@ export default function MatchOverlay() {
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <AppIcon hue={mine.hue} name={mine.name} size={88} style={{ marginRight: -16 }} />
+          <AppIcon hue={mine.hue} name={mine.name} uri={mine.icon} size={88} style={{ marginRight: -16 }} />
           <View
             style={{
               width: 44,
@@ -98,7 +98,7 @@ export default function MatchOverlay() {
           >
             <HandMark size={22} />
           </View>
-          <AppIcon hue={theirs.hue} name={theirs.name} size={88} style={{ marginLeft: -16 }} />
+          <AppIcon hue={theirs.hue} name={theirs.name} uri={theirs.icon} size={88} style={{ marginLeft: -16 }} />
         </View>
 
         <Txt font="mono" size={27} weight={500} center>

@@ -147,7 +147,7 @@ export default function WebListingPreview() {
       <Sheet visible={signupOpen} onClose={() => setSignupOpen(false)}>
         <View style={{ gap: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <AppIcon hue={app.hue} name={app.name} size={52} />
+            <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={52} />
             <View style={{ flex: 1 }}>
               <Txt font="mono" size={16} weight={500} numberOfLines={1}>
                 Want to try {shortName(app.name)}?

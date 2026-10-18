@@ -33,7 +33,7 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
   return (
     <Card padding={16} radius={radii.cardLg} style={{ gap: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
-        <AppIcon hue={listing.hue} name={listing.name} size={52} />
+        <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={52} />
         <View style={{ flex: 1 }}>
           <Txt font="mono" size={15} weight={500} numberOfLines={1}>
             {listing.name}
@@ -51,7 +51,7 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
       </View>
 
       <NoteBlock
-        icon={viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} size={18} /> : undefined}
+        icon={viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} /> : undefined}
         label={`Said hey about their ${sent.target}`}
         note={sent.note}
         followUp={

@@ -153,7 +153,7 @@ export default function ChatThread() {
               <TeamMark size={38} badge={24} ring={c.bg} />
             ) : (
               <View style={{ width: 46, height: 38 }}>
-                <AppIcon hue={listing.hue} name={listing.name} size={38} />
+                <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={38} />
                 <View
                   style={{
                     position: 'absolute',

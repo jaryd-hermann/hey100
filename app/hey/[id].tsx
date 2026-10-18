@@ -97,7 +97,7 @@ export default function LikerProfile() {
           banner={
             <Card tone="soft" padding={14} radius={radii.cardLg} style={{ gap: 9 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                {viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} size={18} /> : null}
+                {viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} /> : null}
                 <Label size={10} style={{ flex: 1 }}>
                   Said hey to {shortName(viaApp?.name ?? 'your app')}&apos;s {hey.target}
                 </Label>

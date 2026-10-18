@@ -38,7 +38,7 @@ export default function FeedbackInbox() {
           onPress={() => setSwitcherOpen(true)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
         >
-          <AppIcon hue={app.hue} name={app.name} size={28} />
+          <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={28} />
           <Ionicons name="chevron-down" size={14} color={c.muted} />
         </Pressable>
       }
@@ -136,7 +136,7 @@ export default function FeedbackInbox() {
                 borderColor: owned.id === appId ? c.ink : c.line,
               }}
             >
-              <AppIcon hue={owned.hue} name={owned.name} size={40} />
+              <AppIcon hue={owned.hue} name={owned.name} uri={owned.icon} size={40} />
               <Txt size={15} weight={500} style={{ flex: 1 }} numberOfLines={1}>
                 {shortName(owned.name)}
               </Txt>

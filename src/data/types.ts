@@ -46,6 +46,8 @@ export type AppListing = {
   plat: string;
   stage: string;
   hue: number;
+  /** The real app icon, once one has been fetched or uploaded. */
+  icon?: string;
   builder: string;
   role: string;
   /** Feedback style plus reply time, shown on the builder card. */

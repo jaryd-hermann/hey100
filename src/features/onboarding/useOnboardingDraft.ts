@@ -40,6 +40,10 @@ export type Draft = {
   appSub: string;
   appHue: number;
   appCats: string[];
+  /** Remote icon from the lookup, uploaded into storage at publish time. */
+  appIcon: string;
+  /** The store page, kept so the listing can link back to it. */
+  storeUrl: string;
   links: { web: string; tiktok: string; instagram: string };
   /** Picked shots in carousel order. The first one is the cover. */
   shots: PickedShot[];
@@ -74,6 +78,8 @@ function initialDraft(startStep: number): Draft {
     appSub: '',
     appHue: 220,
     appCats: [],
+    appIcon: '',
+    storeUrl: '',
     links: { web: '', tiktok: '', instagram: '' },
     shots: [],
     sel: {},

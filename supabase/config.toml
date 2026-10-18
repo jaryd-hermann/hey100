@@ -4,6 +4,13 @@
 # working directory name when running `supabase init`.
 project_id = "hey100"
 
+# The link lookup runs during onboarding, before anyone has signed in, so the
+# anon key is all the caller has. That key is still a signed JWT, so the default
+# verification stands.
+[functions.app-metadata]
+enabled = true
+verify_jwt = true
+
 [api]
 enabled = true
 # Port to use for the API URL.

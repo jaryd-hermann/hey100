@@ -129,7 +129,7 @@ function AppCard({ app }: { app: OwnedApp }) {
     >
       <Card padding={16} radius={radii.cardLg} style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
-          <AppIcon hue={app.hue} name={app.name} size={52} />
+          <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={52} />
           <View style={{ flex: 1 }}>
             <Txt font="mono" size={15} weight={500} numberOfLines={1}>
               {app.name}

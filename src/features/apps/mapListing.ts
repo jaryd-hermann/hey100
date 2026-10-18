@@ -69,6 +69,7 @@ export function toOwnedApp(row: ListingRow, ctx: ListingContext): OwnedApp {
     plat: row.platform,
     stage: row.stage,
     hue: row.hue,
+    ...(row.icon_path ? { icon: publicUrl('listing-media', row.icon_path) } : {}),
     builder: ctx.builder,
     role: row.builder_role ?? '',
     style: row.builder_style ?? '',

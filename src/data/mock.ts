@@ -280,7 +280,7 @@ export const LISTINGS: Record<string, AppListing> = {
 /** Lighter records for builders the user is already matched with. */
 export type MatchAppStub = Pick<
   AppListing,
-  'id' | 'name' | 'sub' | 'hue' | 'builder' | 'code' | 'asked'
+  'id' | 'name' | 'sub' | 'hue' | 'icon' | 'builder' | 'code' | 'asked'
 > & { links?: AppListing['links'] };
 
 export const MATCH_APPS: Record<string, MatchAppStub> =

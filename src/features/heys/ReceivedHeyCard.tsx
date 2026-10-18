@@ -39,7 +39,7 @@ export function ReceivedHeyCard({
         style={({ pressed }) => ({ gap: 13, opacity: pressed ? 0.85 : 1 })}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
-          <AppIcon hue={listing.hue} name={listing.name} size={52} />
+          <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={52} />
           <View style={{ flex: 1 }}>
             <Txt font="mono" size={15} weight={500} numberOfLines={1}>
               {listing.name}
@@ -51,7 +51,7 @@ export function ReceivedHeyCard({
         </View>
 
         <NoteBlock
-          icon={viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} size={18} /> : undefined}
+          icon={viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} /> : undefined}
           label={`Said hey to ${shortName(viaApp?.name ?? 'your app')}'s ${hey.target}`}
           note={hey.note}
           followUp={hey.followUp}

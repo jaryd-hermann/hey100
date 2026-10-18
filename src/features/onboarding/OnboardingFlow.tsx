@@ -16,7 +16,7 @@ import { queryKeys } from '@/data/repo/keys';
 import { createListing, isListingLimitError } from '@/data/repo/listings';
 import { updateMyProfile } from '@/data/repo/profile';
 import { toListingInsert } from '@/features/apps/mapListing';
-import { uploadShots } from '@/features/apps/uploadShots';
+import { uploadAsset, uploadShots } from '@/features/apps/uploadShots';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { SignInError, signIn } from '@/features/auth/signIn';
 import { captureEvent } from '@/lib/analytics';
@@ -123,6 +123,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     name: draft.appName || 'Your app',
     sub: draft.appSub,
     hue: draft.appHue,
+    // Shown immediately; the uploaded copy replaces it on the next refetch.
+    icon: draft.appIcon || undefined,
     cat: draft.appCats[0] ?? 'Productivity',
     stage: stripEmoji(picked('stage')[0] ?? '🧪 In beta or TestFlight'),
     media: draft.shots.map((shot) => ({
@@ -155,6 +157,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     plat: 'iOS',
     stage: app.stage ?? 'Idea',
     hue: app.hue ?? 220,
+    icon: app.icon,
     builder: store.user.realName,
     role: '',
     style: '',
@@ -173,15 +176,27 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     layout: [...DEFAULT_LAYOUT],
   });
 
-  /** Uploads the shots, then writes the listing and its children in one go. */
-  const publish = (ownerId: string, app: Partial<OwnedApp>) =>
-    uploadShots(ownerId, draft.shots).then((media) =>
-      createListing(ownerId, {
-        app: toListingInsert(app),
-        prompts: draft.answered.map((id) => ({ promptId: id, answer: draft.answers[id] ?? '' })),
-        media,
-      }),
-    );
+  /**
+   * Uploads the icon and the shots, then writes the listing and its children.
+   * The icon is copied into our own bucket rather than hotlinked, because store
+   * artwork URLs expire and would take the listing's icon with them.
+   */
+  const publish = async (ownerId: string, app: Partial<OwnedApp>) => {
+    const [iconPath, media] = await Promise.all([
+      draft.appIcon ? uploadAsset(ownerId, draft.appIcon, 'image', 'icon') : null,
+      uploadShots(ownerId, draft.shots),
+    ]);
+
+    return createListing(ownerId, {
+      app: {
+        ...toListingInsert(app),
+        ...(iconPath ? { icon_path: iconPath } : {}),
+        ...(draft.storeUrl ? { store_url: draft.storeUrl } : {}),
+      },
+      prompts: draft.answered.map((id) => ({ promptId: id, answer: draft.answers[id] ?? '' })),
+      media,
+    });
+  };
 
   /**
    * Publishes the listing and hands off to the paywall. `signedInAs` comes from
@@ -627,6 +642,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             sub={draft.appSub}
             hue={draft.appHue}
             cats={draft.appCats}
+            icon={draft.appIcon || undefined}
+            shots={draft.shots.length}
             links={draft.links}
             onFetch={(result) =>
               update((prev) => ({
@@ -635,11 +652,19 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
                 appSub: prev.appSub || result.sub,
                 appHue: result.hue,
                 appCats: result.cats,
+                appIcon: result.icon ?? '',
+                storeUrl: result.storeUrl ?? '',
+                // Store screenshots become the starting carousel, unless the
+                // builder has already picked their own.
+                shots: prev.shots.length
+                  ? prev.shots
+                  : result.shots.map((uri) => ({ uri, kind: 'image' as const })),
                 links: { ...prev.links, web: result.web },
               }))
             }
             onChangeName={(appName) => update({ appName })}
             onChangeSub={(appSub) => update({ appSub })}
+            onChangeCats={(appCats) => update({ appCats })}
             onChangeLink={(key, value) =>
               update((prev) => ({ links: { ...prev.links, [key]: value } }))
             }
@@ -739,6 +764,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             appName={draft.appName}
             appSub={draft.appSub}
             appHue={draft.appHue}
+            appIcon={draft.appIcon || undefined}
             promptCount={draft.answered.length}
             shots={draft.shots.length}
             pending={authPending || publishing}

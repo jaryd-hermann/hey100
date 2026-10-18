@@ -143,7 +143,7 @@ function MatchRow({ match, onPress }: { match: Match; onPress: () => void }) {
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View>
-            <AppIcon hue={listing.hue} name={listing.name} size={48} />
+            <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={48} />
             {viaApp ? (
               <View
                 style={{
@@ -155,7 +155,7 @@ function MatchRow({ match, onPress }: { match: Match; onPress: () => void }) {
                   borderColor: c.surface,
                 }}
               >
-                <AppIcon hue={viaApp.hue} name={viaApp.name} size={22} />
+                <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={22} />
               </View>
             ) : null}
           </View>

@@ -45,7 +45,7 @@ export function TradeAppSheet({
     <Sheet visible={visible} onClose={onClose}>
       <View style={{ gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <AppIcon hue={listing.hue} name={listing.name} size={58} />
+          <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={58} />
           <View style={{ flex: 1 }}>
             <Txt font="mono" size={16.5} weight={500} numberOfLines={2}>
               {listing.name}

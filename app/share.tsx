@@ -166,7 +166,7 @@ export default function ShareSheet() {
           ) : (
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <AppIcon hue={app.hue} name={app.name} size={48} />
+                <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={48} />
                 <View style={{ flex: 1 }}>
                   <Txt font="mono" size={15} weight={500} numberOfLines={1}>
                     {app.name}

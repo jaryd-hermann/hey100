@@ -179,7 +179,7 @@ export function AppPage({
 
       <View style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-          <AppIcon hue={listing.hue} name={listing.name} size={62} />
+          <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={62} />
           <View style={{ flex: 1 }}>
             {/* The full name always fits on one line, shrinking rather than clipping. */}
             <Txt
@@ -633,7 +633,7 @@ export function CompactAppBar({
         zIndex: 20,
       }}
     >
-      <AppIcon hue={listing.hue} name={listing.name} size={36} />
+      <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={36} />
       <View style={{ flex: 1 }}>
         <Txt font="mono" size={14} weight={500} numberOfLines={1}>
           {shortName(listing.name)}

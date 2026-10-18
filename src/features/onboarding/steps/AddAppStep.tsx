@@ -7,40 +7,35 @@ import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Label, Txt } from '@/components/ui/Txt';
+import { NAME_MAX, fetchAppMetadata, type AppMetadata } from '@/data/repo/metadata';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
-/** App Store Connect caps both at 30 characters, so the listing matches. */
-export const NAME_MAX = 30;
-
-export type FetchResult = {
-  name: string;
-  sub: string;
-  hue: number;
-  cats: string[];
-  web: string;
-};
+export { NAME_MAX };
 
 /**
- * Stands in for the store/web lookup until the server endpoint exists: it
- * derives a plausible listing from the host so the flow stays complete.
+ * Shown when the lookup returns no category, which is every website and some
+ * store listings. The App Store's own names, so a fetched category lines up
+ * with a picked one.
  */
-export function fetchListing(url: string): FetchResult {
-  const host = url
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .split('/')[0];
-  const base = (host.split('.')[0] || 'Your app').replace(/[-_]/g, ' ');
-  const name = base.charAt(0).toUpperCase() + base.slice(1);
-  const hue = [...host].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
+const CATEGORY_OPTIONS = [
+  'Productivity',
+  'Social Networking',
+  'Health & Fitness',
+  'Photo & Video',
+  'Lifestyle',
+  'Finance',
+  'Education',
+  'Utilities',
+  'Developer Tools',
+];
 
-  return {
-    name: name.slice(0, NAME_MAX),
-    sub: '',
-    hue,
-    cats: ['Productivity', 'Lifestyle'],
-    web: host,
-  };
+/** Fetched categories first, then enough of the standard list to choose from. */
+function categoryOptions(cats: string[]): string[] {
+  return [...cats, ...CATEGORY_OPTIONS.filter((option) => !cats.includes(option))].slice(
+    0,
+    cats.length ? cats.length + 4 : 6,
+  );
 }
 
 export type AddAppStepProps = {
@@ -50,11 +45,15 @@ export type AddAppStepProps = {
   name: string;
   sub: string;
   hue: number;
+  icon?: string;
   cats: string[];
+  /** How many store screenshots the lookup brought back. */
+  shots: number;
   links: { web: string; tiktok: string; instagram: string };
-  onFetch: (result: FetchResult) => void;
+  onFetch: (result: AppMetadata) => void;
   onChangeName: (name: string) => void;
   onChangeSub: (sub: string) => void;
+  onChangeCats: (cats: string[]) => void;
   onChangeLink: (key: 'web' | 'tiktok' | 'instagram', value: string) => void;
 };
 
@@ -65,23 +64,27 @@ export function AddAppStep({
   name,
   sub,
   hue,
+  icon,
   cats,
+  shots,
   links,
   onFetch,
   onChangeName,
   onChangeSub,
+  onChangeCats,
   onChangeLink,
 }: AddAppStepProps) {
   const { c } = useTheme();
   const [fetching, setFetching] = useState(false);
 
-  const run = () => {
-    if (!url.trim()) return;
+  const run = async () => {
+    if (!url.trim() || fetching) return;
     setFetching(true);
-    setTimeout(() => {
-      onFetch(fetchListing(url));
+    try {
+      onFetch(await fetchAppMetadata(url.trim()));
+    } finally {
       setFetching(false);
-    }, 450);
+    }
   };
 
   return (
@@ -114,7 +117,7 @@ export function AddAppStep({
         />
         <Btn
           label={fetching ? '…' : 'Fetch'}
-          onPress={run}
+          onPress={() => void run()}
           size="lg"
           dim={!url.trim()}
           disabled={fetching}
@@ -125,7 +128,7 @@ export function AddAppStep({
         <>
           <Card padding={14} style={{ gap: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <AppIcon hue={hue} name={name || 'A'} size={54} />
+              <AppIcon hue={hue} name={name || 'A'} uri={icon} size={54} />
               <View style={{ flex: 1 }}>
                 <Txt font="mono" size={15} weight={500} numberOfLines={1}>
                   {name || 'Your app'}
@@ -135,6 +138,13 @@ export function AddAppStep({
                 </Txt>
               </View>
             </View>
+
+            {shots ? (
+              <Txt size={12.5} lh={1.4} muted>
+                {shots} screenshot{shots === 1 ? '' : 's'} came across too. You can swap them on the
+                next step.
+              </Txt>
+            ) : null}
 
             <Field
               label="Name"
@@ -156,15 +166,17 @@ export function AddAppStep({
             <View>
               <Label style={{ marginBottom: 8 }}>Category</Label>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {cats.map((cat, index) => (
-                  <Chip key={cat} label={cat} selected={index === 0} size="sm" />
+                {categoryOptions(cats).map((cat) => (
+                  <Chip
+                    key={cat}
+                    label={cat}
+                    selected={cat === cats[0]}
+                    size="sm"
+                    onPress={() => onChangeCats([cat, ...cats.filter((other) => other !== cat)])}
+                  />
                 ))}
               </View>
             </View>
-
-            <Txt size={12.5} muted>
-              You&apos;ll customize this soon.
-            </Txt>
           </Card>
 
           <Card padding={14} style={{ gap: 12 }}>

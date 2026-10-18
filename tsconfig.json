@@ -9,5 +9,12 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules", "design", "ios", "android"]
+  "exclude": [
+    "node_modules",
+    "design",
+    "ios",
+    "android",
+    "scripts",
+    "supabase/functions"
+  ]
 }

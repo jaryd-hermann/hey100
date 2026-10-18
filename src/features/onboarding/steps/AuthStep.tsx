@@ -66,6 +66,7 @@ export type AuthStepProps = {
   appName: string;
   appSub: string;
   appHue: number;
+  appIcon?: string;
   promptCount: number;
   shots: number;
   pending?: boolean;
@@ -80,6 +81,7 @@ export function AuthStep({
   appName,
   appSub,
   appHue,
+  appIcon,
   promptCount,
   shots,
   pending = false,
@@ -99,7 +101,7 @@ export function AuthStep({
 
       <Card padding={16} style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <AppIcon hue={appHue} name={appName || 'A'} size={52} />
+          <AppIcon hue={appHue} name={appName || 'A'} uri={appIcon} size={52} />
           <View style={{ flex: 1 }}>
             <Txt font="mono" size={15} weight={500} numberOfLines={1}>
               {appName || 'Your app'}

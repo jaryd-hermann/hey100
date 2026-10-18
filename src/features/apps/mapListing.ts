@@ -1,4 +1,4 @@
-import type { AppInsert, AppPatch, ListingRow } from '@/data/repo/listings';
+import type { AppInsert, AppPatch, AppRow, MediaRow, PromptRow } from '@/data/repo/listings';
 import type { IdealUsers, MediaItem, OwnedApp, SectionKey, ShotLayout } from '@/data/types';
 import { publicUrl } from '@/lib/supabase';
 
@@ -30,6 +30,16 @@ function split(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+/**
+ * What a listing needs to render, rather than the exact row shape. The owner's
+ * own listings arrive as a PostgREST embed and other builders' arrive from
+ * `app.listing_card`, and both satisfy this.
+ */
+export type ListingLike = AppRow & {
+  app_media: Pick<MediaRow, 'position' | 'label' | 'kind' | 'storage_path'>[];
+  app_prompts: Pick<PromptRow, 'slot' | 'prompt_id' | 'answer'>[];
+};
+
 export type ListingContext = {
   /** The owner's display name, which lives on the profile, not the listing. */
   builder: string;
@@ -37,7 +47,7 @@ export type ListingContext = {
   promptLabel: (promptId: string) => string;
 };
 
-export function toOwnedApp(row: ListingRow, ctx: ListingContext): OwnedApp {
+export function toOwnedApp(row: ListingLike, ctx: ListingContext): OwnedApp {
   const ideal = (row.ideal_users ?? {}) as IdealRow;
   const links = (row.links ?? {}) as Record<string, string>;
 
@@ -63,6 +73,7 @@ export function toOwnedApp(row: ListingRow, ctx: ListingContext): OwnedApp {
 
   return {
     id: row.id,
+    ...(row.slug ? { slug: row.slug } : {}),
     name: row.name,
     sub: row.subtitle,
     cat: row.category,
@@ -98,6 +109,7 @@ export function toOwnedApp(row: ListingRow, ctx: ListingContext): OwnedApp {
 
 const LINK_LABELS: Record<string, string> = {
   web: 'Web',
+  appstore: 'App Store',
   x: 'X',
   tiktok: 'TikTok',
   instagram: 'Instagram',

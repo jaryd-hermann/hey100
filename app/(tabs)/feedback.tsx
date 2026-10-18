@@ -95,7 +95,14 @@ export default function FeedbackInbox() {
 
             <View style={{ gap: 7 }}>
               <Label size={10}>Would keep using it</Label>
-              <View style={{ flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden' }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  height: 10,
+                  borderRadius: 5,
+                  overflow: 'hidden',
+                }}
+              >
                 <View style={{ flex: data.yes, backgroundColor: c.accent }} />
                 <View style={{ flex: data.maybe, backgroundColor: c.mid }} />
                 <View style={{ flex: data.no || 0.001, backgroundColor: c.raised }} />
@@ -157,7 +164,9 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
   const toast = useToast();
   const store = useStore();
 
-  const matchId = store.matches.find((match) => store.listing(match.appId)?.builder === entry.who)?.id;
+  const matchId =
+    entry.matchId ??
+    store.matches.find((match) => store.listing(match.appId)?.builder === entry.who)?.id;
 
   return (
     <Card padding={16} radius={radii.cardLg} style={{ gap: 13 }}>
@@ -209,7 +218,14 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
         </View>
       </Pressable>
 
-      <View style={{ borderTopWidth: 1, borderColor: c.line, paddingTop: 13, gap: 10 }}>
+      <View
+        style={{
+          borderTopWidth: 1,
+          borderColor: c.line,
+          paddingTop: 13,
+          gap: 10,
+        }}
+      >
         {entry.helpful ? (
           entry.optIn ? (
             <Btn
@@ -243,7 +259,7 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
               variant="surface"
               size="sm"
               onPress={() => {
-                store.rateFeedback(appId, entry.id, 'yes');
+                void store.rateFeedback(appId, entry.id, 'yes');
                 captureEvent('feedback_rated', { helpful: true });
               }}
             />
@@ -252,7 +268,7 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
               variant="ghost"
               size="sm"
               onPress={() => {
-                store.rateFeedback(appId, entry.id, 'no');
+                void store.rateFeedback(appId, entry.id, 'no');
                 captureEvent('feedback_rated', { helpful: false });
               }}
             />

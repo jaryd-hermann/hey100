@@ -79,7 +79,7 @@ export function TradeAppSheet({
         >
           <Card padding={14} radius={radii.cardLg}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Avatar name={avatarName(listing.builder)} size={42} />
+              <Avatar name={avatarName(listing.builder)} uri={listing.builderPhoto} size={42} />
               <View style={{ flex: 1 }}>
                 <Label size={10}>Builder</Label>
                 <Txt size={15} weight={600} numberOfLines={1}>
@@ -129,7 +129,10 @@ export function TradeAppSheet({
           <Pressable
             accessibilityRole="button"
             onPress={onOpenFullListing}
-            style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1, paddingVertical: 4 })}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.75 : 1,
+              paddingVertical: 4,
+            })}
           >
             <Txt size={14} weight={600} color={c.accentText}>
               See the full listing →

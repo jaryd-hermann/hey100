@@ -11,6 +11,8 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
+import { uploadAsset } from '@/features/apps/uploadShots';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -25,6 +27,7 @@ export default function FeedbackForm() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const { userId } = useAuth();
 
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const match = store.matches.find((item) => item.id === matchId);
@@ -38,6 +41,7 @@ export default function FeedbackForm() {
   const [bug, setBug] = useState('');
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [price, setPrice] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   const ready = impression > 0 && !!sentence.trim() && !!keep;
 
@@ -49,32 +53,58 @@ export default function FeedbackForm() {
     if (!result.canceled) setScreenshot(result.assets[0].uri);
   };
 
-  const submit = () => {
-    if (!ready || !match) {
-      toast('Add a first impression and whether you’d keep using it');
+  const submit = async () => {
+    if (!ready || !match || sending) {
+      if (!ready) toast('Add a first impression and whether you’d keep using it');
       return;
     }
 
-    store.submitFeedback(
-      match.id,
-      sentence.trim(),
-      `${impression}/5`,
-      `Keep using: ${keep}${price ? ` · Fair price: ${price}` : ''}`,
-    );
-    captureEvent('feedback_sent', {
-      impression,
-      keep,
-      price,
-      has_bug: !!bug.trim(),
-      has_screenshot: !!screenshot,
-    });
-    toast('Feedback sent');
-    router.back();
+    setSending(true);
+
+    try {
+      // The screenshot goes up first, so the review is never saved pointing at
+      // an image that is not there.
+      const bugShot =
+        screenshot && userId
+          ? ((await uploadAsset(userId, screenshot, 'image', 'bug')) ?? undefined)
+          : undefined;
+
+      await store.submitFeedback(match.id, {
+        stars: impression,
+        summary: sentence.trim(),
+        keep: keep ?? undefined,
+        confusion: confusion.trim() || undefined,
+        bestMoment: bestMoment.trim() || undefined,
+        bug: bug.trim() || undefined,
+        bugShot,
+        price: price ?? undefined,
+      });
+
+      captureEvent('feedback_sent', {
+        impression,
+        keep,
+        price,
+        has_bug: !!bug.trim(),
+        has_screenshot: !!screenshot,
+      });
+      toast('Feedback sent');
+      router.back();
+    } catch {
+      setSending(false);
+      toast("That didn't send. Try again.");
+    }
   };
 
   if (!match || !listing) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 40, paddingHorizontal: layout.gutter }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.bg,
+          paddingTop: insets.top + 40,
+          paddingHorizontal: layout.gutter,
+        }}
+      >
         <Txt muted>That trade is no longer open.</Txt>
       </View>
     );
@@ -272,12 +302,12 @@ export default function FeedbackForm() {
           }}
         >
           <Btn
-            label="Send feedback"
+            label={sending ? 'Sending…' : 'Send feedback'}
             variant="accent"
             size="lg"
             full
-            dim={!ready}
-            onPress={submit}
+            dim={!ready || sending}
+            onPress={() => void submit()}
           />
         </View>
       </View>

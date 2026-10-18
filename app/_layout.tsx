@@ -12,6 +12,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/Toast';
 import { useListingsSync } from '@/features/apps/useListingsSync';
 import { AuthProvider } from '@/features/auth/AuthProvider';
+import { useLoopSync } from '@/features/loop/useLoopSync';
+import { useLoopRealtime } from '@/features/loop/useRealtime';
 import { useProfileSync } from '@/features/profile/useProfileSync';
 import { getPostHog } from '@/lib/analytics';
 import { isPostHogConfigured, warnOnMissingConfig } from '@/lib/config';
@@ -103,6 +105,8 @@ function Shell() {
   // Hydrates the store from the signed-in user's rows; no-ops when signed out.
   useProfileSync();
   useListingsSync();
+  useLoopSync();
+  useLoopRealtime();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>

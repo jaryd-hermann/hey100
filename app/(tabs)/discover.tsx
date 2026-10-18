@@ -11,6 +11,7 @@ import { HeyPill } from '@/components/ui/HeyPill';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { DECK_IDS, LISTINGS, shortName } from '@/data/mock';
+import type { AppListing } from '@/data/types';
 import { AppPage, CompactAppBar, useCompactBar, type HeyTarget } from '@/features/app-page/AppPage';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import {
@@ -41,11 +42,18 @@ export default function DiscoverScreen() {
   const [builderOpen, setBuilderOpen] = useState(false);
 
   const deck = useMemo(() => {
-    const listings = DECK_IDS.map((id) => LISTINGS[id]).filter(
-      (listing) => !store.passed.includes(listing.id),
+    // The server already excludes what has been passed, heyed or matched; the
+    // bundled deck has none of that, so passes are filtered here for both.
+    const source = store.deckIds
+      ? store.deckIds.map((id) => store.listing(id))
+      : DECK_IDS.map((id) => LISTINGS[id]);
+
+    const listings = source.filter(
+      (listing): listing is AppListing => !!listing && !store.passed.includes(listing.id),
     );
+
     return applyFilters(listings, filters);
-  }, [filters, store.passed]);
+  }, [filters, store]);
 
   const listing = deck[index];
   const viaApp = listing ? store.attributedApp(listing.id) : store.primaryApp;
@@ -56,7 +64,7 @@ export default function DiscoverScreen() {
     setIndex((prev) => (prev + 1 >= deck.length ? 0 : prev + 1));
   };
 
-  const sendHey = (note: string) => {
+  const sendHey = async (note: string) => {
     if (!listing || !heyTarget) return;
 
     if (!store.isPro && store.heysLeftToday <= 0) {
@@ -65,31 +73,47 @@ export default function DiscoverScreen() {
       return;
     }
 
-    const result = store.sayHey({
+    const target = heyTarget;
+    const name = shortName(listing.name);
+    setHeyTarget(null);
+    // The card leaves the deck now; the server's answer only decides what the
+    // next screen is.
+    advance();
+
+    const result = await store.sayHey({
       appId: listing.id,
-      targetType: heyTarget.type,
-      target: heyTarget.label,
+      targetType: target.type,
+      target: target.label,
       note,
     });
 
     captureEvent('hey_sent', {
-      target_type: heyTarget.type,
+      target_type: target.type,
       has_note: note.length > 0,
       matched: result.matched,
     });
 
-    setHeyTarget(null);
+    if (result.blocked) {
+      if (result.blocked === 'daily_limit') router.push('/paywall?reason=heys');
+      else if (result.blocked === 'match_limit') router.push('/paywall?reason=match5');
+      else toast("That hey didn't send. Try again.");
+      return;
+    }
 
     if (result.matched) {
       router.push({
         pathname: '/match',
-        params: { appId: listing.id, viaAppId: viaApp.id, paywall: result.hitPaywall ? '1' : '' },
+        params: {
+          appId: listing.id,
+          viaAppId: viaApp.id,
+          matchId: result.matchId ?? '',
+          paywall: result.hitPaywall ? '1' : '',
+        },
       });
-    } else {
-      toast(`Hey sent to ${shortName(listing.name)}`);
+      return;
     }
 
-    advance();
+    toast(`Hey sent to ${name}`);
   };
 
   const filtered =
@@ -111,7 +135,14 @@ export default function DiscoverScreen() {
       >
         {/* The filters stay reachable, since they are the likely cause. */}
         <DiscoverHeader filters={filters} onChange={setFilters} inset={false} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 14,
+          }}
+        >
           <Txt font="mono" size={19} weight={500} center>
             That&apos;s everyone for now.
           </Txt>
@@ -183,11 +214,16 @@ export default function DiscoverScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Pass on ${shortName(listing.name)}`}
             onPress={() => {
-              store.passApp(listing.id);
+              void store.passApp(listing.id);
               captureEvent('app_passed', { app_id: listing.id });
               advance();
             }}
-            style={{ width: 58, height: 58, alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              width: 58,
+              height: 58,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
             <Ionicons name="close" size={26} color={c.ink} />
           </Pressable>

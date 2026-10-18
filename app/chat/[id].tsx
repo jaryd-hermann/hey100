@@ -20,6 +20,7 @@ import { TeamMark } from '@/features/chat/TeamMark';
 import { TradeAppSheet } from '@/features/chat/TradeAppSheet';
 import { TradeCard } from '@/features/chat/TradeCard';
 import { useMediaPicker } from '@/features/chat/useMediaPicker';
+import { useThreadMessages } from '@/features/loop/useThreadMessages';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout } from '@/theme/tokens';
@@ -61,12 +62,18 @@ export default function ChatThread() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [appOpen, setAppOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [viewer, setViewer] = useState<{ items: MediaItem[]; index: number } | null>(null);
+  const [viewer, setViewer] = useState<{
+    items: MediaItem[];
+    index: number;
+  } | null>(null);
 
   const isTeam = id === TEAM_ID;
   const match = store.matches.find((item) => item.id === id);
-  const listing = store.listing(id);
+  // A thread is keyed by the match, so the listing is the one it is about.
+  const listing = store.listing(match?.appId ?? id);
   const viaApp = match ? store.apps[match.viaAppId] : undefined;
+
+  useThreadMessages(isTeam || !match ? null : id);
   const stored = useMemo(() => store.messages[id] ?? [], [id, store.messages]);
 
   // Where the unread run started when the thread was opened, before it was read.
@@ -85,23 +92,36 @@ export default function ChatThread() {
 
   if (!listing) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 40, paddingHorizontal: layout.gutter }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.bg,
+          paddingTop: insets.top + 40,
+          paddingHorizontal: layout.gutter,
+        }}
+      >
         <Txt muted>This conversation has ended.</Txt>
       </View>
     );
   }
 
   const builder = avatarName(listing.builder);
-  const webLink = listing.links?.find(([kind]) => kind === 'Web');
+  // Whatever gets the tester into the app fastest: the store page, the build,
+  // then the site.
+  const tradeLink = ['App Store', 'TestFlight', 'Web']
+    .map((kind) => listing.links?.find(([label]) => label === kind))
+    .find(Boolean);
   const link: [string, string] = isTeam
     ? ['Web', 'hey100.com']
-    : (webLink ?? ['Web', `${slugify(listing.name)}.app`]);
+    : (tradeLink ?? ['Web', `${slugify(listing.name)}.app`]);
 
   const send = () => {
     const body = draft.trim();
     if (!body && !attachments.length) return;
 
-    store.sendMessage(id, body, attachments);
+    // The composer clears straight away; uploads and the write happen behind
+    // it, and the message appears when the server has it.
+    void store.sendMessage(id, body, attachments).catch(() => toast("That didn't send"));
     setAttachments([]);
 
     setDraft('');
@@ -164,7 +184,7 @@ export default function ChatThread() {
                     borderColor: c.bg,
                   }}
                 >
-                  <Avatar name={builder} size={24} />
+                  <Avatar name={builder} uri={listing.builderPhoto} size={24} />
                 </View>
               </View>
             )}
@@ -190,7 +210,11 @@ export default function ChatThread() {
         ref={scrollRef}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingTop: 16, paddingBottom: 20 }}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingTop: 16,
+          paddingBottom: 20,
+        }}
         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
       >
         {match && !isTeam ? (
@@ -201,11 +225,14 @@ export default function ChatThread() {
             code={listing.code ?? ''}
             onCopyCode={() => toast('Code copied')}
             onOpenLink={() => {
-              store.setTradeStatus(match.id, 'mine', 'Using');
+              void store.setTradeStatus(match.id, 'mine', 'Using');
               openBrowser(link[0], link[1]);
             }}
             onSendFeedback={() =>
-              router.push({ pathname: '/feedback-form', params: { matchId: match.id } })
+              router.push({
+                pathname: '/feedback-form',
+                params: { matchId: match.id },
+              })
             }
           />
         ) : null}
@@ -218,7 +245,13 @@ export default function ChatThread() {
                 message={message}
                 hue={listing.hue}
                 unread={unreadStart >= 0 && index >= unreadStart}
-                avatar={<Avatar name={isTeam ? 'Jaryd' : builder} size={26} />}
+                avatar={
+                  <Avatar
+                    name={isTeam ? 'Jaryd' : builder}
+                    uri={isTeam ? undefined : listing.builderPhoto}
+                    size={26}
+                  />
+                }
                 onOpenMedia={(items, at) => setViewer({ items, index: at })}
               />
             </React.Fragment>
@@ -268,7 +301,7 @@ export default function ChatThread() {
         }}
         onDelete={() => {
           setMenuOpen(false);
-          store.deleteChat(id);
+          void store.deleteChat(id);
           toast('Chat deleted');
           router.back();
         }}
@@ -294,7 +327,10 @@ export default function ChatThread() {
           listing.media?.length
             ? () => {
                 setAppOpen(false);
-                router.push({ pathname: '/web/[slug]', params: { slug: slugify(listing.name) } });
+                router.push({
+                  pathname: '/web/[slug]',
+                  params: { slug: listing.slug ?? slugify(listing.name) },
+                });
               }
             : undefined
         }
@@ -327,7 +363,14 @@ function UnreadDivider() {
   const { c } = useTheme();
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 4,
+      }}
+    >
       <View style={{ flex: 1, height: 1, backgroundColor: c.accent, opacity: 0.6 }} />
       <Txt font="mono" size={10.5} weight={500} upper tracking={0.9} color={c.accentText}>
         new

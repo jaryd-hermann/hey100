@@ -27,7 +27,12 @@ export default function ShareSheet() {
   const toast = useToast();
   const store = useStore();
 
-  const { kind = 'listing', appId, feedbackId, milestoneId } = useLocalSearchParams<{
+  const {
+    kind = 'listing',
+    appId,
+    feedbackId,
+    milestoneId,
+  } = useLocalSearchParams<{
     kind: ShareKind;
     appId?: string;
     feedbackId?: string;
@@ -35,7 +40,7 @@ export default function ShareSheet() {
   }>();
 
   const app = store.apps[appId ?? ''] ?? store.primaryApp;
-  const slug = slugify(app.name);
+  const slug = app.slug ?? slugify(app.name);
   const inviteUrl = `hey100.com/i/${store.user.referralCode}`;
   const listingUrl = `hey100.com/${slug}`;
 
@@ -101,7 +106,11 @@ export default function ShareSheet() {
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingBottom: 40, gap: 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingBottom: 40,
+          gap: 16,
+        }}
       >
         {/* Card preview. The listing version doubles as the Open Graph image. */}
         <View

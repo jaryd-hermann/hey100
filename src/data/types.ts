@@ -40,6 +40,8 @@ export type ShotLayout = 'vertical' | 'horizontal';
 /** A listing as shown in Discover, Heys, the owner preview and the web page. */
 export type AppListing = {
   id: string;
+  /** Server-allocated, and what the share link and web page use. */
+  slug?: string;
   name: string;
   sub: string;
   cat: string;
@@ -49,6 +51,8 @@ export type AppListing = {
   /** The real app icon, once one has been fetched or uploaded. */
   icon?: string;
   builder: string;
+  /** The builder's profile photo, once they have one. */
+  builderPhoto?: string;
   role: string;
   /** Feedback style plus reply time, shown on the builder card. */
   style: string;
@@ -81,16 +85,7 @@ export type OwnedApp = AppListing & {
 };
 
 export type SectionKey =
-  | 'shots'
-  | 'builder'
-  | 'looking'
-  | 'stats'
-  | 'verified'
-  | 'p0'
-  | 'p1'
-  | 'p2'
-  | 'p3'
-  | 'p4';
+  'shots' | 'builder' | 'looking' | 'stats' | 'verified' | 'p0' | 'p1' | 'p2' | 'p3' | 'p4';
 
 export type HeyTargetType = 'app' | 'prompt' | 'media';
 
@@ -168,6 +163,8 @@ export type Message =
 
 export type FeedbackEntry = {
   id: string;
+  /** The thread it came from, so the card can open it. */
+  matchId?: string;
   who: string;
   app: string;
   hue: number;

@@ -19,11 +19,15 @@ export default function MatchOverlay() {
   const { c } = useTheme();
   const store = useStore();
 
-  const { appId, viaAppId, paywall } = useLocalSearchParams<{
+  const { appId, viaAppId, matchId, paywall } = useLocalSearchParams<{
     appId: string;
     viaAppId: string;
+    /** Absent without a backend, where the thread is keyed by the app. */
+    matchId?: string;
     paywall?: string;
   }>();
+
+  const threadId = matchId || appId;
 
   const theirs = store.listing(appId);
   const mine = store.apps[viaAppId] ?? store.primaryApp;
@@ -31,16 +35,21 @@ export default function MatchOverlay() {
   const pop = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.spring(pop, { toValue: 1, friction: 7, tension: 70, useNativeDriver: true }).start();
+    Animated.spring(pop, {
+      toValue: 1,
+      friction: 7,
+      tension: 70,
+      useNativeDriver: true,
+    }).start();
   }, [pop]);
 
   const leave = (destination?: 'chat') => {
     if (paywall === '1') {
-      router.replace(`/paywall?reason=match5&next=${destination ?? 'discover'}&appId=${appId}`);
+      router.replace(`/paywall?reason=match5&next=${destination ?? 'discover'}&appId=${threadId}`);
       return;
     }
     if (destination === 'chat') {
-      router.replace({ pathname: '/chat/[id]', params: { id: appId } });
+      router.replace({ pathname: '/chat/[id]', params: { id: threadId } });
       return;
     }
     router.back();
@@ -77,12 +86,25 @@ export default function MatchOverlay() {
         style={{
           alignItems: 'center',
           gap: 26,
-          transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) }],
+          transform: [
+            {
+              scale: pop.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.86, 1],
+              }),
+            },
+          ],
           opacity: pop,
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <AppIcon hue={mine.hue} name={mine.name} uri={mine.icon} size={88} style={{ marginRight: -16 }} />
+          <AppIcon
+            hue={mine.hue}
+            name={mine.name}
+            uri={mine.icon}
+            size={88}
+            style={{ marginRight: -16 }}
+          />
           <View
             style={{
               width: 44,
@@ -98,7 +120,13 @@ export default function MatchOverlay() {
           >
             <HandMark size={22} />
           </View>
-          <AppIcon hue={theirs.hue} name={theirs.name} uri={theirs.icon} size={88} style={{ marginLeft: -16 }} />
+          <AppIcon
+            hue={theirs.hue}
+            name={theirs.name}
+            uri={theirs.icon}
+            size={88}
+            style={{ marginLeft: -16 }}
+          />
         </View>
 
         <Txt font="mono" size={27} weight={500} center>
@@ -106,8 +134,8 @@ export default function MatchOverlay() {
         </Txt>
 
         <Txt size={16} lh={1.5} center muted style={{ maxWidth: 300 }}>
-          You and {theirs.builder.split(' ')[0]} agreed to use each other&apos;s apps. Test links and
-          codes are unlocked.
+          You and {theirs.builder.split(' ')[0]} agreed to use each other&apos;s apps. Test links
+          and codes are unlocked.
         </Txt>
 
         <View style={{ alignItems: 'center', gap: 4 }}>
@@ -117,7 +145,15 @@ export default function MatchOverlay() {
         </View>
       </Animated.View>
 
-      <View style={{ position: 'absolute', left: layout.gutter, right: layout.gutter, bottom: insets.bottom + 24, gap: 10 }}>
+      <View
+        style={{
+          position: 'absolute',
+          left: layout.gutter,
+          right: layout.gutter,
+          bottom: insets.bottom + 24,
+          gap: 10,
+        }}
+      >
         <Btn label="Say hi" variant="accent" size="lg" full onPress={() => leave('chat')} />
         <Btn label="Keep browsing" variant="ghost" size="lg" full onPress={() => leave()} />
       </View>

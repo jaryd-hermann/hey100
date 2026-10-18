@@ -42,10 +42,16 @@ export default function OwnerAppPage() {
    */
   const persist = (patch: Partial<OwnedApp>) => {
     persistListing(userId, app.id, patch)
-      .then(() => queryClient.invalidateQueries({ queryKey: queryKeys.myListings(userId) }))
+      .then(() =>
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.myListings(userId),
+        }),
+      )
       .catch(() => {
         toast('That change did not save. Pull to refresh.');
-        void queryClient.invalidateQueries({ queryKey: queryKeys.myListings(userId) });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.myListings(userId),
+        });
       });
   };
 
@@ -55,7 +61,7 @@ export default function OwnerAppPage() {
   const [badgeStyle, setBadgeStyle] = useState<'Dark' | 'Light'>('Dark');
 
   const isSetup = setup === '1';
-  const slug = slugify(app.name);
+  const slug = app.slug ?? slugify(app.name);
   const url = `hey100.com/${slug}`;
   const connections = store.connections[app.id] ?? {};
   const connectedCount = Object.values(connections).filter(Boolean).length;
@@ -64,7 +70,11 @@ export default function OwnerAppPage() {
   const badges: { id: string; label: string; locked?: boolean }[] = [
     { id: 'find', label: 'Find us on Hey100' },
     { id: 'tested', label: `Tested by ${app.trades} builders on Hey100` },
-    { id: 'revenue', label: 'Verified $… MRR · Hey100', locked: !revenueConnected },
+    {
+      id: 'revenue',
+      label: 'Verified $… MRR · Hey100',
+      locked: !revenueConnected,
+    },
   ];
 
   return (
@@ -138,7 +148,10 @@ export default function OwnerAppPage() {
             variant="accent"
             size="md"
             onPress={() =>
-              router.push({ pathname: '/share', params: { kind: 'listing', appId: app.id } })
+              router.push({
+                pathname: '/share',
+                params: { kind: 'listing', appId: app.id },
+              })
             }
             style={{ alignSelf: 'flex-start' }}
           />
@@ -252,7 +265,9 @@ export default function OwnerAppPage() {
         onSave={(patch) => {
           store.updateApp(app.id, patch);
           persist(patch);
-          captureEvent('listing_section_edited', { section: editSection ?? '' });
+          captureEvent('listing_section_edited', {
+            section: editSection ?? '',
+          });
           setEditSection(null);
           toast('Listing updated');
         }}
@@ -289,11 +304,7 @@ export default function OwnerAppPage() {
               }}
             >
               <Txt size={14}>✋</Txt>
-              <Txt
-                size={12.5}
-                weight={600}
-                color={badgeStyle === 'Dark' ? '#E8ECE7' : '#121412'}
-              >
+              <Txt size={12.5} weight={600} color={badgeStyle === 'Dark' ? '#E8ECE7' : '#121412'}>
                 {badges.find((item) => item.id === badge)?.label}
               </Txt>
             </View>
@@ -331,12 +342,7 @@ export default function OwnerAppPage() {
               padding: 13,
             }}
           >
-            <Txt
-              size={11}
-              muted
-              lh={1.5}
-              style={{ fontFamily: fonts.mono }}
-            >
+            <Txt size={11} muted lh={1.5} style={{ fontFamily: fonts.mono }}>
               {`<a href="https://${url}"><img src="https://hey100.com/badge/${slug}.svg?style=${badgeStyle.toLowerCase()}&type=${badge}"></a>`}
             </Txt>
           </View>

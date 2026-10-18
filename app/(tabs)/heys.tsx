@@ -28,16 +28,24 @@ export default function HeysScreen() {
   // Keeps the "unlocks in 19h" countdowns honest while the screen is open.
   useTick();
 
-  const heyBack = (heyId: string) => {
-    const result = store.heyBack(heyId);
+  const heyBack = async (heyId: string) => {
+    const hey = store.heys.find((item) => item.id === heyId);
+    const result = await store.heyBack(heyId);
     captureEvent('hey_back', { matched: result.matched });
-    if (result.matchId) {
-      const hey = store.heys.find((item) => item.id === heyId);
+
+    if (result.blocked) {
+      if (result.blocked === 'match_limit') router.push('/paywall?reason=match5');
+      else toast("That didn't go through. Try again.");
+      return;
+    }
+
+    if (result.matched) {
       router.push({
         pathname: '/match',
         params: {
-          appId: result.matchId,
+          appId: hey?.appId ?? '',
           viaAppId: hey?.viaAppId ?? store.primaryApp.id,
+          matchId: result.matchId ?? '',
           paywall: result.hitPaywall ? '1' : '',
         },
       });
@@ -45,7 +53,7 @@ export default function HeysScreen() {
   };
 
   const commitPass = (hey: IncomingHey, reason?: string) => {
-    store.passHey(hey.id, reason);
+    void store.passHey(hey.id, reason);
     captureEvent('hey_passed', { source: 'heys', reason: reason ?? null });
     toast(reason ? 'Passed. That tunes Discover.' : 'Passed, silently');
   };
@@ -89,9 +97,14 @@ export default function HeysScreen() {
                   hey={hey}
                   listing={listing}
                   viaApp={store.apps[hey.viaAppId]}
-                  onOpen={() => router.push({ pathname: '/hey/[id]', params: { id: hey.id } })}
+                  onOpen={() =>
+                    router.push({
+                      pathname: '/hey/[id]',
+                      params: { id: hey.id },
+                    })
+                  }
                   onPass={() => startPass(hey)}
-                  onHeyBack={() => heyBack(hey.id)}
+                  onHeyBack={() => void heyBack(hey.id)}
                 />
               );
             })}
@@ -118,7 +131,10 @@ export default function HeysScreen() {
                 onOpenChat={() => {
                   const match = store.matches.find((item) => item.appId === sent.appId);
                   if (match) {
-                    router.push({ pathname: '/chat/[id]', params: { id: match.id } });
+                    router.push({
+                      pathname: '/chat/[id]',
+                      params: { id: match.id },
+                    });
                   } else {
                     router.push('/chat');
                   }
@@ -143,9 +159,11 @@ export default function HeysScreen() {
         onClose={() => setFollowUpId(null)}
         onSend={(note) => {
           if (followUpTarget) {
-            store.sendFollowUp(followUpTarget.id, note);
+            void store.sendFollowUp(followUpTarget.id, note);
             captureEvent('hey_follow_up_sent', { appId: followUpTarget.appId });
-            toast(`Follow-up sent to ${followUpListing ? shortName(followUpListing.name) : 'them'}`);
+            toast(
+              `Follow-up sent to ${followUpListing ? shortName(followUpListing.name) : 'them'}`,
+            );
           }
           setFollowUpId(null);
         }}

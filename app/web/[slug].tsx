@@ -28,7 +28,8 @@ export default function WebListingPreview() {
   const [signupOpen, setSignupOpen] = useState(false);
 
   const app =
-    store.ownedApps.find((owned) => slugify(owned.name) === slug) ??
+    store.ownedApps.find((owned) => (owned.slug ?? slugify(owned.name)) === slug) ??
+    Object.values(store.listings).find((listing) => listing.slug === slug) ??
     Object.values(LISTINGS).find((listing) => slugify(listing.name) === slug) ??
     store.primaryApp;
 
@@ -168,8 +169,20 @@ export default function WebListingPreview() {
               router.push('/onboarding');
             }}
           />
-          <Btn label="Get the iOS app" variant="surface" size="lg" full onPress={() => setSignupOpen(false)} />
-          <Btn label="Keep browsing" variant="ghost" size="md" full onPress={() => setSignupOpen(false)} />
+          <Btn
+            label="Get the iOS app"
+            variant="surface"
+            size="lg"
+            full
+            onPress={() => setSignupOpen(false)}
+          />
+          <Btn
+            label="Keep browsing"
+            variant="ghost"
+            size="md"
+            full
+            onPress={() => setSignupOpen(false)}
+          />
         </View>
       </Sheet>
     </View>

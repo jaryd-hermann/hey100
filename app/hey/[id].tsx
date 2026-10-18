@@ -37,16 +37,31 @@ export default function LikerProfile() {
 
   if (!hey || !listing) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 40, paddingHorizontal: layout.gutter }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.bg,
+          paddingTop: insets.top + 40,
+          paddingHorizontal: layout.gutter,
+        }}
+      >
         <Txt muted>This hey is no longer waiting.</Txt>
-        <Btn label="Back to Heys" variant="surface" onPress={() => router.back()} style={{ marginTop: 16, alignSelf: 'flex-start' }} />
+        <Btn
+          label="Back to Heys"
+          variant="surface"
+          onPress={() => router.back()}
+          style={{ marginTop: 16, alignSelf: 'flex-start' }}
+        />
       </View>
     );
   }
 
   const commitPass = (reason?: string) => {
-    store.passHey(hey.id, reason);
-    captureEvent('hey_passed', { source: 'liker_profile', reason: reason ?? null });
+    void store.passHey(hey.id, reason);
+    captureEvent('hey_passed', {
+      source: 'liker_profile',
+      reason: reason ?? null,
+    });
     toast(reason ? 'Passed. That tunes Discover.' : 'Passed, silently');
     router.back();
   };
@@ -97,7 +112,9 @@ export default function LikerProfile() {
           banner={
             <Card tone="soft" padding={14} radius={radii.cardLg} style={{ gap: 9 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                {viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} /> : null}
+                {viaApp ? (
+                  <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} />
+                ) : null}
                 <Label size={10} style={{ flex: 1 }}>
                   Said hey to {shortName(viaApp?.name ?? 'your app')}&apos;s {hey.target}
                 </Label>
@@ -147,14 +164,25 @@ export default function LikerProfile() {
           size="lg"
           left={<HandMark size={20} />}
           style={{ flex: 1.4 }}
-          onPress={() => {
-            const result = store.heyBack(hey.id);
-            captureEvent('hey_back', { matched: result.matched, source: 'liker_profile' });
+          onPress={async () => {
+            const result = await store.heyBack(hey.id);
+            captureEvent('hey_back', {
+              matched: result.matched,
+              source: 'liker_profile',
+            });
+
+            if (result.blocked) {
+              if (result.blocked === 'match_limit') router.replace('/paywall?reason=match5');
+              else toast("That didn't go through. Try again.");
+              return;
+            }
+
             router.replace({
               pathname: '/match',
               params: {
                 appId: hey.appId,
                 viaAppId: hey.viaAppId,
+                matchId: result.matchId ?? '',
                 paywall: result.hitPaywall ? '1' : '',
               },
             });

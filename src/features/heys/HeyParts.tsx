@@ -43,7 +43,14 @@ export function NoteBlock({ icon, label, note, followUp }: NoteBlockProps) {
       </Txt>
 
       {followUp ? (
-        <View style={{ borderTopWidth: 1, borderColor: c.line, paddingTop: 10, gap: 7 }}>
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderColor: c.line,
+            paddingTop: 10,
+            gap: 7,
+          }}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Chip label="Very interested" tone="accent" size="sm" />
             <Txt size={11.5} muted>
@@ -60,10 +67,18 @@ export function NoteBlock({ icon, label, note, followUp }: NoteBlockProps) {
 }
 
 /** Avatar plus name of the builder behind a listing, shown under their note. */
-export function BuilderLine({ name, role }: { name: string; role?: string }) {
+export function BuilderLine({
+  name,
+  role,
+  photo,
+}: {
+  name: string;
+  role?: string;
+  photo?: string;
+}) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-      <Avatar name={name} size={26} />
+      <Avatar name={name} uri={photo} size={26} />
       <Txt size={13.5} weight={500}>
         {name}
       </Txt>

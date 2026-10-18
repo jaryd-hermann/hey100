@@ -51,13 +51,17 @@ export function ReceivedHeyCard({
         </View>
 
         <NoteBlock
-          icon={viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} /> : undefined}
+          icon={
+            viaApp ? (
+              <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} />
+            ) : undefined
+          }
           label={`Said hey to ${shortName(viaApp?.name ?? 'your app')}'s ${hey.target}`}
           note={hey.note}
           followUp={hey.followUp}
         />
 
-        <BuilderLine name={listing.builder} role={listing.role} />
+        <BuilderLine name={listing.builder} role={listing.role} photo={listing.builderPhoto} />
       </Pressable>
 
       <View style={{ flexDirection: 'row', gap: 10 }}>

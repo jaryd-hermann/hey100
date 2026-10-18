@@ -48,7 +48,7 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
     <Sheet visible={visible} onClose={onClose}>
       <View style={{ gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <Avatar name={listing.builder} size={60} />
+          <Avatar name={listing.builder} uri={listing.builderPhoto} size={60} />
           <View style={{ flex: 1 }}>
             <Txt size={19} weight={700}>
               {listing.builder}

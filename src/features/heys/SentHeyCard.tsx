@@ -51,17 +51,24 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
       </View>
 
       <NoteBlock
-        icon={viaApp ? <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} /> : undefined}
+        icon={
+          viaApp ? (
+            <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} />
+          ) : undefined
+        }
         label={`Said hey about their ${sent.target}`}
         note={sent.note}
         followUp={
           sent.followUp
-            ? { note: sent.followUp.note, when: sinceLabel(sent.followUp.sentAt) }
+            ? {
+                note: sent.followUp.note,
+                when: sinceLabel(sent.followUp.sentAt),
+              }
             : undefined
         }
       />
 
-      <BuilderLine name={listing.builder} role={listing.role} />
+      <BuilderLine name={listing.builder} role={listing.role} photo={listing.builderPhoto} />
 
       {sent.status === 'Passed' ? (
         <View
@@ -97,7 +104,9 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
         ) : (
           <View style={{ gap: 7 }}>
             <Btn
-              label={unlocked ? 'Send a follow-up' : `Follow-up unlocks in ${untilLabel(unlocksAt)}`}
+              label={
+                unlocked ? 'Send a follow-up' : `Follow-up unlocks in ${untilLabel(unlocksAt)}`
+              }
               variant={unlocked ? 'accent' : 'surface'}
               disabled={!unlocked}
               onPress={onFollowUp}

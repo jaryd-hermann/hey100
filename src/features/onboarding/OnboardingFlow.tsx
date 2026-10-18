@@ -183,10 +183,18 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
    * artwork URLs expire and would take the listing's icon with them.
    */
   const publish = async (ownerId: string, app: Partial<OwnedApp>) => {
-    const [iconPath, media] = await Promise.all([
+    const [iconPath, uploaded] = await Promise.all([
       draft.appIcon ? uploadAsset(ownerId, draft.appIcon, 'image', 'icon') : null,
       uploadShots(ownerId, draft.shots),
     ]);
+
+    const media = uploaded.filter((row): row is NonNullable<typeof row> => !!row);
+
+    // Said out loud, because a screenshot that quietly vanished looks like the
+    // listing dropped it rather than the upload failing.
+    if (media.length < uploaded.length) {
+      toast(`${uploaded.length - media.length} screenshot(s) did not upload. Add them again.`);
+    }
 
     return createListing(ownerId, {
       app: {

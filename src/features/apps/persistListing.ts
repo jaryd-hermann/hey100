@@ -57,7 +57,7 @@ async function toMediaRows(
     );
 
     uploaded.forEach((row, at) => {
-      rows[pending[at].index] = row;
+      if (row) rows[pending[at].index] = row;
     });
   }
 

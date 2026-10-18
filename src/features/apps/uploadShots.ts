@@ -65,25 +65,25 @@ export async function uploadAsset(
 
 /**
  * Uploads what the picker or the store lookup gave us and returns the rows the
- * listing needs.
+ * listing needs, one per shot and in the same order.
  *
- * A shot that fails to upload is skipped rather than failing the publish: a
- * listing with four of five screenshots is worth more than no listing.
+ * A shot that fails to upload comes back as null rather than failing the
+ * publish, since a listing with four of five screenshots is worth more than no
+ * listing. The hole is kept so callers that place rows by position do not move
+ * everything after it into the wrong slot.
  */
 export async function uploadShots(
   ownerId: string,
   shots: PickedShot[],
-): Promise<NewListing['media']> {
+): Promise<(NewListing['media'][number] | null)[]> {
   if (!shots.length) return [];
 
   type Row = NewListing['media'][number];
 
-  const uploads = await Promise.all(
+  return Promise.all(
     shots.map(async (shot, index): Promise<Row | null> => {
       const path = await uploadAsset(ownerId, shot.uri, shot.kind, `shot-${index}`);
       return path ? { label: shot.label, kind: shot.kind, storagePath: path } : null;
     }),
   );
-
-  return uploads.filter((item): item is Row => item !== null);
 }

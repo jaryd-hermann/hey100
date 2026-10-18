@@ -13,9 +13,18 @@ export type AuthProviderId = 'Apple' | 'Google' | 'GitHub';
 const REDIRECT_URL = 'hey100://auth/callback';
 
 export type SignInOutcome =
-  | { status: 'signed-in'; userId: string; fullName?: string }
+  | { status: 'signed-in'; userId: string; fullName?: string; photo?: string }
   | { status: 'cancelled' }
   | { status: 'unavailable' };
+
+/**
+ * Google and GitHub both hand over an avatar, under different keys. Taking it
+ * here means most accounts have a photo before anyone is asked for one.
+ */
+function photoFrom(metadata: Record<string, unknown> | undefined): string | undefined {
+  const url = metadata?.avatar_url ?? metadata?.picture;
+  return typeof url === 'string' && url ? url : undefined;
+}
 
 /** Thrown for failures worth showing the user; cancellation is not one. */
 export class SignInError extends Error {}
@@ -59,7 +68,12 @@ async function signInWithApple(): Promise<SignInOutcome> {
   const { givenName, familyName } = credential.fullName ?? {};
   const fullName = [givenName, familyName].filter(Boolean).join(' ').trim();
 
-  return { status: 'signed-in', userId: data.user.id, fullName: fullName || undefined };
+  return {
+    status: 'signed-in',
+    userId: data.user.id,
+    fullName: fullName || undefined,
+    photo: photoFrom(data.user.user_metadata),
+  };
 }
 
 async function signInWithBrowser(provider: 'Google' | 'GitHub'): Promise<SignInOutcome> {
@@ -75,15 +89,14 @@ async function signInWithBrowser(provider: 'Google' | 'GitHub'): Promise<SignInO
   const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT_URL);
   if (result.type !== 'success') return { status: 'cancelled' };
 
-  const session = await sessionFromRedirect(result.url);
-  return { status: 'signed-in', userId: session };
+  return sessionFromRedirect(result.url);
 }
 
 /**
  * The client uses the implicit flow, so the provider sends the tokens back in
  * the URL fragment and the session has to be installed by hand.
  */
-async function sessionFromRedirect(url: string): Promise<string> {
+async function sessionFromRedirect(url: string): Promise<SignInOutcome> {
   const db = getSupabase()!;
 
   const [, fragment = ''] = url.split('#');
@@ -103,7 +116,14 @@ async function sessionFromRedirect(url: string): Promise<string> {
   if (error) throw new SignInError(error.message);
   if (!data.user) throw new SignInError('Sign in did not return a user');
 
-  return data.user.id;
+  const name = data.user.user_metadata?.full_name ?? data.user.user_metadata?.name;
+
+  return {
+    status: 'signed-in',
+    userId: data.user.id,
+    fullName: typeof name === 'string' && name ? name : undefined,
+    photo: photoFrom(data.user.user_metadata),
+  };
 }
 
 export async function signOut(): Promise<void> {

@@ -19,6 +19,7 @@ import { toListingInsert } from '@/features/apps/mapListing';
 import { uploadAsset, uploadShots } from '@/features/apps/uploadShots';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { SignInError, signIn } from '@/features/auth/signIn';
+import { pickAvatar, uploadAvatar } from '@/features/profile/avatar';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -265,6 +266,28 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     router.replace('/paywall?from=onboarding');
   };
 
+  /**
+   * Kept local until sign-in, which is when there is an account to upload it
+   * under. The draft holds the camera roll uri in the meantime.
+   */
+  const choosePhoto = async () => {
+    const picked = await pickAvatar();
+    if (!picked) return;
+    if ('error' in picked) {
+      toast(picked.error);
+      return;
+    }
+
+    update({ photo: picked.uri });
+    if (userId) {
+      const url = await uploadAvatar(userId, picked.uri);
+      if (url) {
+        store.updateUser({ photo: url });
+        void updateMyProfile(userId, { photo_url: url });
+      }
+    }
+  };
+
   const redeemCode = async () => {
     const code = draft.inviteCode.trim();
     if (!code || checkingCode) return;
@@ -291,9 +314,14 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
    * Saves what the profile steps collected. The listing itself still lives in
    * the store until listings move server-side.
    */
-  const saveProfile = async (userId: string, fullName?: string) => {
+  const saveProfile = async (userId: string, fullName?: string, photo?: string) => {
+    // A provider photo is copied into our own bucket, because an avatar URL
+    // from Google or GitHub stops resolving when that account changes.
+    const stored = draft.photo || photo ? await uploadAvatar(userId, draft.photo || photo!) : null;
+
     const fields = {
       ...(fullName ? { real_name: fullName } : {}),
+      ...(stored ? { photo_url: stored } : {}),
       display_pref: draft.showAs === 'username' ? ('username' as const) : ('real_name' as const),
       job: draft.job || null,
       workplace: draft.workplace || null,
@@ -333,7 +361,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         } catch {
           toast('Signed in, but your invite code could not be applied.');
         }
-        await saveProfile(outcome.userId, outcome.fullName);
+        await saveProfile(outcome.userId, outcome.fullName, outcome.photo);
         await finish(outcome.userId);
         return;
       }
@@ -748,6 +776,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         return (
           <UsernameStep
             realName={store.user.realName}
+            photo={draft.photo || store.user.photo}
+            onPickPhoto={() => void choosePhoto()}
             username={draft.username}
             onChangeUsername={(username) => update({ username })}
             showAs={draft.showAs}

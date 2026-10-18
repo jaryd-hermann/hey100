@@ -28,7 +28,7 @@ export default function AppsScreen() {
             <Ionicons name="settings-outline" size={22} color={c.ink} />
           </Pressable>
           <Pressable onPress={() => router.push('/profile')} hitSlop={8} accessibilityLabel="Profile">
-            <Avatar name={store.user.realName} size={30} />
+            <Avatar name={store.user.realName} uri={store.user.photo} size={30} />
           </Pressable>
         </View>
       }

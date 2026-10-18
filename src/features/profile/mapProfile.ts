@@ -31,6 +31,7 @@ export function toUserProfile(row: Profile): Partial<UserProfile> {
     // name the user already has.
     ...(row.real_name ? { realName: row.real_name } : {}),
     ...(row.username ? { username: row.username } : {}),
+    ...(row.photo_url ? { photo: row.photo_url } : {}),
     showAs: row.display_pref === 'real_name' ? 'realName' : 'username',
     job: row.job ?? '',
     workplace: row.workplace ?? '',
@@ -56,6 +57,7 @@ export function toProfilePatch(user: Partial<UserProfile>): ProfilePatch {
 
   if (user.realName !== undefined) patch.real_name = user.realName || null;
   if (user.username !== undefined) patch.username = user.username || null;
+  if (user.photo !== undefined) patch.photo_url = user.photo || null;
   if (user.showAs !== undefined) {
     patch.display_pref = user.showAs === 'realName' ? 'real_name' : 'username';
   }

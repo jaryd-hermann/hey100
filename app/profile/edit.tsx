@@ -14,6 +14,7 @@ import { USERNAME_PATTERN, generateUsername } from '@/features/onboarding/useOnb
 import { EDITABLE_GROUPS, SOCIAL_FIELDS } from '@/features/profile/fields';
 import { updateMyProfile } from '@/data/repo/profile';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { pickAvatar, uploadAvatar } from '@/features/profile/avatar';
 import { toProfilePatch } from '@/features/profile/mapProfile';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -46,6 +47,8 @@ export default function EditProfile() {
   const [ownWords, setOwnWords] = useState<Record<string, string>>(user.ownWords);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [photo, setPhoto] = useState(user.photo);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Any network the user already has but the editor doesn't offer still gets a row.
   const socialRows = useMemo<[kind: string, placeholder: string][]>(() => {
@@ -84,6 +87,39 @@ export default function EditProfile() {
           : [...current, option],
       };
     });
+
+  /**
+   * The photo saves on its own rather than waiting for Save, because an upload
+   * that only lands on a later button press is a photo the user thinks is lost.
+   */
+  const changePhoto = async () => {
+    if (uploadingPhoto) return;
+
+    const picked = await pickAvatar();
+    if (!picked) return;
+    if ('error' in picked) {
+      toast(picked.error);
+      return;
+    }
+
+    setPhoto(picked.uri);
+    if (!userId) return;
+
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadAvatar(userId, picked.uri);
+      if (!url) throw new Error('upload failed');
+
+      await updateMyProfile(userId, { photo_url: url });
+      setPhoto(url);
+      store.updateUser({ photo: url });
+    } catch {
+      setPhoto(user.photo);
+      toast('Could not save that photo. Try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const cancel = () => {
     if (dirty) {
@@ -172,8 +208,18 @@ export default function EditProfile() {
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingBottom: 60, gap: 24 }}
       >
-        <View style={{ alignItems: 'center', paddingTop: 6 }}>
-          <Avatar name={realName || user.realName} size={76} />
+        <View style={{ alignItems: 'center', paddingTop: 6, gap: 10 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={photo ? 'Change your photo' : 'Add a photo'}
+            onPress={() => void changePhoto()}
+            style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+          >
+            <Avatar name={realName || user.realName} uri={photo} size={76} />
+          </Pressable>
+          <Txt size={13} weight={500} color={c.accentText}>
+            {uploadingPhoto ? 'Uploading…' : photo ? 'Change photo' : 'Add a photo'}
+          </Txt>
         </View>
 
         <Field

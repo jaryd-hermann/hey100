@@ -196,7 +196,7 @@ export default function ShareSheet() {
                   paddingTop: 13,
                 }}
               >
-                <Avatar name={store.user.realName} size={30} />
+                <Avatar name={store.user.realName} uri={store.user.photo} size={30} />
                 <Txt size={13} weight={500} style={{ flex: 1 }}>
                   Want to try this? Match with me on Hey100
                 </Txt>

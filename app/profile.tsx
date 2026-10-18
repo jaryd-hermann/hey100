@@ -67,7 +67,7 @@ export default function Profile() {
         contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingBottom: 60, gap: 16 }}
       >
         <View style={{ alignItems: 'center', gap: 10, paddingVertical: 10 }}>
-          <Avatar name={user.realName} size={88} />
+          <Avatar name={user.realName} uri={user.photo} size={88} />
           <Txt size={22} weight={700}>
             {user.realName}
           </Txt>

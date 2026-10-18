@@ -69,6 +69,8 @@ export type Plan = 'free' | 'pro';
 export type UserProfile = {
   realName: string;
   username: string;
+  /** Profile photo, either uploaded or taken from the sign-in provider. */
+  photo?: string;
   /** What Discover shows. Chat always shows the real name. */
   showAs: 'username' | 'realName';
   job: string;

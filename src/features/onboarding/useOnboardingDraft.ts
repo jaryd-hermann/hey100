@@ -63,6 +63,8 @@ export type Draft = {
 
   username: string;
   showAs: 'username' | 'realName';
+  /** Local uri until there is an account to upload it under. */
+  photo: string;
   terms: boolean;
 };
 
@@ -91,6 +93,7 @@ function initialDraft(startStep: number): Draft {
     job: '',
     username: generateUsername(),
     showAs: 'username',
+    photo: '',
     terms: false,
   };
 }

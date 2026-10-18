@@ -12,6 +12,9 @@ import type { UsernameState } from '../useUsernameState';
 
 export type UsernameStepProps = {
   realName: string;
+  photo?: string;
+  /** Null while the pick is in flight, so the avatar can show it is busy. */
+  onPickPhoto: () => void;
   username: string;
   onChangeUsername: (username: string) => void;
   showAs: 'username' | 'realName';
@@ -24,6 +27,8 @@ export type UsernameStepProps = {
 
 export function UsernameStep({
   realName,
+  photo,
+  onPickPhoto,
   username,
   onChangeUsername,
   showAs,
@@ -42,7 +47,31 @@ export function UsernameStep({
     <View style={{ gap: 16 }}>
       <Card padding={16} style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <Avatar name={realName} size={56} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={photo ? 'Change your photo' : 'Add a photo'}
+            onPress={onPickPhoto}
+            style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+          >
+            <Avatar name={realName} uri={photo} size={56} />
+            <View
+              style={{
+                position: 'absolute',
+                right: -2,
+                bottom: -2,
+                paddingHorizontal: 6,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: c.ink,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Txt font="mono" size={9} weight={700} color={c.bg} upper>
+                {photo ? 'Edit' : 'Add'}
+              </Txt>
+            </View>
+          </Pressable>
 
           <View style={{ flex: 1 }}>
             {editing ? (

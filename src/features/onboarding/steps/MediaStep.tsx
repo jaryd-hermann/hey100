@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 
 import { Chip } from '@/components/ui/Chip';
-import { Label, Txt } from '@/components/ui/Txt';
+import { Txt } from '@/components/ui/Txt';
 import type { PickedShot, ShotLayout } from '@/data/types';
 import { MAX_SHOTS, pickShots } from '@/features/apps/pickShots';
 import { ShotGrid } from '@/features/apps/ShotGrid';
@@ -40,30 +40,31 @@ export function MediaStep({
     if (result.shots.length) onChange([...shots, ...result.shots]);
   };
 
+  const videos = shots.filter((shot) => shot.kind === 'video').length;
+  const tally = [
+    [shots.length - videos, 'screenshot'],
+    [videos, 'video'],
+  ]
+    .filter(([count]) => count)
+    .map(([count, noun]) => `${count} ${noun}${count === 1 ? '' : 's'}`)
+    .join(', and ');
+
   return (
     <View style={{ gap: 14 }}>
-      <Txt size={15.5} lh={1.5} muted>
-        The first one is your cover. A short demo video gets the most heys.
-        {shots.length > 1 ? ' Hold a shot to drag it somewhere else.' : ''}
-      </Txt>
-
-      <View style={{ gap: 9 }}>
-        <Label>Screenshot layout</Label>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {(
-            [
-              ['vertical', 'Vertical · phone'],
-              ['horizontal', 'Horizontal · web'],
-            ] as const
-          ).map(([value, label]) => (
-            <Chip
-              key={value}
-              label={label}
-              selected={shotLayout === value}
-              onPress={() => onChangeShotLayout(value)}
-            />
-          ))}
-        </View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {(
+          [
+            ['vertical', 'Vertical · phone'],
+            ['horizontal', 'Horizontal · web'],
+          ] as const
+        ).map(([value, label]) => (
+          <Chip
+            key={value}
+            label={label}
+            selected={shotLayout === value}
+            onPress={() => onChangeShotLayout(value)}
+          />
+        ))}
       </View>
 
       <ShotGrid
@@ -75,6 +76,12 @@ export function MediaStep({
         onRemove={(index) => onChange(shots.filter((_, at) => at !== index))}
         onAdd={() => void pick()}
       />
+
+      {tally ? (
+        <Txt size={13} lh={1.4} muted>
+          Add {tally}
+        </Txt>
+      ) : null}
     </View>
   );
 }

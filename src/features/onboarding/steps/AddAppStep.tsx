@@ -1,12 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
+import { Sheet } from '@/components/ui/Sheet';
 import { Label, Txt } from '@/components/ui/Txt';
 import { NAME_MAX, fetchAppMetadata, type AppMetadata } from '@/data/repo/metadata';
 import type { PickedShot } from '@/data/types';
@@ -16,28 +18,53 @@ import { fonts, radii } from '@/theme/tokens';
 export { NAME_MAX };
 
 /**
- * Shown when the lookup returns no category, which is every website and some
- * store listings. The App Store's own names, so a fetched category lines up
- * with a picked one.
+ * Apple's own category names, in their order, so a category the lookup
+ * returned and one picked by hand are the same string.
  */
-const CATEGORY_OPTIONS = [
-  'Productivity',
-  'Social Networking',
-  'Health & Fitness',
-  'Photo & Video',
-  'Lifestyle',
-  'Finance',
-  'Education',
-  'Utilities',
+const ALL_CATEGORIES = [
+  'Books',
+  'Business',
   'Developer Tools',
+  'Education',
+  'Entertainment',
+  'Finance',
+  'Food & Drink',
+  'Games',
+  'Graphics & Design',
+  'Health & Fitness',
+  'Lifestyle',
+  'Magazines & Newspapers',
+  'Medical',
+  'Music',
+  'Navigation',
+  'News',
+  'Photo & Video',
+  'Productivity',
+  'Reference',
+  'Shopping',
+  'Social Networking',
+  'Sports',
+  'Travel',
+  'Utilities',
+  'Weather',
 ];
 
-/** Fetched categories first, then enough of the standard list to choose from. */
-function categoryOptions(cats: string[]): string[] {
-  return [...cats, ...CATEGORY_OPTIONS.filter((option) => !cats.includes(option))].slice(
-    0,
-    cats.length ? cats.length + 4 : 6,
-  );
+/** What indie apps are usually filed under, offered before the full list. */
+const POPULAR_CATEGORIES = [
+  'Productivity',
+  'Social Networking',
+  'Photo & Video',
+  'Health & Fitness',
+  'Developer Tools',
+  'Utilities',
+];
+
+/**
+ * What the lookup found first, then the popular ones. A store listing arrives
+ * with its real categories, so those are what the builder sees selected.
+ */
+function categoryChips(cats: string[]): string[] {
+  return [...cats, ...POPULAR_CATEGORIES.filter((option) => !cats.includes(option))].slice(0, 6);
 }
 
 export type AddAppStepProps = {
@@ -78,6 +105,13 @@ export function AddAppStep({
 }: AddAppStepProps) {
   const { c } = useTheme();
   const [fetching, setFetching] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
+
+  /** The chosen category leads, so re-fetching keeps the rest as fallbacks. */
+  const pick = (cat: string) => {
+    onChangeCats([cat, ...cats.filter((other) => other !== cat)]);
+    setBrowsing(false);
+  };
 
   const run = async () => {
     if (!url.trim() || fetching) return;
@@ -175,35 +209,45 @@ export function AddAppStep({
               </View>
             ) : null}
 
-            <Field
-              label="Name"
-              value={name}
-              onChangeText={onChangeName}
-              max={NAME_MAX}
-              placeholder="App name"
-              minHeight={48}
-            />
-            <Field
-              label="Subtitle"
-              value={sub}
-              onChangeText={onChangeSub}
-              max={NAME_MAX}
-              placeholder="What it does, in one line"
-              minHeight={48}
-            />
+            {/* One block, because the name and the line under it are read
+                together and edited together. */}
+            <View style={{ gap: 6 }}>
+              <Field
+                label="Name"
+                value={name}
+                onChangeText={onChangeName}
+                max={NAME_MAX}
+                placeholder="App name"
+                minHeight={48}
+              />
+              <Field
+                label="Subtitle"
+                value={sub}
+                onChangeText={onChangeSub}
+                max={NAME_MAX}
+                placeholder="What it does, in one line"
+                minHeight={48}
+              />
+            </View>
 
             <View>
               <Label style={{ marginBottom: 8 }}>Category</Label>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {categoryOptions(cats).map((cat) => (
+                {categoryChips(cats).map((cat) => (
                   <Chip
                     key={cat}
                     label={cat}
                     selected={cat === cats[0]}
                     size="sm"
-                    onPress={() => onChangeCats([cat, ...cats.filter((other) => other !== cat)])}
+                    onPress={() => pick(cat)}
                   />
                 ))}
+                <Chip
+                  label="More…"
+                  size="sm"
+                  onPress={() => setBrowsing(true)}
+                  selected={!!cats[0] && !categoryChips(cats).includes(cats[0])}
+                />
               </View>
             </View>
           </Card>
@@ -246,6 +290,41 @@ export function AddAppStep({
           </Card>
         </>
       ) : null}
+
+      <Sheet visible={browsing} onClose={() => setBrowsing(false)}>
+        <Txt font="mono" size={17} weight={500} style={{ marginBottom: 4 }}>
+          Category
+        </Txt>
+        <Txt size={13.5} lh={1.45} muted style={{ marginBottom: 14 }}>
+          The same list the App Store uses.
+        </Txt>
+        {ALL_CATEGORIES.map((cat) => {
+          const selected = cat === cats[0];
+
+          return (
+            <Pressable
+              key={cat}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() => pick(cat)}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: 13,
+                borderBottomWidth: 1,
+                borderBottomColor: c.line,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Txt size={15} weight={selected ? 500 : 400}>
+                {cat}
+              </Txt>
+              {selected ? <Ionicons name="checkmark" size={18} color={c.accent} /> : null}
+            </Pressable>
+          );
+        })}
+      </Sheet>
     </View>
   );
 }

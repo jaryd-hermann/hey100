@@ -686,10 +686,13 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
                 appCats: result.cats,
                 appIcon: result.icon ?? '',
                 storeUrl: result.storeUrl ?? '',
-                // Store screenshots become the starting carousel, unless the
-                // builder has already picked their own.
-                shots: prev.shots.length
-                  ? prev.shots
+                // Store screenshots become the starting carousel. Anything
+                // the builder picked from their camera roll is their own work
+                // and survives a re-fetch; shots from an earlier lookup are
+                // replaced, so pasting a different link does not leave the
+                // last app's screenshots behind.
+                shots: prev.shots.some((shot) => !/^https?:/i.test(shot.uri))
+                  ? prev.shots.filter((shot) => !/^https?:/i.test(shot.uri))
                   : result.shots.map((uri) => ({ uri, kind: 'image' as const })),
                 links: { ...prev.links, web: result.web },
               }))

@@ -11,13 +11,6 @@
       "android": { "buildType": "apk" },
       "env": { "NPM_CONFIG_LEGACY_PEER_DEPS": "true" }
     },
-    "device": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "ios": { "simulator": false },
-      "android": { "buildType": "apk" },
-      "env": { "NPM_CONFIG_LEGACY_PEER_DEPS": "true" }
-    },
     "preview": {
       "distribution": "internal",
       "ios": { "simulator": false },

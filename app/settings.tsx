@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,6 +9,9 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { INTEGRATIONS } from '@/data/mock';
+import { queryKeys } from '@/data/repo/keys';
+import { demoFeedback, demoHeyMe, demoReply, type DemoResult } from '@/data/repo/loop';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { useStore } from '@/store/AppStore';
 import { useTheme, type ThemePref } from '@/theme/ThemeProvider';
 import { palettes } from '@/theme/tokens';
@@ -30,7 +34,6 @@ export default function Settings() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { c, pref, setPref } = useTheme();
-  const toast = useToast();
   const store = useStore();
 
   const connected = Object.values(store.connections[store.primaryApp.id] ?? {}).filter(
@@ -65,7 +68,11 @@ export default function Settings() {
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: layout.gutter, paddingBottom: 60, gap: 22 }}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingBottom: 60,
+          gap: 22,
+        }}
       >
         <View style={{ gap: 11 }}>
           <Label>Appearance</Label>
@@ -73,10 +80,7 @@ export default function Settings() {
           <View style={{ flexDirection: 'row', gap: 10 }}>
             {THEMES.map((theme) => {
               const active = pref === theme.id;
-              const preview =
-                theme.id === 'system'
-                  ? null
-                  : palettes[theme.id];
+              const preview = theme.id === 'system' ? null : palettes[theme.id];
 
               return (
                 <Pressable
@@ -126,8 +130,22 @@ export default function Settings() {
                       </>
                     ) : (
                       <View style={{ flexDirection: 'row', gap: 3 }}>
-                        <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: palettes.light.ink }} />
-                        <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: palettes.dark.ink }} />
+                        <View
+                          style={{
+                            flex: 1,
+                            height: 7,
+                            borderRadius: 4,
+                            backgroundColor: palettes.light.ink,
+                          }}
+                        />
+                        <View
+                          style={{
+                            flex: 1,
+                            height: 7,
+                            borderRadius: 4,
+                            backgroundColor: palettes.dark.ink,
+                          }}
+                        />
                       </View>
                     )}
                   </View>
@@ -171,9 +189,11 @@ export default function Settings() {
           ))}
         </Card>
 
+        {__DEV__ ? <QaPanel /> : null}
+
         <Pressable
           accessibilityRole="button"
-          onPress={() => toast('Sign out lands with real auth')}
+          onPress={() => router.push('/settings/account')}
           style={{ paddingVertical: 14 }}
         >
           <Txt size={15} weight={600} color={c.danger}>
@@ -183,4 +203,94 @@ export default function Settings() {
       </ScrollView>
     </View>
   );
+}
+
+/**
+ * Development only, and only ever acts for the seeded demo builders.
+ *
+ * Hey100 needs two people to do anything interesting, so testing it alone
+ * means standing in for the other side. These buttons make a demo builder say
+ * hey, reply, or send feedback; against a database with no demo accounts they
+ * do nothing at all.
+ */
+function QaPanel() {
+  const { c } = useTheme();
+  const toast = useToast();
+  const store = useStore();
+  const { userId } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const newest = store.matches[0];
+
+  const run = async (label: string, action: () => Promise<DemoResult | null>) => {
+    setBusy(label);
+    try {
+      const result = await action();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.heys(userId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.threads(userId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.feedback(userId) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.messages(newest?.id ?? null),
+        }),
+      ]);
+
+      toast(result?.status === 'blocked' ? `Nothing to do: ${result.reason}` : `${label} done`);
+    } catch {
+      toast(`${label} failed`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const actions: [string, () => Promise<DemoResult | null>][] = [
+    ['Demo builders say hey', demoHeyMe],
+    ['Demo builder replies', () => (newest ? demoReply(newest.id) : noThread())],
+    ['Demo builder sends feedback', () => (newest ? demoFeedback(newest.id) : noThread())],
+  ];
+
+  return (
+    <View style={{ gap: 11 }}>
+      <Label>QA · development only</Label>
+
+      <Card padding={4} radius={radii.cardLg}>
+        {actions.map(([label, action], index) => (
+          <Pressable
+            key={label}
+            accessibilityRole="button"
+            disabled={!!busy}
+            onPress={() => void run(label, action)}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 16,
+              borderTopWidth: index === 0 ? 0 : 1,
+              borderColor: c.line,
+              opacity: pressed || busy ? 0.6 : 1,
+            })}
+          >
+            <Txt size={15} weight={500} style={{ flex: 1 }}>
+              {label}
+            </Txt>
+            <Txt size={13} muted>
+              {busy === label ? 'Working…' : 'Run'}
+            </Txt>
+          </Pressable>
+        ))}
+      </Card>
+
+      <Txt size={12.5} muted lh={1.45}>
+        Replies and feedback go to your newest match
+        {newest ? '' : ', once you have one'}.
+      </Txt>
+    </View>
+  );
+}
+
+function noThread(): Promise<DemoResult> {
+  return Promise.resolve({ status: 'blocked', reason: 'no match yet' });
 }

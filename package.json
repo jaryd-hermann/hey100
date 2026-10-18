@@ -16,7 +16,12 @@
     "doctor": "npx expo-doctor",
     "env:pull": "vercel env pull .env.local --yes",
     "db:push": "supabase db push",
-    "db:types": "supabase gen types typescript --linked --schema public > src/types/supabase.ts"
+    "db:types": "supabase gen types typescript --linked --schema public > src/types/supabase.ts",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "verify": "npm run verify:loop && npm run verify:qa && npm run verify:realtime",
+    "verify:loop": "python3 scripts/verify-loop.py",
+    "verify:qa": "python3 scripts/verify-qa.py",
+    "verify:realtime": "node --experimental-websocket scripts/verify-realtime.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

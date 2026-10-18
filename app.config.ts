@@ -4,6 +4,7 @@ import { version } from './package.json';
 
 const BUNDLE_ID = 'com.hey100.app';
 const DOMAIN = 'hey100.com';
+const EAS_PROJECT_ID = '3eb6e463-d0f8-4949-93c1-f7b93dbb10b7';
 
 const FONTS = [
   './assets/fonts/TitanOne_400Regular.ttf',
@@ -21,6 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hey100',
   slug: 'hey100',
+  owner: 'jarydhermann',
   version,
   scheme: 'hey100',
   orientation: 'portrait',
@@ -119,9 +121,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
 
   runtimeVersion: { policy: 'appVersion' },
+  updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
 
   extra: {
     router: { origin: false },
+    // Written by hand because `eas init` cannot edit a dynamic config.
+    eas: { projectId: EAS_PROJECT_ID },
     EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     EXPO_PUBLIC_POSTHOG_API_KEY: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,

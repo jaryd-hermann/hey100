@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
@@ -8,6 +9,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Label, Txt } from '@/components/ui/Txt';
 import { NAME_MAX, fetchAppMetadata, type AppMetadata } from '@/data/repo/metadata';
+import type { PickedShot } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
@@ -47,8 +49,8 @@ export type AddAppStepProps = {
   hue: number;
   icon?: string;
   cats: string[];
-  /** How many store screenshots the lookup brought back. */
-  shots: number;
+  /** The store screenshots the lookup brought back, previewed here. */
+  shots: PickedShot[];
   links: { web: string; tiktok: string; instagram: string };
   onFetch: (result: AppMetadata) => void;
   onChangeName: (name: string) => void;
@@ -139,11 +141,38 @@ export function AddAppStep({
               </View>
             </View>
 
-            {shots ? (
-              <Txt size={12.5} lh={1.4} muted>
-                {shots} screenshot{shots === 1 ? '' : 's'} came across too. You can swap them on the
-                next step.
-              </Txt>
+            {shots.length ? (
+              <View style={{ gap: 9 }}>
+                <Txt size={12.5} lh={1.4} muted>
+                  {shots.length} screenshot{shots.length === 1 ? '' : 's'} came across too. You can
+                  swap them on the next step.
+                </Txt>
+                <View style={{ flexDirection: 'row', gap: 7 }}>
+                  {shots.map((shot) => (
+                    <View
+                      key={shot.uri}
+                      style={{
+                        // A sixth of the row whatever came back, so one shot
+                        // from a website stays a thumbnail instead of filling
+                        // the card.
+                        width: '14.5%',
+                        aspectRatio: 9 / 16,
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        backgroundColor: c.raised,
+                        borderWidth: 1,
+                        borderColor: c.line,
+                      }}
+                    >
+                      <Image
+                        source={{ uri: shot.uri }}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit="cover"
+                      />
+                    </View>
+                  ))}
+                </View>
+              </View>
             ) : null}
 
             <Field

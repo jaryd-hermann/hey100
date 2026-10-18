@@ -462,11 +462,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     );
   }
 
-  const title = writing
-    ? 'Write answer'
-    : picker !== null
-      ? 'Select a prompt'
-      : (step.title ?? '');
+  const title = writing ? 'Write answer' : picker !== null ? 'Select a prompt' : (step.title ?? '');
 
   const showBottomBar = !isCheckLike && step.kind !== 'auth' && !writing && picker === null;
 
@@ -679,7 +675,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             hue={draft.appHue}
             cats={draft.appCats}
             icon={draft.appIcon || undefined}
-            shots={draft.shots.length}
+            shots={draft.shots}
             links={draft.links}
             onFetch={(result) =>
               update((prev) => ({

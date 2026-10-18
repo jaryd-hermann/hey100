@@ -12,15 +12,13 @@ import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { PROMPT_LIBRARY, promptLabel } from '@/data/prompts';
 import type { IdealUsers, MediaItem, OwnedApp, SectionKey, ShotLayout } from '@/data/types';
-import { pickShots } from '@/features/apps/pickShots';
+import { MAX_SHOTS, pickShots } from '@/features/apps/pickShots';
 import { PromptPicker, WriteAnswer } from '@/features/onboarding/steps/PromptsStep';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
 import { sectionName } from './AppPage';
 
-/** Media slots per listing, matching the screenshots step in onboarding. */
-const MEDIA_MAX = 6;
 const PROMPT_MAX = 5;
 
 export type EditSectionSheetProps = {
@@ -40,7 +38,13 @@ export function EditSectionSheet({ section, app, onClose, onSave }: EditSectionS
     <Sheet visible={!!section} onClose={onClose}>
       {section ? (
         // Keyed by section, so each editor starts from the saved content.
-        <SectionEditor key={section} section={section} app={app} onClose={onClose} onSave={onSave} />
+        <SectionEditor
+          key={section}
+          section={section}
+          app={app}
+          onClose={onClose}
+          onSave={onSave}
+        />
       ) : null}
     </Sheet>
   );
@@ -59,12 +63,7 @@ function SectionEditor({ section, app, onClose, onSave }: EditorProps) {
   if (section === 'builder') return <BuilderEditor app={app} onClose={onClose} onSave={onSave} />;
   if (section.startsWith('p')) {
     return (
-      <PromptEditor
-        slot={Number(section.slice(1))}
-        app={app}
-        onClose={onClose}
-        onSave={onSave}
-      />
+      <PromptEditor slot={Number(section.slice(1))} app={app} onClose={onClose} onSave={onSave} />
     );
   }
   return <ReadOnlyNote section={section} onClose={onClose} />;
@@ -111,7 +110,13 @@ function Actions({
         />
       </View>
       {destructive ? (
-        <Btn label={destructive.label} variant="ghost" size="md" full onPress={destructive.onPress} />
+        <Btn
+          label={destructive.label}
+          variant="ghost"
+          size="md"
+          full
+          onPress={destructive.onPress}
+        />
       ) : null}
     </View>
   );
@@ -128,7 +133,7 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
     if (picking) return;
     setPicking(true);
 
-    const result = await pickShots(MEDIA_MAX - items.length);
+    const result = await pickShots(MAX_SHOTS - items.length);
     setPicking(false);
 
     if ('error' in result) {
@@ -215,7 +220,7 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
           </View>
         ))}
 
-        {items.length < MEDIA_MAX ? (
+        {items.length < MAX_SHOTS ? (
           <Pressable
             accessibilityRole="button"
             onPress={() => void addShots()}
@@ -240,10 +245,7 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
         ) : null}
       </View>
 
-      <Actions
-        onClose={onClose}
-        onSave={() => onSave({ media: items, shotLayout })}
-      />
+      <Actions onClose={onClose} onSave={() => onSave({ media: items, shotLayout })} />
     </View>
   );
 }
@@ -310,7 +312,10 @@ function BuilderEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
         onChangeText={setStyle}
       />
 
-      <Actions onClose={onClose} onSave={() => onSave({ role: role.trim(), style: style.trim() })} />
+      <Actions
+        onClose={onClose}
+        onSave={() => onSave({ role: role.trim(), style: style.trim() })}
+      />
     </View>
   );
 }
@@ -320,7 +325,12 @@ function promptIdFor(label?: string): string | null {
   return PROMPT_LIBRARY.find((prompt) => prompt.label === label)?.id ?? null;
 }
 
-function PromptEditor({ slot, app, onClose, onSave }: Omit<EditorProps, 'section'> & { slot: number }) {
+function PromptEditor({
+  slot,
+  app,
+  onClose,
+  onSave,
+}: Omit<EditorProps, 'section'> & { slot: number }) {
   const prompts = app.prompts ?? [];
   // A new prompt lands in the first free slot, so the list never gets a hole.
   const index = Math.min(slot, prompts.length);

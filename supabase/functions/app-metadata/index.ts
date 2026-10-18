@@ -21,6 +21,9 @@ type Metadata = {
   hue: number;
 };
 
+/** Media slots a listing has, kept in step with the client's own cap. */
+const MAX_SHOTS = 10;
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -123,7 +126,7 @@ async function fromAppStore(appId: string, country: string): Promise<Metadata | 
       shots: [
         ...((app.screenshotUrls as string[] | undefined) ?? []),
         ...((app.ipadScreenshotUrls as string[] | undefined) ?? []),
-      ].slice(0, 6),
+      ].slice(0, MAX_SHOTS),
       storeUrl,
       hue: hueOf(web || String(app.trackName ?? '')),
     };

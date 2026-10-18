@@ -2,8 +2,8 @@ import * as ImagePicker from 'expo-image-picker';
 
 import type { PickedShot } from '@/data/types';
 
-/** Media slots per listing, matching the screenshots step in onboarding. */
-export const MAX_SHOTS = 6;
+/** Media slots per listing, the same ten the App Store allows. */
+export const MAX_SHOTS = 10;
 
 /**
  * Shared by the onboarding step and the owner's edit sheet, so both honour the

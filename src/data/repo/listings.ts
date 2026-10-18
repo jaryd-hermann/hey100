@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { MAX_SHOTS } from '@/features/apps/pickShots';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getSupabase, isServerId } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
@@ -74,10 +75,7 @@ export async function createListing(
 
   if (error) throw error;
 
-  await Promise.all([
-    setListingPrompts(data.id, prompts),
-    setListingMedia(data.id, media),
-  ]);
+  await Promise.all([setListingPrompts(data.id, prompts), setListingMedia(data.id, media)]);
 
   return data.id;
 }
@@ -136,7 +134,7 @@ export async function setListingMedia(appId: string, media: NewListing['media'])
   const { error: clearError } = await db.from('app_media').delete().eq('app_id', appId);
   if (clearError) throw clearError;
 
-  const rows = media.slice(0, 6).map((item, position) => ({
+  const rows = media.slice(0, MAX_SHOTS).map((item, position) => ({
     app_id: appId,
     position,
     kind: item.kind,

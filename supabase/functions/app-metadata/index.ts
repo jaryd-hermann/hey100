@@ -38,22 +38,60 @@ function hostOf(url: string): string {
   try {
     return new URL(url).host.replace(/^www\./, '');
   } catch {
-    return url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+    return url
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split('/')[0];
   }
 }
 
 /**
- * Store subtitles and web descriptions both have to fit the 30 characters App
- * Store Connect allows. Cutting on a word keeps the result readable, since the
- * builder edits it on the next screen rather than retyping it.
+ * A subtitle has to fit the 30 characters App Store Connect allows, and the
+ * App Store API no longer returns the real one, so the closest thing is the
+ * opening of the description.
+ *
+ * Only a phrase that is complete at that length is offered. Cutting a sentence
+ * mid-thought produced things like "Good Times is private-group", which the
+ * builder has to delete before writing their own, so nothing is better: the
+ * field is editable on the next screen and shows its own counter.
  */
 function oneLine(text: string, max = 30): string {
-  const first = text.split(/[\n.·|–—]/)[0].trim();
-  if (first.length <= max) return first;
+  // The first sentence, whole or not at all. A clause out of the middle reads
+  // like "Bear is a beautiful", which the builder has to delete anyway.
+  const first = text.split(/[\n.·|]/)[0].trim();
 
-  const cut = first.slice(0, max + 1);
-  const lastSpace = cut.lastIndexOf(' ');
-  return (lastSpace > max / 2 ? cut.slice(0, lastSpace) : cut.slice(0, max)).trim();
+  return first.length > 2 && first.length <= max ? first : '';
+}
+
+/**
+ * The real subtitle, which the lookup API does not return but the store page
+ * shows under the app name. Worth one extra request: it is written by the
+ * builder, already fits 30 characters, and is the line the spec asks the fetch
+ * to fill in.
+ */
+async function storeSubtitle(storeUrl: string): Promise<string> {
+  if (!storeUrl) return '';
+
+  try {
+    const response = await fetch(storeUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Hey100/1.0; +https://hey100.com)',
+        Accept: 'text/html',
+      },
+    });
+    if (!response.ok) return '';
+
+    const html = (await response.text()).slice(0, 400_000);
+
+    // The header subtitle is the first subtitle-classed element on the page;
+    // the later ones belong to the "you might also like" apps. Apple's class
+    // names carry a build hash, so the stable part is the word itself.
+    const subtitle = /class="[^"]*\bsubtitle\b[^"]*"[^>]*>([^<]+)</i.exec(html)?.[1] ?? '';
+
+    return decodeEntities(subtitle.trim()).slice(0, 30);
+  } catch {
+    return '';
+  }
 }
 
 async function fromAppStore(appId: string, country: string): Promise<Metadata | null> {
@@ -65,17 +103,20 @@ async function fromAppStore(appId: string, country: string): Promise<Metadata | 
     );
     if (!response.ok) continue;
 
-    const { results } = (await response.json()) as { results: Record<string, unknown>[] };
+    const { results } = (await response.json()) as {
+      results: Record<string, unknown>[];
+    };
     const app = results?.[0];
     if (!app) continue;
 
     const web = hostOf(String(app.sellerUrl ?? app.trackViewUrl ?? ''));
+    const storeUrl = String(app.trackViewUrl ?? '');
 
     return {
       name: String(app.trackName ?? '').slice(0, 30),
-      // The App Store dropped subtitles from the API, so the promo text or the
-      // first sentence of the description is the closest thing to one.
-      sub: oneLine(String(app.description ?? '')),
+      // The page's own subtitle first, then the description's opening sentence
+      // if it happens to fit on its own.
+      sub: (await storeSubtitle(storeUrl)) || oneLine(String(app.description ?? '')),
       cats: (app.genres as string[] | undefined)?.slice(0, 3) ?? [],
       web,
       icon: String(app.artworkUrl512 ?? app.artworkUrl100 ?? '') || undefined,
@@ -83,7 +124,7 @@ async function fromAppStore(appId: string, country: string): Promise<Metadata | 
         ...((app.screenshotUrls as string[] | undefined) ?? []),
         ...((app.ipadScreenshotUrls as string[] | undefined) ?? []),
       ].slice(0, 6),
-      storeUrl: String(app.trackViewUrl ?? ''),
+      storeUrl,
       hue: hueOf(web || String(app.trackName ?? '')),
     };
   }
@@ -124,6 +165,31 @@ function absolute(href: string, base: string): string | undefined {
   }
 }
 
+/**
+ * A square raster icon from the page's own icon links.
+ *
+ * The social card is deliberately not a candidate: it is a wide banner, and a
+ * banner cropped into an icon tile reads as a broken image. A page with no
+ * square icon gets none, and the app falls back to its lettered tile.
+ */
+function squareIcon(html: string): string {
+  const links = html.match(/<link[^>]+>/gi) ?? [];
+  const wanted = /apple-touch-icon(?:-precomposed)?|shortcut icon|^icon$/i;
+
+  const candidates = links
+    .filter((link) => wanted.test(/rel=["']([^"']+)["']/i.exec(link)?.[1]?.trim() ?? ''))
+    .map((link) => ({
+      href: /href=["']([^"']+)["']/i.exec(link)?.[1] ?? '',
+      // The largest declared size wins, and an apple-touch-icon with no size
+      // still beats a 16px favicon.
+      size: Number(/sizes=["'](\d+)/i.exec(link)?.[1] ?? (/apple/i.test(link) ? 180 : 0)),
+    }))
+    .filter(({ href }) => href && !/\.svg($|\?)/i.test(href))
+    .sort((a, b) => b.size - a.size);
+
+  return candidates[0]?.href ?? '';
+}
+
 async function fromWebsite(url: string): Promise<Metadata> {
   const host = hostOf(url);
 
@@ -146,16 +212,6 @@ async function fromWebsite(url: string): Promise<Metadata> {
 
   const description = meta(html, 'og:description') || meta(html, 'description');
 
-  const iconHref =
-    meta(html, 'og:image') ||
-    /<link[^>]+rel=["'](?:apple-touch-icon|apple-touch-icon-precomposed)["'][^>]+href=["']([^"']+)["']/i.exec(
-      html,
-    )?.[1] ||
-    /<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:apple-touch-icon|apple-touch-icon-precomposed)["']/i.exec(
-      html,
-    )?.[1] ||
-    '';
-
   const name = (title.split(/[|·—–]/)[0].trim() || host.split('.')[0]).slice(0, 30);
 
   return {
@@ -163,10 +219,13 @@ async function fromWebsite(url: string): Promise<Metadata> {
     sub: oneLine(description),
     cats: [],
     web: host,
-    icon: absolute(iconHref, response.url || url),
-    // A marketing page's images are rarely product screenshots, and a wrong
-    // guess is worse than an empty carousel the builder fills themselves.
-    shots: [],
+    icon: absolute(squareIcon(html), response.url || url),
+    // The social card, which is the one image on a marketing page the builder
+    // chose themselves. Everything else on such a page is decoration, and a
+    // wrong guess is worse than a carousel they fill in themselves.
+    shots: [absolute(meta(html, 'og:image'), response.url || url)].filter(
+      (shot): shot is string => !!shot,
+    ),
     hue: hueOf(host),
   };
 }

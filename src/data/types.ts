@@ -37,6 +37,17 @@ export type PickedShot = {
 /** Every screenshot in one listing shares an orientation, picked by the owner. */
 export type ShotLayout = 'vertical' | 'horizontal';
 
+/**
+ * Frame shape per orientation, both taken from App Store Connect: an iPhone
+ * screenshot at 1290 × 2796 and a Mac one at 2880 × 1800. The screenshots a
+ * builder already made for their own listing fill the frame, rather than being
+ * cropped to a shape only this app uses.
+ */
+export const SHOT_RATIO: Record<ShotLayout, number> = {
+  vertical: 1290 / 2796,
+  horizontal: 2880 / 1800,
+};
+
 /** A listing as shown in Discover, Heys, the owner preview and the web page. */
 export type AppListing = {
   id: string;
@@ -54,8 +65,14 @@ export type AppListing = {
   /** The builder's profile photo, once they have one. */
   builderPhoto?: string;
   role: string;
-  /** Feedback style plus reply time, shown on the builder card. */
+  /** Bio shown under the name on the builder card. */
   style: string;
+  /** Skills shown as tags under the bio. */
+  skills?: string[];
+  /** Public socials from the builder's profile, not the listing links. */
+  builderSocials?: [string, string][];
+  /** Horizontal banner, separate from the screenshot carousel. */
+  cover?: string;
   /** Band, not an exact number. */
   likes: string;
   trades: number;
@@ -72,6 +89,21 @@ export type AppListing = {
   /** Unlocked only after a match. */
   code?: string;
   asked?: string;
+  /** “This solves the problem of X for Y.” */
+  problemOf?: string;
+  problemFor?: string;
+  pricingModel?: string;
+  priceFrom?: string;
+  onboarding?: string;
+  storeRating?: number;
+  storeRatingCount?: number;
+  /** App Store listing URL used to pull the public rating. */
+  storeUrl?: string;
+  /** Public GitHub commit total for this builder, across their repos. */
+  githubCommits?: number;
+  /** Vertical elevator-pitch video from the builder. */
+  pitchUri?: string;
+  pitchSeconds?: number;
 };
 
 /** One of the user's own listings. */
@@ -85,7 +117,20 @@ export type OwnedApp = AppListing & {
 };
 
 export type SectionKey =
-  'shots' | 'builder' | 'looking' | 'stats' | 'verified' | 'p0' | 'p1' | 'p2' | 'p3' | 'p4';
+  | 'shots'
+  | 'problem'
+  | 'pricing'
+  | 'onboarding'
+  | 'pitch'
+  | 'builder'
+  | 'looking'
+  | 'stats'
+  | 'verified'
+  | 'p0'
+  | 'p1'
+  | 'p2'
+  | 'p3'
+  | 'p4';
 
 export type HeyTargetType = 'app' | 'prompt' | 'media';
 
@@ -147,19 +192,29 @@ export type Match = {
   unread?: number;
 };
 
+export type MessageReaction = { emoji: string; count: number; mine: boolean };
+
+export type MessageReply = { id: string; body: string };
+
+export type ChatMessage = {
+  id?: string;
+  reply?: MessageReply;
+  reactions?: MessageReaction[];
+};
+
 export type Message =
-  | { kind: 'system'; body: string }
+  | ({ kind: 'system'; body: string } & ChatMessage)
   /** `body` is absent on a media-only message. */
-  | { kind: 'them'; body?: string; media?: MediaItem[] }
-  | { kind: 'me'; body?: string; media?: MediaItem[] }
-  | { kind: 'announcement'; body: string; when: string }
-  | {
+  | ({ kind: 'them'; body?: string; media?: MediaItem[] } & ChatMessage)
+  | ({ kind: 'me'; body?: string; media?: MediaItem[] } & ChatMessage)
+  | ({ kind: 'announcement'; body: string; when: string; media?: MediaItem[] } & ChatMessage)
+  | ({
       kind: 'feedback';
       from: 'me' | 'them';
       stars: string;
       body: string;
       meta: string;
-    };
+    } & ChatMessage);
 
 export type FeedbackEntry = {
   id: string;
@@ -200,4 +255,15 @@ export type Integration = {
   on: string;
   detail?: string;
   badge: string;
+};
+
+/** A verified connection as the listing and the owner screens render it. */
+export type AppConnection = {
+  provider: IntegrationKey;
+  badge: string;
+  /** Public listing rows from one connect. RevenueCat can fill several. */
+  badges?: string[];
+  on: string;
+  detail?: string;
+  checkedAt?: string;
 };

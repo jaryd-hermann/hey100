@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { useHeyMenu } from '@/features/nav/heyMenuContext';
 import { fonts } from '@/theme/tokens';
 
 import { Txt } from '../ui/Txt';
@@ -247,11 +248,21 @@ export function HeaderLogo({
   title,
   hand = false,
   right,
+  onWordmarkPress,
 }: {
   title?: string;
   hand?: boolean;
   right?: React.ReactNode;
+  onWordmarkPress?: () => void;
 }) {
+  const { open } = useHeyMenu();
+  const mark = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {hand ? <HandMark size={24} /> : null}
+      <Wordmark size={20} />
+    </View>
+  );
+
   return (
     <View
       style={{
@@ -263,8 +274,14 @@ export function HeaderLogo({
         flexBasis: 'auto',
       }}
     >
-      {hand ? <HandMark size={24} /> : null}
-      <Wordmark size={20} />
+      <Pressable
+        onPress={onWordmarkPress ?? open}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Hey100 menu"
+      >
+        {mark}
+      </Pressable>
       {title ? (
         <>
           <Txt font="mono" size={17} weight={500} muted>

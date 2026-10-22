@@ -9,17 +9,18 @@ import { Card } from '@/components/ui/Card';
 import { Progress } from '@/components/ui/Progress';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
-import { FREE_DAILY_HEYS, FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
+import {
+  FREE_DAILY_HEYS,
+  FREE_MATCH_LIMIT,
+  PRO_PRICE,
+  PRO_PRICE_NOTE,
+  useStore,
+} from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
 /** Section 10 gives free accounts one listed app. The store has no constant for it yet. */
 const FREE_LISTING_LIMIT = 1;
-
-const PLANS: { id: 'monthly' | 'season'; name: string; price: string; note: string }[] = [
-  { id: 'monthly', name: 'Monthly', price: '$9.99', note: 'per month' },
-  { id: 'season', name: 'Launch season', price: '$24.99', note: '90 days' },
-];
 
 const PRO_INCLUDES: [string, string][] = [
   ['Unlimited heys', 'Say hey to as many apps as you want each day.'],
@@ -79,17 +80,12 @@ export default function Subscription() {
           style={{ gap: 8 }}
         >
           <Label>Current plan</Label>
-          <Txt
-            font="mono"
-            size={24}
-            weight={500}
-            color={store.isPro ? c.accentText : c.ink}
-          >
+          <Txt font="mono" size={24} weight={500} color={store.isPro ? c.accentText : c.ink}>
             {store.isPro ? 'Hey100 Pro' : 'Free'}
           </Txt>
           <Txt size={13.5} lh={1.45} color={store.isPro ? c.accentText : c.muted}>
             {store.isPro
-              ? 'Renews automatically through the App Store. Cancel any time.'
+              ? `${PRO_PRICE} ${PRO_PRICE_NOTE}. Renews automatically through the App Store. Cancel any time.`
               : 'Everything you need to start trading, with limits on heys and matches.'}
           </Txt>
         </Card>
@@ -144,8 +140,7 @@ export default function Subscription() {
           <Card padding={16} radius={radii.cardLg} style={{ gap: 12 }}>
             <Label>Manage</Label>
             <Txt size={13.5} lh={1.45} muted>
-              Billing is handled by Apple. Change your plan or cancel from your App Store
-              subscriptions.
+              Billing is handled by Apple. Cancel from your App Store subscriptions.
             </Txt>
             <Btn
               label="Manage subscription"
@@ -160,35 +155,35 @@ export default function Subscription() {
             <View style={{ gap: 11 }}>
               <Label>Go Pro</Label>
 
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {PLANS.map((plan) => (
-                  <Pressable
-                    key={plan.id}
-                    accessibilityRole="button"
-                    onPress={openPaywall}
-                    style={({ pressed }) => ({
-                      flex: 1,
-                      borderRadius: radii.cardLg,
-                      padding: 16,
-                      gap: 4,
-                      backgroundColor: c.surface,
-                      borderWidth: 1.5,
-                      borderColor: c.line,
-                      opacity: pressed ? 0.8 : 1,
-                    })}
-                  >
-                    <Label size={10}>{plan.name}</Label>
-                    <Txt font="mono" size={20} weight={500}>
-                      {plan.price}
-                    </Txt>
-                    <Txt size={12.5} muted>
-                      {plan.note}
-                    </Txt>
-                  </Pressable>
-                ))}
-              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={openPaywall}
+                style={({ pressed }) => ({
+                  borderRadius: radii.cardLg,
+                  padding: 16,
+                  gap: 4,
+                  backgroundColor: c.surface,
+                  borderWidth: 1.5,
+                  borderColor: c.line,
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <Label size={10}>Hey100 Pro</Label>
+                <Txt font="mono" size={24} weight={500}>
+                  {PRO_PRICE}
+                </Txt>
+                <Txt size={13.5} muted>
+                  {PRO_PRICE_NOTE}
+                </Txt>
+              </Pressable>
 
-              <Btn label="See Pro" variant="accent" size="lg" full onPress={openPaywall} />
+              <Btn
+                label={`Start Pro · ${PRO_PRICE}/mo`}
+                variant="accent"
+                size="lg"
+                full
+                onPress={openPaywall}
+              />
             </View>
 
             <Card tone="soft" padding={16} radius={radii.cardLg} style={{ gap: 10 }}>

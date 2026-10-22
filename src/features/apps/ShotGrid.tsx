@@ -5,17 +5,14 @@ import React, { useRef, useState } from 'react';
 import { Animated, LayoutAnimation, PanResponder, View } from 'react-native';
 
 import { Txt } from '@/components/ui/Txt';
-import type { PickedShot, ShotLayout } from '@/data/types';
+import { SHOT_RATIO, type PickedShot, type ShotLayout } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
 const GAP = 10;
 
 /** Phone shots sit three to a row, web shots two, following their shape. */
-const GRID: Record<ShotLayout, { cols: number; ratio: number }> = {
-  vertical: { cols: 3, ratio: 9 / 16 },
-  horizontal: { cols: 2, ratio: 16 / 9 },
-};
+const COLS: Record<ShotLayout, number> = { vertical: 3, horizontal: 2 };
 
 /** How long a finger rests on a shot before it lifts off the grid. */
 const HOLD_MS = 180;
@@ -58,7 +55,8 @@ export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd 
   const touch = useRef({ x: 0, y: 0 });
   const pan = useRef(new Animated.ValueXY()).current;
 
-  const { cols, ratio } = GRID[layout];
+  const cols = COLS[layout];
+  const ratio = SHOT_RATIO[layout];
   const cellW = width ? (width - GAP * (cols - 1)) / cols : 0;
   const cellH = cellW / ratio;
   const slot = (index: number) => ({

@@ -8,12 +8,21 @@ import { getSupabase } from '@/lib/supabase';
 type AuthState = {
   session: Session | null;
   userId: string | null;
+  email: string | null;
+  /** The founder account, which can broadcast to every builder. */
+  isAdmin: boolean;
   /** True until the stored session has been read, so no screen flashes a
    *  signed-out state at a signed-in user on cold start. */
   restoring: boolean;
 };
 
-const AuthContext = createContext<AuthState>({ session: null, userId: null, restoring: true });
+const AuthContext = createContext<AuthState>({
+  session: null,
+  userId: null,
+  email: null,
+  isAdmin: false,
+  restoring: true,
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -56,6 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   const userId = session?.user.id ?? null;
+  const email = session?.user.email ?? null;
+  const isAdmin = email?.toLowerCase() === 'hermannjaryd@gmail.com';
 
   // One identity across PostHog and the database, so a funnel can be joined to
   // a row without guesswork.
@@ -63,7 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (userId) identifyUser(userId);
   }, [userId]);
 
-  const value = useMemo<AuthState>(() => ({ session, userId, restoring }), [session, userId, restoring]);
+  const value = useMemo<AuthState>(
+    () => ({ session, userId, email, isAdmin, restoring }),
+    [email, isAdmin, session, userId, restoring],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

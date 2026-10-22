@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -29,20 +29,35 @@ export function Sheet({ visible, onClose, children, scroll = true }: SheetProps)
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const anim = useRef(new Animated.Value(0)).current;
+  const [mounted, setMounted] = useState(visible);
 
   useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
     Animated.timing(anim, {
-      toValue: visible ? 1 : 0,
-      duration: visible ? 260 : 180,
-      easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+      toValue: 0,
+      duration: 180,
+      easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start();
+    }).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
   }, [anim, visible]);
 
   const Content = scroll ? ScrollView : View;
 
+  if (!mounted) return null;
+
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={{ flex: 1, backgroundColor: c.scrim, opacity: anim }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Dismiss" />
       </Animated.View>

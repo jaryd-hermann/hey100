@@ -12,6 +12,7 @@ import { INTEGRATIONS } from '@/data/mock';
 import { queryKeys } from '@/data/repo/keys';
 import { demoFeedback, demoHeyMe, demoReply, type DemoResult } from '@/data/repo/loop';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
 import { useTheme, type ThemePref } from '@/theme/ThemeProvider';
 import { palettes } from '@/theme/tokens';
@@ -35,6 +36,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const { c, pref, setPref } = useTheme();
   const store = useStore();
+  const { devMode, setDevMode } = useDevMode();
 
   const connected = Object.values(store.connections[store.primaryApp.id] ?? {}).filter(
     Boolean,
@@ -188,6 +190,45 @@ export default function Settings() {
             </Pressable>
           ))}
         </Card>
+
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: devMode }}
+          onPress={() => setDevMode(!devMode)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            paddingVertical: 6,
+          }}
+        >
+          <View style={{ flex: 1, gap: 3 }}>
+            <Txt size={15} weight={600}>
+              Dev mode
+            </Txt>
+            <Txt size={13} muted>
+              Show sample milestones so we can test sharing them.
+            </Txt>
+          </View>
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              borderWidth: 1.5,
+              borderColor: devMode ? c.ink : c.muted,
+              backgroundColor: devMode ? c.ink : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {devMode ? (
+              <Txt size={13} weight={700} color={c.bg}>
+                ✓
+              </Txt>
+            ) : null}
+          </View>
+        </Pressable>
 
         {__DEV__ ? <QaPanel /> : null}
 

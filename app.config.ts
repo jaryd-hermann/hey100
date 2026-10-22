@@ -64,7 +64,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSPhotoLibraryUsageDescription:
         'Hey100 needs photo access so you can add screenshots to your app listing and attach them to bug reports.',
       NSCameraUsageDescription:
-        'Hey100 needs camera access so you can take a profile photo.',
+        'Hey100 needs camera access so you can record a quick pitch for your listing and take a profile photo.',
+      NSMicrophoneUsageDescription:
+        'Hey100 needs the microphone so your quick pitch has audio.',
     },
   },
 
@@ -93,6 +95,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-notifications',
     'expo-web-browser',
     'expo-video',
+    [
+      'expo-camera',
+      {
+        cameraPermission:
+          'Hey100 needs camera access so you can record a quick pitch for your listing.',
+        microphonePermission: 'Hey100 needs the microphone so your quick pitch has audio.',
+        recordAudioAndroid: true,
+      },
+    ],
     ['expo-font', { fonts: FONTS }],
     [
       'expo-splash-screen',

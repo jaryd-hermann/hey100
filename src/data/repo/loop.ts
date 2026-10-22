@@ -199,7 +199,7 @@ export async function fetchMessages(matchId: string): Promise<MessageRow[]> {
 
   const { data, error } = await db
     .from('messages')
-    .select('*')
+    .select('*, chat_reactions!message_id(emoji, user_id), reply:reply_to(id, body)')
     .eq('match_id', matchId)
     .order('created_at', { ascending: true });
 
@@ -256,11 +256,12 @@ export function followUpHey(heyId: string, note: string) {
   return rpc<ActionResult>('follow_up_hey', { p_hey_id: heyId, p_note: note });
 }
 
-export function sendMessage(matchId: string, body: string, media: object[] = []) {
+export function sendMessage(matchId: string, body: string, media: object[] = [], replyTo?: string) {
   return rpc<ActionResult>('send_message', {
     p_match_id: matchId,
     p_body: body || null,
     p_media: media,
+    p_reply_to: replyTo ?? null,
   });
 }
 

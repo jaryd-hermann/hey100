@@ -1,6 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 
+import { ONBOARDED_KEY } from '@/lib/authStorage';
 import { getSupabase } from '@/lib/supabase';
 
 export type AuthProviderId = 'Apple' | 'Google' | 'GitHub';
@@ -127,6 +129,7 @@ async function sessionFromRedirect(url: string): Promise<SignInOutcome> {
 }
 
 export async function signOut(): Promise<void> {
+  await AsyncStorage.removeItem(ONBOARDED_KEY).catch(() => {});
   const db = getSupabase();
   if (db) await db.auth.signOut();
 }

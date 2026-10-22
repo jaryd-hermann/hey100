@@ -29,6 +29,21 @@ if (!URL_BASE || !SERVICE_KEY) {
 /** Password is irrelevant: these accounts are only ever acted on server-side. */
 const PASSWORD = 'hey100-demo-' + Math.random().toString(36).slice(2, 10);
 
+const LAYOUT = [
+  'shots',
+  'problem',
+  'pricing',
+  'p0',
+  'builder',
+  'p1',
+  'looking',
+  'p2',
+  'p3',
+  'p4',
+  'stats',
+  'verified',
+];
+
 const BUILDERS = [
   {
     email: 'rae@hey100-demo.app',
@@ -39,6 +54,11 @@ const BUILDERS = [
     bio: 'Building Good Times nights and weekends. I test everything I say hey to for a week before I write anything.',
     url: 'https://apps.apple.com/us/app/good-times-one-group-question/id6755366013',
     stage: 'Live',
+    problemOf: 'group chats that go quiet after everyone moves',
+    problemFor: 'friends who still want a reason to text',
+    pricingModel: 'Freemium',
+    priceFrom: '$9.99/yr',
+    badges: ['Live on the App Store', 'RevenueCat · 100–500 subscribers'],
     prompts: [
       [
         'why',
@@ -52,6 +72,8 @@ const BUILDERS = [
         'first',
         'Our first group asked to keep going after the trial week ended. That was the signal.',
       ],
+      ['how', 'One question lands each morning. Answer it. See what your people said. That is it.'],
+      ['green', 'You will answer tomorrow, not just today.'],
     ],
     feedbackWanted: ['onboarding', 'retention'],
     role: 'Solo founder, second app',
@@ -66,6 +88,11 @@ const BUILDERS = [
     bio: 'Little Moments started as a journal for my daughter. Now a few thousand parents use it.',
     url: 'https://apps.apple.com/us/app/little-moments-photo-journal/id6761054988',
     stage: 'Live',
+    problemOf: 'photos of your kid that you never look at again',
+    problemFor: 'parents who want a year they can actually hold',
+    pricingModel: 'Subscription',
+    priceFrom: '$24.99/yr',
+    badges: ['Live on the App Store', 'Stripe · $1k–5k MRR'],
     prompts: [
       ['love', "You'll love this if you take photos you never look at again."],
       ['proud', 'The year view. One screen, every moment, no scrolling.'],
@@ -73,6 +100,8 @@ const BUILDERS = [
         'stuck',
         'People do not realise they can import from an album, so the first week looks empty.',
       ],
+      ['how', 'Snap a moment. Add a line. Sunday you get the week back as a letter.'],
+      ['works', 'A parent opens last March and stays there for ten minutes.'],
     ],
     feedbackWanted: ['first run', 'pricing'],
     role: 'Designer, ships every Friday',
@@ -88,10 +117,16 @@ const BUILDERS = [
     url: 'https://quicker.chat/',
     subtitle: 'Chat without the pile-up',
     stage: 'TestFlight',
+    problemOf: 'unread counts that make talking feel like work',
+    problemFor: 'people who only want the five they actually text',
+    pricingModel: 'Free',
+    badges: ['GitHub · last commit today'],
     prompts: [
       ['how', 'Open it, pick a person, talk. No feed, no unread count, nothing to manage.'],
       ['honest', 'Whether the lack of a feed feels calm or feels broken. I cannot tell any more.'],
       ['dont', "Don't download this if you want groups. It is one to one by design."],
+      ['why', 'I missed the people I love because the apps made them a badge.'],
+      ['skipping', 'Stories, groups, and anything that turns a chat into a feed.'],
     ],
     feedbackWanted: ['positioning', 'first run'],
     role: 'Pre-launch, TestFlight open',
@@ -258,6 +293,15 @@ async function seed(builder) {
         devices: ['iPhone'],
       },
       published_at: new Date().toISOString(),
+      layout: LAYOUT,
+      problem_of: builder.problemOf,
+      problem_for: builder.problemFor,
+      pricing_model: builder.pricingModel,
+      price_from: builder.priceFrom ?? '',
+      store_url: meta.storeUrl || builder.url,
+      store_rating: meta.rating ?? null,
+      store_rating_count: meta.ratingCount ?? null,
+      badges: builder.badges ?? [],
     },
     { Prefer: 'return=representation' },
   );

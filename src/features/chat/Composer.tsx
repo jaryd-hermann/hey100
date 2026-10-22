@@ -23,6 +23,10 @@ export type ComposerProps = {
   hue: number;
   /** Safe-area bottom, since the composer sits on the home indicator. */
   bottomInset: number;
+  placeholder?: string;
+  hideAttach?: boolean;
+  replyTo?: string | null;
+  onCancelReply?: () => void;
 };
 
 /** Attach, emoji tray, auto-growing input and send. */
@@ -35,6 +39,10 @@ export function Composer({
   onSend,
   hue,
   bottomInset,
+  placeholder = 'Message',
+  hideAttach,
+  replyTo,
+  onCancelReply,
 }: ComposerProps) {
   const { c } = useTheme();
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -49,6 +57,29 @@ export function Composer({
 
   return (
     <View>
+      {replyTo ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: layout.gutter,
+            paddingTop: 8,
+          }}
+        >
+          <View style={{ flex: 1, borderLeftWidth: 2, borderLeftColor: c.accent, paddingLeft: 8 }}>
+            <Txt size={11} color={c.accentText} weight={600}>
+              Replying
+            </Txt>
+            <Txt size={13} muted numberOfLines={1}>
+              {replyTo}
+            </Txt>
+          </View>
+          <Pressable onPress={onCancelReply} hitSlop={8}>
+            <Ionicons name="close" size={18} color={c.muted} />
+          </Pressable>
+        </View>
+      ) : null}
       {emojiOpen ? (
         <View
           style={{
@@ -135,6 +166,7 @@ export function Composer({
           borderColor: c.line,
         }}
       >
+        {hideAttach ? null : (
         <Pressable
           onPress={onAttach}
           hitSlop={8}
@@ -144,6 +176,7 @@ export function Composer({
         >
           <Ionicons name="add-circle-outline" size={25} color={c.muted} />
         </Pressable>
+        )}
 
         <Pressable
           onPress={() => setEmojiOpen((prev) => !prev)}
@@ -158,7 +191,7 @@ export function Composer({
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          placeholder="Message"
+          placeholder={placeholder}
           placeholderTextColor={c.muted}
           multiline
           style={{

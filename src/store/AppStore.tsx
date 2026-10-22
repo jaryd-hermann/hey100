@@ -1,10 +1,13 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { queryKeys } from '@/data/repo/keys';
 import * as loop from '@/data/repo/loop';
+import { connectionsFromBadges } from '@/features/apps/connect/fromBadges';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { uploadAttachments } from '@/features/chat/uploadAttachments';
+import { ONBOARDED_KEY } from '@/lib/authStorage';
 import { getSupabase } from '@/lib/supabase';
 
 import {
@@ -24,6 +27,7 @@ import type {
   HeyTargetType,
   IncomingHey,
   InboxData,
+  AppConnection,
   IntegrationKey,
   Match,
   MediaItem,
@@ -36,6 +40,9 @@ import type {
 
 export const FREE_MATCH_LIMIT = 3;
 export const FREE_DAILY_HEYS = 8;
+/** One Pro plan: a month, no season pass. */
+export const PRO_PRICE = '$18';
+export const PRO_PRICE_NOTE = 'a month';
 
 /** A follow-up on a sent hey only unlocks a day after the original. */
 export const FOLLOW_UP_DELAY_MS = 24 * 60 * 60 * 1000;
@@ -49,13 +56,77 @@ function attachmentPreview(media: MediaItem[]): string {
 /** A trade only ever moves forward, so opening a link can't undo feedback. */
 const TRADE_STEPS: TradeStatus[] = ['Not started', 'Using', 'Feedback sent'];
 
+const STOCK_LAYOUTS = new Set([
+  'shots,problem,p0,pitch,builder,p1,looking,p2,p3,p4,stats,pricing,verified',
+  'shots,problem,p0,builder,p1,looking,p2,p3,p4,stats,pricing,verified',
+  'shots,problem,pricing,p0,builder,p1,looking,p2,p3,p4,stats,verified',
+  'shots,problem,pricing,p0,pitch,builder,p1,looking,p2,p3,p4,stats,verified',
+  'shots,problem,pricing,builder,looking,stats,verified',
+]);
+
+function insertMissingAtDefault(saved: SectionKey[]): SectionKey[] {
+  const ordered = [...saved];
+  for (const key of DEFAULT_LAYOUT) {
+    if (ordered.includes(key)) continue;
+    const defaultIndex = DEFAULT_LAYOUT.indexOf(key);
+    let insertAt = ordered.length;
+    for (let i = defaultIndex - 1; i >= 0; i -= 1) {
+      const at = ordered.indexOf(DEFAULT_LAYOUT[i]);
+      if (at !== -1) {
+        insertAt = at + 1;
+        break;
+      }
+    }
+    if (insertAt === ordered.length) {
+      for (let i = defaultIndex + 1; i < DEFAULT_LAYOUT.length; i += 1) {
+        const at = ordered.indexOf(DEFAULT_LAYOUT[i]);
+        if (at !== -1) {
+          insertAt = at;
+          break;
+        }
+      }
+    }
+    ordered.splice(insertAt, 0, key);
+  }
+  return ordered;
+}
+
+function isLegacyStock(saved: SectionKey[]): boolean {
+  if (!saved.length || STOCK_LAYOUTS.has(saved.join(','))) return true;
+  if (!saved.includes('pitch')) return true;
+  const problem = saved.indexOf('problem');
+  const pricing = saved.indexOf('pricing');
+  const stats = saved.indexOf('stats');
+  const pitch = saved.indexOf('pitch');
+  const looking = saved.indexOf('looking');
+  if (problem !== -1 && pricing === problem + 1) return true;
+  if (pricing !== -1 && looking !== -1 && pricing < looking && (pitch === -1 || pitch > looking)) {
+    return true;
+  }
+  if (pricing !== -1 && stats !== -1 && pricing < stats && pitch > stats) return true;
+  return false;
+}
+
+/** Owner order plus any new slots the saved layout has not seen yet. */
+export function withDefaultSections(layout: SectionKey[] | undefined): SectionKey[] {
+  const seen = new Set<SectionKey>();
+  const saved: SectionKey[] = [];
+  for (const key of layout ?? []) {
+    if (key === 'onboarding' || seen.has(key)) continue;
+    seen.add(key);
+    saved.push(key);
+  }
+  if (isLegacyStock(saved)) return [...DEFAULT_LAYOUT];
+  return insertMissingAtDefault(saved);
+}
+
 /** Swaps a section with its neighbour, or returns the order unchanged. */
 export function moveSectionIn(
   layout: SectionKey[],
   index: number,
   direction: -1 | 1,
 ): SectionKey[] {
-  const next = [...layout];
+  const next = withDefaultSections(layout);
   const target = index + direction;
   if (target < 0 || target >= next.length) return next;
   [next[index], next[target]] = [next[target], next[index]];
@@ -82,6 +153,10 @@ export type UserProfile = {
   showAs: 'username' | 'realName';
   job: string;
   workplace: string;
+  industry: string;
+  companySize: string;
+  department: string;
+  yearsExperience: string;
   /** Free-text intro shown at the top of the profile. */
   bio: string;
   /** Same `[kind, value]` shape as `AppListing.links`. */
@@ -98,6 +173,8 @@ export type UserProfile = {
   feedbackGiven: number;
   replyRate: string;
   rating: string;
+  githubLogin?: string;
+  githubCommits?: number;
 };
 
 /** Everything the feedback form collects, which is one review. */
@@ -148,8 +225,10 @@ type State = {
   deletedChats: string[];
   inbox: Record<string, InboxData>;
   /** Integrations connected per owned app. */
-  connections: Record<string, Partial<Record<IntegrationKey, boolean>>>;
+  connections: Record<string, Partial<Record<IntegrationKey, AppConnection>>>;
   seenMatchPaywall: boolean;
+  /** When set, Discover shows this owned listing as the public preview. */
+  previewAppId: string | null;
 };
 
 const initialUser: UserProfile = {
@@ -158,22 +237,49 @@ const initialUser: UserProfile = {
   showAs: 'username',
   job: '',
   workplace: '',
-  bio: 'Building Tidepool and Tally on nights and weekends. Ex-agency iOS dev, now solo. I test every app I say hey to for a full week before I write feedback.',
-  socials: [
-    ['X', '@jarydbuilds'],
-    ['GitHub', 'jaryd'],
-    ['LinkedIn', 'in/jaryd'],
-    ['Web', 'jaryd.dev'],
-  ],
+  industry: '',
+  companySize: '',
+  department: '',
+  yearsExperience: '',
+  bio: '',
+  socials: [],
   tags: {},
   ownWords: {},
   hidden: {},
   referralCode: 'jaryd',
   bonusMatches: 0,
-  feedbackGiven: 14,
-  replyRate: '94%',
-  rating: '4.8',
+  feedbackGiven: 0,
+  replyRate: '—',
+  rating: '—',
 };
+
+/** Drops the bundled Cadence / Lumen / Tidepool loop so a signed-in account never inherits it. */
+function stripBundledLoop(prev: State): Partial<State> | null {
+  const demoMatches = prev.matches.some((match) => match.id === 'cad' || match.id === 'lum');
+  const demoMessages = !!prev.messages.cad || !!prev.messages.lum;
+  const demoTeam = (prev.messages.team ?? []).some(
+    (message) => message.kind === 'announcement' && message.body.includes('Welcome to Hey100'),
+  );
+  const demoInbox = !!prev.inbox.tide || !!prev.inbox.tally;
+  const demoHeys = prev.heys.some((hey) => hey.id.startsWith('hey-'));
+  const demoSent = prev.sentHeys.some((hey) => hey.id.startsWith('sent-'));
+  if (!demoMatches && !demoMessages && !demoTeam && !demoInbox && !demoHeys && !demoSent) {
+    return null;
+  }
+
+  const messages = Object.fromEntries(
+    Object.entries(prev.messages).filter(([id]) => id !== 'cad' && id !== 'lum'),
+  );
+  if (demoTeam) messages.team = [];
+
+  return {
+    matches: demoMatches ? [] : prev.matches,
+    messages,
+    inbox: demoInbox ? {} : prev.inbox,
+    heys: demoHeys ? [] : prev.heys,
+    sentHeys: demoSent ? [] : prev.sentHeys,
+  };
+}
 
 function initialState(): State {
   return {
@@ -197,8 +303,25 @@ function initialState(): State {
     messages: { ...INITIAL_MESSAGES },
     deletedChats: [],
     inbox: { ...INBOX },
-    connections: { tide: { github: true }, tally: { github: true, asc: true } },
+    connections: {
+      tide: {
+        github: {
+          provider: 'github',
+          badge: 'GitHub · 100–500 commits in 30 days',
+          on: '148 commits in 30 days',
+        },
+      },
+      tally: {
+        github: {
+          provider: 'github',
+          badge: 'GitHub · 100–500 commits in 30 days',
+          on: '148 commits in 30 days',
+        },
+        asc: { provider: 'asc', badge: 'Live on the App Store', on: 'Live on the App Store' },
+      },
+    },
     seenMatchPaywall: false,
+    previewAppId: null,
   };
 }
 
@@ -252,7 +375,7 @@ type Store = State & {
   /** Settings can turn the pass-reason prompt back on after it was dismissed. */
   setPassFeedback: (enabled: boolean) => void;
 
-  sendMessage: (matchId: string, body: string, media?: MediaItem[]) => Promise<void>;
+  sendMessage: (matchId: string, body: string, media?: MediaItem[], replyTo?: string) => Promise<void>;
   markChatRead: (matchId: string) => void;
   /** Hides the thread but keeps the match, which is the only record of a trade. */
   deleteChat: (matchId: string) => Promise<void>;
@@ -264,7 +387,8 @@ type Store = State & {
   /** Replaces one thread's messages, from the server or Realtime. */
   setMessages: (matchId: string, messages: Message[]) => void;
 
-  toggleIntegration: (appId: string, key: IntegrationKey) => void;
+  setAppConnection: (appId: string, key: IntegrationKey, value: AppConnection | null) => void;
+  hydrateConnections: (appId: string, next: Partial<Record<IntegrationKey, AppConnection>>) => void;
   moveSection: (appId: string, index: number, direction: -1 | 1) => void;
 
   setPlan: (plan: Plan) => void;
@@ -276,13 +400,14 @@ type Store = State & {
   /** Section edits on the owner's own listing. */
   updateApp: (appId: string, patch: Partial<OwnedApp>) => void;
   updateUser: (patch: Partial<UserProfile>) => void;
+  setPreviewApp: (appId: string | null) => void;
 };
 
 const AppStoreContext = createContext<Store | null>(null);
 
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>(initialState);
-  const { userId } = useAuth();
+  const { userId, restoring } = useAuth();
   const queryClient = useQueryClient();
 
   /**
@@ -298,6 +423,23 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       ...(typeof next === 'function' ? next(prev) : next),
     }));
   }, []);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDED_KEY)
+      .then((value) => {
+        if (value === '1') patch({ onboarded: true });
+      })
+      .catch(() => {});
+  }, [patch]);
+
+  useEffect(() => {
+    if (restoring) return;
+    if (userId) {
+      patch((prev) => stripBundledLoop(prev) ?? {});
+      return;
+    }
+    patch({ onboarded: false });
+  }, [patch, restoring, userId]);
 
   /** Refetches the families an action touched, in parallel. */
   const refresh = useCallback(
@@ -547,7 +689,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sendMessage = useCallback<Store['sendMessage']>(
-    async (matchId, body, media) => {
+    async (matchId, body, media, replyTo) => {
       const trimmed = body.trim();
       if (!trimmed && !media?.length) return;
 
@@ -555,7 +697,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         // Attachments are uploaded before the message, so a half-sent bubble
         // is never written.
         const attachments = userId ? await uploadAttachments(userId, media ?? []) : [];
-        await loop.sendMessage(matchId, trimmed, attachments);
+        await loop.sendMessage(matchId, trimmed, attachments, replyTo);
         await refresh([queryKeys.messages(matchId), queryKeys.threads(userId)]);
         return;
       }
@@ -571,6 +713,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
               kind: 'me',
               body: trimmed || undefined,
               media: media?.length ? media : undefined,
+              ...(replyTo ? { reply: { id: replyTo, body: 'Reply' } } : {}),
             },
           ],
         },
@@ -732,27 +875,51 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [patch],
   );
 
-  const toggleIntegration = useCallback<Store['toggleIntegration']>(
-    (appId, key) =>
+  const badgesFrom = (row: Partial<Record<IntegrationKey, AppConnection>>) =>
+    Object.values(row)
+      .filter((item): item is AppConnection => !!item)
+      .flatMap((item) => (item.badges?.length ? item.badges : [item.badge]));
+
+  const setAppConnection = useCallback<Store['setAppConnection']>(
+    (appId, key, value) =>
       patch((prev) => {
-        const current = prev.connections[appId] ?? {};
-        const connections = {
-          ...prev.connections,
-          [appId]: { ...current, [key]: !current[key] },
-        };
+        const current = { ...(prev.connections[appId] ?? {}) };
+        if (value) current[key] = value;
+        else delete current[key];
         const app = prev.apps[appId];
-        if (!app) return { connections };
-
-        const badges = Object.entries(connections[appId])
-          .filter(([, on]) => on)
-          .map(([k]) => k);
-
         return {
-          connections,
-          apps: {
-            ...prev.apps,
-            [appId]: { ...app, badges: badges as string[] },
-          },
+          connections: { ...prev.connections, [appId]: current },
+          ...(app ? { apps: { ...prev.apps, [appId]: { ...app, badges: badgesFrom(current) } } } : {}),
+        };
+      }),
+    [patch],
+  );
+
+  const hydrateConnections = useCallback<Store['hydrateConnections']>(
+    (appId, next) =>
+      patch((prev) => {
+        const app = prev.apps[appId];
+        const current = prev.connections[appId] ?? {};
+        const keep =
+          Object.keys(next).length > 0
+            ? next
+            : {
+                ...connectionsFromBadges(app?.badges),
+                ...current,
+              };
+        const same =
+          Object.keys(keep).length === Object.keys(current).length &&
+          Object.keys(keep).every((key) => {
+            const left = keep[key as IntegrationKey];
+            const right = current[key as IntegrationKey];
+            return left?.badge === right?.badge && left?.on === right?.on;
+          });
+        if (same) return {};
+        return {
+          connections: { ...prev.connections, [appId]: keep },
+          ...(app && Object.keys(next).length
+            ? { apps: { ...prev.apps, [appId]: { ...app, badges: badgesFrom(keep) } } }
+            : {}),
         };
       }),
     [patch],
@@ -777,9 +944,16 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeOnboarding = useCallback<Store['completeOnboarding']>(
-    ({ user, app }) =>
+    ({ user, app }) => {
+      AsyncStorage.setItem(ONBOARDED_KEY, '1').catch(() => {});
       patch((prev) => {
-        if (!app) return { onboarded: true, user: { ...prev.user, ...user } };
+        if (!app) {
+          return {
+            onboarded: true,
+            user: { ...prev.user, ...user },
+            ...(stripBundledLoop({ ...prev, user: { ...prev.user, ...user } }) ?? {}),
+          };
+        }
 
         // A listing created on the server arrives complete and becomes the only
         // app. Merging it over the sample listing instead would hand a brand
@@ -787,10 +961,23 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         if (app.id) {
           return {
             onboarded: true,
-            user: { ...prev.user, ...user },
+            user: {
+              ...prev.user,
+              ...user,
+              bio: user?.bio ?? '',
+              socials: user?.socials ?? [],
+              feedbackGiven: 0,
+              replyRate: '—',
+              rating: '—',
+            },
             apps: { [app.id]: app as OwnedApp },
             appOrder: [app.id],
             connections: { [app.id]: {} },
+            heys: [],
+            sentHeys: [],
+            matches: [],
+            messages: { team: [] },
+            inbox: {},
           };
         }
 
@@ -801,14 +988,33 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           user: { ...prev.user, ...user },
           apps: { ...prev.apps, tide: { ...prev.apps.tide, ...app } },
         };
-      }),
+      });
+    },
     [patch],
   );
 
   const replaceApps = useCallback<Store['replaceApps']>(
     (apps) =>
       patch((prev) => ({
-        apps: Object.fromEntries(apps.map((app) => [app.id, app])),
+        apps: Object.fromEntries(
+          apps.map((app) => {
+            const local = prev.apps[app.id];
+            if (!local) return [app.id, app];
+            return [
+              app.id,
+              {
+                ...app,
+                problemOf: app.problemOf || local.problemOf,
+                problemFor: app.problemFor || local.problemFor,
+                pricingModel: app.pricingModel || local.pricingModel,
+                priceFrom: app.priceFrom || local.priceFrom,
+                pitchUri: app.pitchUri || local.pitchUri,
+                pitchSeconds: app.pitchSeconds ?? local.pitchSeconds,
+                layout: withDefaultSections(app.layout?.length ? app.layout : local.layout),
+              },
+            ];
+          }),
+        ),
         appOrder: apps.map((app) => app.id),
         connections: Object.fromEntries(
           apps.map((app) => [app.id, prev.connections[app.id] ?? {}]),
@@ -877,7 +1083,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       rateFeedback,
       hydrateLoop,
       setMessages,
-      toggleIntegration,
+      setAppConnection,
+      hydrateConnections,
       moveSection,
       setPlan: (plan) => patch({ plan }),
       markMatchPaywallSeen: () => patch({ seenMatchPaywall: true }),
@@ -886,6 +1093,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       replaceApps,
       updateApp,
       updateUser: (next) => patch((prev) => ({ user: { ...prev.user, ...next } })),
+      setPreviewApp: (appId) => patch({ previewAppId: appId }),
     }),
     [
       addApp,
@@ -914,7 +1122,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setTradeStatus,
       state,
       submitFeedback,
-      toggleIntegration,
+      setAppConnection,
+      hydrateConnections,
     ],
   );
 

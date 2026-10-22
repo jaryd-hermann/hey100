@@ -7,11 +7,19 @@ import { Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
+import { OptionSheet } from '@/components/ui/OptionSheet';
+import { Select } from '@/components/ui/Select';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { USERNAME_PATTERN, generateUsername } from '@/features/onboarding/useOnboardingDraft';
-import { EDITABLE_GROUPS, SOCIAL_FIELDS } from '@/features/profile/fields';
+import {
+  COMPANY_SIZES,
+  DEPARTMENTS,
+  INDUSTRIES,
+  YEARS_EXPERIENCE,
+} from '@/features/onboarding/steps';
+import { BIO_MAX, EDITABLE_GROUPS, SOCIAL_FIELDS } from '@/features/profile/fields';
 import { updateMyProfile } from '@/data/repo/profile';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { pickAvatar, uploadAvatar } from '@/features/profile/avatar';
@@ -19,8 +27,6 @@ import { toProfilePatch } from '@/features/profile/mapProfile';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout } from '@/theme/tokens';
-
-const BIO_MAX = 240;
 
 /** Keeps the editor's socials keyed by network, which is how it renders them. */
 function toMap(socials: [kind: string, value: string][]): Record<string, string> {
@@ -42,6 +48,11 @@ export default function EditProfile() {
   const [bio, setBio] = useState(user.bio);
   const [workplace, setWorkplace] = useState(user.workplace);
   const [job, setJob] = useState(user.job);
+  const [industry, setIndustry] = useState(user.industry);
+  const [companySize, setCompanySize] = useState(user.companySize);
+  const [department, setDepartment] = useState(user.department);
+  const [yearsExperience, setYearsExperience] = useState(user.yearsExperience);
+  const [pickingGroup, setPickingGroup] = useState<string | null>(null);
   const [socials, setSocials] = useState<Record<string, string>>(() => toMap(user.socials));
   const [tags, setTags] = useState<Record<string, string[]>>(user.tags);
   const [ownWords, setOwnWords] = useState<Record<string, string>>(user.ownWords);
@@ -73,6 +84,10 @@ export default function EditProfile() {
     bio.trim() !== user.bio ||
     workplace.trim() !== user.workplace ||
     job.trim() !== user.job ||
+    industry !== user.industry ||
+    companySize !== user.companySize ||
+    department !== user.department ||
+    yearsExperience !== user.yearsExperience ||
     JSON.stringify(nextSocials) !== JSON.stringify(user.socials) ||
     JSON.stringify(tags) !== JSON.stringify(user.tags) ||
     JSON.stringify(ownWords) !== JSON.stringify(user.ownWords);
@@ -80,6 +95,11 @@ export default function EditProfile() {
   const toggleTag = (group: string, option: string) =>
     setTags((prev) => {
       const current = prev[group] ?? [];
+      const cap = EDITABLE_GROUPS.find((row) => row.group === group)?.max;
+      if (!current.includes(option) && cap && current.length >= cap) {
+        toast(`Pick up to ${cap}`);
+        return prev;
+      }
       return {
         ...prev,
         [group]: current.includes(option)
@@ -146,6 +166,10 @@ export default function EditProfile() {
       bio: bio.trim(),
       workplace: workplace.trim(),
       job: job.trim(),
+      industry,
+      companySize,
+      department,
+      yearsExperience,
       socials: nextSocials,
       tags,
       ownWords,
@@ -295,11 +319,40 @@ export default function EditProfile() {
         <View style={{ gap: 12 }}>
           <Label>Day job</Label>
 
+          <Select
+            label="Industry"
+            value={industry}
+            placeholder="The market you work in"
+            options={INDUSTRIES}
+            optional
+            onChange={setIndustry}
+          />
+
           <Field
             label="Where do you work?"
             value={workplace}
             onChangeText={setWorkplace}
-            placeholder="Optional, but it says a lot about your day-to-day."
+            placeholder="The company, studio, or “indie”."
+            multiline
+            minHeight={72}
+          />
+
+          <Select
+            label="Company size"
+            value={companySize}
+            placeholder="How big is the team"
+            options={COMPANY_SIZES}
+            optional
+            onChange={setCompanySize}
+          />
+
+          <Select
+            label="Department"
+            value={department}
+            placeholder="Engineering, design, marketing…"
+            options={DEPARTMENTS}
+            optional
+            onChange={setDepartment}
           />
 
           <Field
@@ -307,6 +360,17 @@ export default function EditProfile() {
             value={job}
             onChangeText={setJob}
             placeholder="Full-time indie? Say that."
+            multiline
+            minHeight={72}
+          />
+
+          <Select
+            label="Years of experience"
+            value={yearsExperience}
+            placeholder="How long you've been at it"
+            options={YEARS_EXPERIENCE}
+            optional
+            onChange={setYearsExperience}
           />
         </View>
 
@@ -317,23 +381,40 @@ export default function EditProfile() {
               {group.title}
             </Txt>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {group.opts.map((option) => (
+            {group.search ? (
+              <View style={{ gap: 10 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {(tags[group.group] ?? []).map((option) => (
+                    <Chip
+                      key={option}
+                      label={option}
+                      selected
+                      onPress={() => toggleTag(group.group, option)}
+                    />
+                  ))}
+                </View>
                 <Chip
-                  key={option}
-                  label={option}
-                  selected={(tags[group.group] ?? []).includes(option)}
-                  onPress={() => toggleTag(group.group, option)}
+                  label={group.max ? `Add · up to ${group.max}` : 'Add'}
+                  onPress={() => setPickingGroup(group.group)}
                 />
-              ))}
-            </View>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {group.opts.map((option) => (
+                  <Chip
+                    key={option}
+                    label={option}
+                    selected={(tags[group.group] ?? []).includes(option)}
+                    onPress={() => toggleTag(group.group, option)}
+                  />
+                ))}
+              </View>
+            )}
 
             {group.own ? (
               <Field
                 value={ownWords[group.group] ?? ''}
-                onChangeText={(text) =>
-                  setOwnWords((prev) => ({ ...prev, [group.group]: text }))
-                }
+                onChangeText={(text) => setOwnWords((prev) => ({ ...prev, [group.group]: text }))}
                 placeholder="In your own words"
                 multiline
                 minHeight={92}
@@ -378,6 +459,19 @@ export default function EditProfile() {
           />
         </View>
       </Sheet>
+
+      {EDITABLE_GROUPS.filter((group) => group.search).map((group) => (
+        <OptionSheet
+          key={group.group}
+          visible={pickingGroup === group.group}
+          onClose={() => setPickingGroup(null)}
+          title={group.title}
+          options={[...new Set([...group.opts, ...(tags[group.group] ?? [])])]}
+          selected={tags[group.group] ?? []}
+          max={group.max}
+          onToggle={(option) => toggleTag(group.group, option)}
+        />
+      ))}
     </View>
   );
 }

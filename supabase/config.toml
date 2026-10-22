@@ -11,6 +11,12 @@ project_id = "hey100"
 enabled = true
 verify_jwt = true
 
+# OAuth callbacks arrive from GitHub/Stripe without a user JWT. Authed
+# actions check the bearer token inside the function.
+[functions.listing-connect]
+enabled = true
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.

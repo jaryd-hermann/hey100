@@ -13,6 +13,8 @@ export type AppMetadata = {
   shots: string[];
   storeUrl?: string;
   hue: number;
+  rating?: number;
+  ratingCount?: number;
 };
 
 /**

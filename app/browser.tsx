@@ -11,20 +11,25 @@ import { layout } from '@/theme/tokens';
 
 /** Link chips carry a handle rather than a URL, so expand it per network. */
 function toUrl(kind: string, value: string): string {
-  const handle = value.replace('@', '');
+  if (value.startsWith('http')) return value;
+  const handle = value.replace(/^@/, '').replace(/^in\//, '');
   switch (kind) {
     case 'TikTok':
       return `https://tiktok.com/@${handle}`;
     case 'Instagram':
       return `https://instagram.com/${handle}`;
+    case 'YouTube':
+      return `https://youtube.com/@${handle}`;
     case 'X':
       return `https://x.com/${handle}`;
     case 'GitHub':
       return `https://github.com/${handle}`;
     case 'LinkedIn':
-      return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(value)}`;
+      return `https://www.linkedin.com/in/${handle}`;
+    case 'Discord':
+      return value.includes('.') ? `https://${value.replace(/^https?:\/\//, '')}` : `https://discord.com/${handle}`;
     default:
-      return value.startsWith('http') ? value : `https://${value}`;
+      return `https://${value}`;
   }
 }
 

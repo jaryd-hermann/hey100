@@ -85,17 +85,19 @@ export function Lightbox({ visible, items, index, hue, layout, onClose }: Lightb
     extrapolate: 'clamp',
   });
 
-  // Portrait shots are tall and narrow; landscape ones fill the width.
-  const wide = width - layoutTokens.gutter * 2;
-  const tall = height * 0.56;
+  // Fill most of the screen so a phone screenshot is actually readable.
+  const wide = width - 16;
+  const tall = height * 0.84;
   const box =
     layout === 'horizontal'
-      ? { width: wide, height: (wide * 9) / 16 }
+      ? { width: wide, height: Math.min((wide * 9) / 16, tall) }
       : { width: Math.min(wide, (tall * 9) / 16), height: tall };
+
+  if (!visible) return null;
 
   return (
     <Modal
-      visible={visible}
+      visible
       transparent
       animationType="fade"
       onRequestClose={onClose}

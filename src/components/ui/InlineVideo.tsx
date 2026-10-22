@@ -3,7 +3,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useRef, useState } from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import type { MediaItem, ShotLayout } from '@/data/types';
+import { SHOT_RATIO, type MediaItem, type ShotLayout } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -13,8 +13,6 @@ import { Txt } from './Txt';
 /** Deliberate sticker tones: controls sit over media, not over a themed surface. */
 const OVER_MEDIA = '#FFFFFF';
 const SCRIM = 'rgba(0, 0, 0, 0.45)';
-
-const ASPECT: Record<ShotLayout, number> = { horizontal: 16 / 9, vertical: 9 / 16 };
 
 export type InlineVideoProps = {
   item: MediaItem;
@@ -47,7 +45,7 @@ export function InlineVideo({
 
   const playable = Boolean(item.uri);
   const frame: ViewStyle = {
-    aspectRatio: ASPECT[layout],
+    aspectRatio: SHOT_RATIO[layout],
     borderRadius: radius,
     overflow: 'hidden',
     backgroundColor: c.raised,

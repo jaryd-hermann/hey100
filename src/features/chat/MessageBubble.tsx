@@ -24,6 +24,8 @@ export type MessageBubbleProps = {
   /** Arrived while the user was away, so it carries a highlight. */
   unread?: boolean;
   onOpenMedia?: (items: MediaItem[], index: number) => void;
+  onLongPress?: () => void;
+  onToggleReaction?: (emoji: string) => void;
 };
 
 export function MessageBubble({
@@ -32,6 +34,8 @@ export function MessageBubble({
   hue,
   unread,
   onOpenMedia,
+  onLongPress,
+  onToggleReaction,
 }: MessageBubbleProps) {
   const { c } = useTheme();
 
@@ -45,17 +49,69 @@ export function MessageBubble({
 
   if (message.kind === 'announcement') {
     return (
-      <Card tone="soft" padding={14} radius={radii.cardLg} style={{ gap: 8 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Label size={10}>Announcement · all builders</Label>
-          <Txt size={11} color={c.accentText}>
-            {message.when}
-          </Txt>
-        </View>
-        <Txt size={15} lh={1.5} color={c.accentText}>
-          {message.body}
-        </Txt>
-      </Card>
+      <View>
+        <Card tone="soft" padding={14} radius={radii.cardLg} style={{ gap: 8 }}>
+          <Pressable onLongPress={onLongPress} delayLongPress={280} style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Label size={10}>Announcement · all builders</Label>
+              <Txt size={11} color={c.accentText}>
+                {message.when}
+              </Txt>
+            </View>
+            {message.reply ? (
+              <View style={{ borderLeftWidth: 2, borderLeftColor: c.accent, paddingLeft: 8 }}>
+                <Txt size={12} muted numberOfLines={2}>
+                  {message.reply.body}
+                </Txt>
+              </View>
+            ) : null}
+            {message.media?.length ? (
+              <View style={{ flexDirection: 'row', gap: 5 }}>
+                {message.media.map((item, index) => (
+                  <Attachment
+                    key={`${item.label}-${index}`}
+                    item={item}
+                    hue={hue}
+                    width={SOLO_WIDTH}
+                    onPress={onOpenMedia ? () => onOpenMedia(message.media!, index) : undefined}
+                  />
+                ))}
+              </View>
+            ) : null}
+            {message.body ? (
+              <Txt size={15} lh={1.5} color={c.accentText}>
+                {message.body}
+              </Txt>
+            ) : null}
+          </Pressable>
+        </Card>
+        {message.reactions?.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            {message.reactions.map((reaction) => (
+              <Pressable
+                key={reaction.emoji}
+                onPress={() => onToggleReaction?.(reaction.emoji)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 8,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: reaction.mine ? c.soft : c.raised,
+                  borderWidth: 1,
+                  borderColor: reaction.mine ? c.accent : c.line,
+                }}
+              >
+                <Txt size={13}>{reaction.emoji}</Txt>
+                <Txt size={11} weight={600}>
+                  {reaction.count}
+                </Txt>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </View>
     );
   }
 
@@ -97,7 +153,9 @@ export function MessageBubble({
   const hasBody = !!message.body;
 
   const bubble = (
-    <View
+    <Pressable
+      onLongPress={onLongPress}
+      delayLongPress={280}
       style={{
         backgroundColor: mine ? c.ink : c.surface,
         borderWidth: mine ? 0 : 1,
@@ -111,6 +169,22 @@ export function MessageBubble({
         gap: 8,
       }}
     >
+      {message.reply ? (
+        <View
+          style={{
+            borderLeftWidth: 2,
+            borderLeftColor: mine ? c.bg : c.accent,
+            paddingLeft: 8,
+            marginHorizontal: media.length ? 8 : 0,
+            marginTop: media.length ? 6 : 0,
+            opacity: 0.8,
+          }}
+        >
+          <Txt size={12} color={mine ? c.bg : c.muted} numberOfLines={2}>
+            {message.reply.body}
+          </Txt>
+        </View>
+      ) : null}
       {media.length ? (
         <View style={{ flexDirection: 'row', gap: 5 }}>
           {media.map((item, index) => (
@@ -135,11 +209,43 @@ export function MessageBubble({
           {message.body}
         </Txt>
       ) : null}
-    </View>
+    </Pressable>
   );
 
+  const chips = message.reactions?.length ? (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+      {message.reactions.map((reaction) => (
+        <Pressable
+          key={reaction.emoji}
+          onPress={() => onToggleReaction?.(reaction.emoji)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 8,
+            height: 26,
+            borderRadius: 13,
+            backgroundColor: reaction.mine ? c.soft : c.raised,
+            borderWidth: 1,
+            borderColor: reaction.mine ? c.accent : c.line,
+          }}
+        >
+          <Txt size={13}>{reaction.emoji}</Txt>
+          <Txt size={11} weight={600}>
+            {reaction.count}
+          </Txt>
+        </Pressable>
+      ))}
+    </View>
+  ) : null;
+
   if (mine) {
-    return <View style={{ maxWidth: '82%', alignSelf: 'flex-end' }}>{bubble}</View>;
+    return (
+      <View style={{ maxWidth: '82%', alignSelf: 'flex-end' }}>
+        {bubble}
+        {chips}
+      </View>
+    );
   }
 
   return (
@@ -153,7 +259,10 @@ export function MessageBubble({
       }}
     >
       {avatar}
-      <View style={{ flexShrink: 1 }}>{bubble}</View>
+      <View style={{ flexShrink: 1 }}>
+        {bubble}
+        {chips}
+      </View>
     </View>
   );
 }

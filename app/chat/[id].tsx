@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
@@ -10,12 +11,22 @@ import { Lightbox } from '@/components/ui/Lightbox';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { shortName, slugify } from '@/data/mock';
-import type { AppListing, MediaItem } from '@/data/types';
+import type { AppListing, MediaItem, Message } from '@/data/types';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import { ChatMenu } from '@/features/chat/ChatMenu';
 import { Composer } from '@/features/chat/Composer';
+import {
+  fetchBroadcastsWithReactions,
+  broadcastsToMessages,
+  sendAdminDm,
+  sendBroadcast,
+} from '@/data/repo/admin';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { avatarName, TEAM_ID } from '@/features/chat/chatMeta';
+import { MessageActions } from '@/features/chat/MessageActions';
 import { MessageBubble } from '@/features/chat/MessageBubble';
+import { toggleReaction } from '@/features/chat/reactions';
+import { uploadAttachments } from '@/features/chat/uploadAttachments';
 import { TeamMark } from '@/features/chat/TeamMark';
 import { TradeAppSheet } from '@/features/chat/TradeAppSheet';
 import { TradeCard } from '@/features/chat/TradeCard';
@@ -52,9 +63,11 @@ export default function ChatThread() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const { userId, isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const pickMedia = useMediaPicker();
 
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, desk } = useLocalSearchParams<{ id: string; desk?: string }>();
   const scrollRef = useRef<ScrollView>(null);
 
   const [draft, setDraft] = useState('');
@@ -66,8 +79,11 @@ export default function ChatThread() {
     items: MediaItem[];
     index: number;
   } | null>(null);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [actionFor, setActionFor] = useState<Message | null>(null);
 
   const isTeam = id === TEAM_ID;
+  const isBroadcast = isTeam && desk === 'admin' && isAdmin;
   const match = store.matches.find((item) => item.id === id);
   // A thread is keyed by the match, so the listing is the one it is about.
   const listing = store.listing(match?.appId ?? id);
@@ -75,6 +91,11 @@ export default function ChatThread() {
 
   useThreadMessages(isTeam || !match ? null : id);
   const stored = useMemo(() => store.messages[id] ?? [], [id, store.messages]);
+  const { data: broadcasts = [] } = useQuery({
+    queryKey: ['broadcasts'],
+    enabled: isBroadcast,
+    queryFn: fetchBroadcastsWithReactions,
+  });
 
   // Where the unread run started when the thread was opened, before it was read.
   const [unreadStart] = useState(() => {
@@ -88,7 +109,7 @@ export default function ChatThread() {
     markChatRead(id);
   }, [id, markChatRead]);
 
-  const messages = stored;
+  const messages = isBroadcast ? broadcastsToMessages(broadcasts, userId, true) : stored;
 
   if (!listing) {
     return (
@@ -118,14 +139,60 @@ export default function ChatThread() {
   const send = () => {
     const body = draft.trim();
     if (!body && !attachments.length) return;
+    const replyId = replyTo?.id;
+    const pending = attachments;
 
-    // The composer clears straight away; uploads and the write happen behind
-    // it, and the message appears when the server has it.
-    void store.sendMessage(id, body, attachments).catch(() => toast("That didn't send"));
+    if (isBroadcast && userId) {
+      void uploadAttachments(userId, pending)
+        .then((media) => sendBroadcast(body, media, replyId))
+        .then(() =>
+          Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['broadcasts'] }),
+            queryClient.invalidateQueries({ queryKey: ['team-chat'] }),
+          ]),
+        )
+        .catch(() => toast("That didn't send"));
+    } else if (isTeam && userId) {
+      store.setMessages(id, [
+        ...(store.messages[id] ?? []),
+        {
+          kind: 'me',
+          body: body || undefined,
+          media: pending.length ? pending : undefined,
+          reply: replyTo?.body || replyTo?.id ? { id: replyTo.id ?? '', body: replyTo.body || 'Attachment' } : undefined,
+        },
+      ]);
+      void uploadAttachments(userId, pending)
+        .then((media) => sendAdminDm(userId, body, false, media, replyId))
+        .then(() => queryClient.invalidateQueries({ queryKey: ['team-chat', userId] }))
+        .catch(() => toast("That didn't send"));
+    } else {
+      void store.sendMessage(id, body, pending, replyId).catch(() => toast("That didn't send"));
+    }
     setAttachments([]);
-
     setDraft('');
+    setReplyTo(null);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+  };
+
+  const react = async (message: Message, emoji: string) => {
+    if (!message.id || !userId) return;
+    try {
+      await toggleReaction(
+        isBroadcast || message.kind === 'announcement'
+          ? { broadcastId: message.id }
+          : isTeam
+            ? { dmId: message.id }
+            : { messageId: message.id },
+        emoji,
+        userId,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: isBroadcast ? ['broadcasts'] : isTeam ? ['team-chat', userId] : ['messages', id],
+      });
+    } catch {
+      toast("Couldn't react");
+    }
   };
 
   const attach = async () => {
@@ -172,20 +239,9 @@ export default function ChatThread() {
             {isTeam ? (
               <TeamMark size={38} badge={24} ring={c.bg} />
             ) : (
-              <View style={{ width: 46, height: 38 }}>
-                <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={38} />
-                <View
-                  style={{
-                    position: 'absolute',
-                    left: 20,
-                    bottom: -4,
-                    borderRadius: 13,
-                    borderWidth: 2,
-                    borderColor: c.bg,
-                  }}
-                >
-                  <Avatar name={builder} uri={listing.builderPhoto} size={24} />
-                </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={36} />
+                <Avatar name={builder} uri={listing.builderPhoto} size={36} />
               </View>
             )}
 
@@ -195,7 +251,7 @@ export default function ChatThread() {
               </Txt>
               {/* Chat always shows the real name, since this is a match. */}
               <Txt size={12.5} muted numberOfLines={1}>
-                {listing.builder}
+                {isBroadcast ? 'Broadcast to everyone' : listing.builder}
               </Txt>
             </View>
 
@@ -253,6 +309,8 @@ export default function ChatThread() {
                   />
                 }
                 onOpenMedia={(items, at) => setViewer({ items, index: at })}
+                onLongPress={() => setActionFor(message)}
+                onToggleReaction={(emoji) => void react(message, emoji)}
               />
             </React.Fragment>
           ))}
@@ -278,6 +336,22 @@ export default function ChatThread() {
         onSend={send}
         hue={listing.hue}
         bottomInset={insets.bottom}
+        placeholder={isBroadcast ? 'Message every builder…' : 'Message'}
+        replyTo={replyTo?.body || (replyTo ? 'Attachment' : null)}
+        onCancelReply={() => setReplyTo(null)}
+      />
+
+      <MessageActions
+        visible={!!actionFor}
+        onClose={() => setActionFor(null)}
+        onReply={() => {
+          setReplyTo(actionFor);
+          setActionFor(null);
+        }}
+        onReact={(emoji) => {
+          if (actionFor) void react(actionFor, emoji);
+          setActionFor(null);
+        }}
       />
 
       <ChatMenu

@@ -1,4 +1,5 @@
 import 'react-native-url-polyfill/auto';
+import '@/lib/secureStoreGuard';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -9,7 +10,13 @@ import { config, isSupabaseConfigured } from './config';
 
 export type Db = SupabaseClient<Database>;
 
-let client: Db | null = null;
+declare global {
+  // Survives Fast Refresh so a previous client's refresh timer can be stopped.
+  // eslint-disable-next-line no-var
+  var __hey100Supabase: Db | undefined;
+  // eslint-disable-next-line no-var
+  var __hey100SupabaseStorage: 'async' | undefined;
+}
 
 /**
  * Null while the env vars are missing, which lets every repository fall back to
@@ -19,8 +26,13 @@ let client: Db | null = null;
 export function getSupabase(): Db | null {
   if (!isSupabaseConfigured) return null;
 
-  if (!client) {
-    client = createClient<Database>(config.supabaseUrl!, config.supabaseAnonKey!, {
+  if (globalThis.__hey100Supabase && globalThis.__hey100SupabaseStorage !== 'async') {
+    void globalThis.__hey100Supabase.auth.stopAutoRefresh();
+    globalThis.__hey100Supabase = undefined;
+  }
+
+  if (!globalThis.__hey100Supabase) {
+    globalThis.__hey100Supabase = createClient<Database>(config.supabaseUrl!, config.supabaseAnonKey!, {
       auth: {
         // React Native has no browser storage and never sees an OAuth code in a
         // URL; the session lives in AsyncStorage and arrives via deep link.
@@ -31,9 +43,10 @@ export function getSupabase(): Db | null {
         flowType: 'implicit',
       },
     });
+    globalThis.__hey100SupabaseStorage = 'async';
   }
 
-  return client;
+  return globalThis.__hey100Supabase;
 }
 
 /**

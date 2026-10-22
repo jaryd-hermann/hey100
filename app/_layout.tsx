@@ -1,3 +1,5 @@
+import '@/lib/secureStoreGuard';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -14,6 +16,8 @@ import { useListingsSync } from '@/features/apps/useListingsSync';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { useLoopSync } from '@/features/loop/useLoopSync';
 import { useLoopRealtime } from '@/features/loop/useRealtime';
+import { useTeamChat } from '@/features/chat/useTeamChat';
+import { HeyMenuProvider } from '@/features/nav/HeyMenu';
 import { useProfileSync } from '@/features/profile/useProfileSync';
 import { getPostHog } from '@/lib/analytics';
 import { isPostHogConfigured, warnOnMissingConfig } from '@/lib/config';
@@ -87,7 +91,9 @@ export default function RootLayout() {
               <AuthProvider>
                 <AppStoreProvider>
                   <ToastProvider>
-                    <Shell />
+                    <HeyMenuProvider>
+                      <Shell />
+                    </HeyMenuProvider>
                   </ToastProvider>
                 </AppStoreProvider>
               </AuthProvider>
@@ -107,6 +113,7 @@ function Shell() {
   useListingsSync();
   useLoopSync();
   useLoopRealtime();
+  useTeamChat();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>

@@ -42,6 +42,10 @@ export default function DiscoverScreen() {
   const [builderOpen, setBuilderOpen] = useState(false);
 
   const deck = useMemo(() => {
+    if (store.previewAppId) {
+      const mine = store.listing(store.previewAppId);
+      return mine ? [mine] : [];
+    }
     // The server already excludes what has been passed, heyed or matched; the
     // bundled deck has none of that, so passes are filtered here for both.
     const source = store.deckIds
@@ -53,7 +57,7 @@ export default function DiscoverScreen() {
     );
 
     return applyFilters(listings, filters);
-  }, [filters, store]);
+  }, [filters, store, store.previewAppId]);
 
   const listing = deck[index];
   const viaApp = listing ? store.attributedApp(listing.id) : store.primaryApp;
@@ -172,7 +176,35 @@ export default function DiscoverScreen() {
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
       <DiscoverHeader filters={filters} onChange={setFilters} />
 
-      <View style={{ height: 14 }} />
+      {store.previewAppId ? (
+        <View
+          style={{
+            marginHorizontal: layout.gutter,
+            marginTop: 4,
+            marginBottom: 8,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderRadius: 14,
+            backgroundColor: c.surface,
+            borderWidth: 1,
+            borderColor: c.line,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <Txt size={13} style={{ flex: 1 }}>
+            Preview · this is what everyone else sees
+          </Txt>
+          <Pressable onPress={() => store.setPreviewApp(null)} hitSlop={8}>
+            <Txt size={13} weight={600} color={c.accentText}>
+              Exit
+            </Txt>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={{ height: 14 }} />
+      )}
 
       <ScrollView
         style={{ flex: 1 }}
@@ -187,7 +219,7 @@ export default function DiscoverScreen() {
       >
         <AppPage
           listing={listing}
-          mode="discover"
+          mode={store.previewAppId ? 'web' : 'discover'}
           onHey={setHeyTarget}
           onOpenBuilder={() => setBuilderOpen(true)}
           onOpenLink={(kind, value) =>
@@ -198,6 +230,7 @@ export default function DiscoverScreen() {
 
       <CompactAppBar listing={listing} visible={compact} top={insets.top} />
 
+      {store.previewAppId ? null : (
       <View
         style={{
           position: 'absolute',
@@ -209,7 +242,11 @@ export default function DiscoverScreen() {
           justifyContent: 'space-between',
         }}
       >
-        <Glass radius={29} intensity={55}>
+        <Glass
+          radius={29}
+          intensity={55}
+          style={{ borderWidth: 2, borderColor: c.ink, overflow: 'hidden' }}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Pass on ${shortName(listing.name)}`}
@@ -223,9 +260,10 @@ export default function DiscoverScreen() {
               height: 58,
               alignItems: 'center',
               justifyContent: 'center',
+              backgroundColor: 'rgba(255, 107, 97, 0.18)',
             }}
           >
-            <Ionicons name="close" size={26} color={c.ink} />
+            <Ionicons name="close" size={28} color={c.danger} />
           </Pressable>
         </Glass>
 
@@ -234,6 +272,7 @@ export default function DiscoverScreen() {
           onPress={() => setHeyTarget({ type: 'app', id: listing.id, label: listing.name })}
         />
       </View>
+      )}
 
       <HeySheet
         visible={!!heyTarget}
@@ -255,6 +294,7 @@ export default function DiscoverScreen() {
           router.push({ pathname: '/browser', params: { kind, value } });
         }}
       />
+
     </View>
   );
 }

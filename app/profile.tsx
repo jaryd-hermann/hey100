@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import * as WebBrowser from 'expo-web-browser';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,8 +14,9 @@ import { Chip } from '@/components/ui/Chip';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { stripEmoji } from '@/data/mock';
+import { syncGithubProfile } from '@/data/repo/connections';
 import { TAG_ROWS } from '@/features/profile/fields';
-import { useStore } from '@/store/AppStore';
+import { PRO_PRICE, useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
@@ -24,6 +27,8 @@ const SOCIAL_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   LinkedIn: 'logo-linkedin',
   TikTok: 'logo-tiktok',
   Instagram: 'logo-instagram',
+  YouTube: 'logo-youtube',
+  Discord: 'logo-discord',
 };
 
 export default function Profile() {
@@ -32,8 +37,32 @@ export default function Profile() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const queryClient = useQueryClient();
+  const [githubBusy, setGithubBusy] = useState(false);
 
   const { user } = store;
+
+  const connectGithub = async () => {
+    if (githubBusy) return;
+    setGithubBusy(true);
+    try {
+      let result = await syncGithubProfile();
+      if (result.url) {
+        const auth = await WebBrowser.openAuthSessionAsync(result.url, 'hey100://connect');
+        if (auth.type !== 'success') return;
+        result = await syncGithubProfile();
+      }
+      if (result.commits != null) {
+        store.updateUser({ githubLogin: result.login, githubCommits: result.commits });
+        toast('GitHub commits updated');
+      }
+      void queryClient.invalidateQueries({ queryKey: ['profile'] });
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'GitHub did not connect');
+    } finally {
+      setGithubBusy(false);
+    }
+  };
   const handle = user.username;
   const socials = user.socials.filter(([, value]) => !!value);
 
@@ -85,7 +114,13 @@ export default function Profile() {
               <Txt size={15} lh={1.5}>
                 {user.bio}
               </Txt>
-            ) : null}
+            ) : (
+              <Pressable onPress={() => router.push('/profile/edit')}>
+                <Txt size={15} color={c.accentText}>
+                  Add a bio
+                </Txt>
+              </Pressable>
+            )}
 
             {socials.length ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
@@ -109,13 +144,35 @@ export default function Profile() {
               </View>
             ) : null}
           </View>
-        ) : null}
+        ) : (
+          <Pressable onPress={() => router.push('/profile/edit')}>
+            <Txt size={15} color={c.accentText}>
+              Add a bio
+            </Txt>
+          </Pressable>
+        )}
 
-        {/* Five stats sit on a three-column grid so both rows stay aligned. */}
+        <Pressable onPress={() => router.push('/paywall?from=profile')}>
+          <Card padding={16} radius={radii.cardLg} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Label size={10}>Subscription</Label>
+              <Txt font="mono" size={18} weight={500}>
+                {store.isPro ? 'Hey100 Pro' : 'Free'}
+              </Txt>
+              <Txt size={13} muted>
+                {store.isPro ? `${PRO_PRICE} a month` : `Tap to upgrade · ${PRO_PRICE}/mo`}
+              </Txt>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.muted} />
+          </Card>
+        </Pressable>
+
+        {/* Real counts only. A dash means we do not have the number yet. */}
         <Card padding={16} radius={radii.cardLg}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 15 }}>
             {(
               [
+                ["Heys given", String(store.sentHeys.length)],
                 ['Feedback given', String(user.feedbackGiven)],
                 ['Reply rate', user.replyRate],
                 ['Rating', user.rating],
@@ -132,6 +189,28 @@ export default function Profile() {
             ))}
           </View>
         </Card>
+
+        <Pressable onPress={() => void connectGithub()} disabled={githubBusy}>
+          <Card padding={16} radius={radii.cardLg} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="logo-github" size={22} color={c.ink} />
+            <View style={{ flex: 1, gap: 3 }}>
+              <Label size={10}>GitHub</Label>
+              <Txt font="mono" size={18} weight={500}>
+                {user.githubCommits != null
+                  ? `${user.githubCommits.toLocaleString()} commits`
+                  : githubBusy
+                    ? 'Counting…'
+                    : 'Connect GitHub'}
+              </Txt>
+              <Txt size={13} muted>
+                {user.githubLogin
+                  ? `@${user.githubLogin} · across your repos`
+                  : 'Shows your total commits as a builder'}
+              </Txt>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.muted} />
+          </Card>
+        </Pressable>
 
         <Card tone="soft" padding={16} radius={radii.cardLg} style={{ gap: 12 }}>
           <Txt size={16} weight={700} color={c.accentText}>
@@ -189,7 +268,7 @@ export default function Profile() {
         {TAG_ROWS.map(([label, group]) => {
           const values =
             group === 'job'
-              ? [user.job, user.workplace].filter(Boolean)
+              ? [user.job, user.department, user.workplace, user.industry].filter(Boolean)
               : (user.tags[group] ?? []).map(stripEmoji);
 
           if (!values.length) return null;

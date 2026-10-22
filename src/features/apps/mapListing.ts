@@ -43,6 +43,12 @@ export type ListingLike = AppRow & {
 export type ListingContext = {
   /** The owner's display name, which lives on the profile, not the listing. */
   builder: string;
+  builderPhoto?: string;
+  role?: string;
+  style?: string;
+  skills?: string[];
+  builderSocials?: [string, string][];
+  githubCommits?: number;
   /** Resolves a prompt id to its question text. */
   promptLabel: (promptId: string) => string;
 };
@@ -81,9 +87,14 @@ export function toOwnedApp(row: ListingLike, ctx: ListingContext): OwnedApp {
     stage: row.stage,
     hue: row.hue,
     ...(row.icon_path ? { icon: publicUrl('listing-media', row.icon_path) } : {}),
+    ...(row.cover_path ? { cover: publicUrl('listing-media', row.cover_path) } : {}),
     builder: ctx.builder,
-    role: row.builder_role ?? '',
-    style: row.builder_style ?? '',
+    ...(ctx.builderPhoto ? { builderPhoto: ctx.builderPhoto } : {}),
+    role: ctx.role || row.builder_role || '',
+    style: ctx.style || row.builder_style || '',
+    ...(ctx.skills?.length ? { skills: ctx.skills } : {}),
+    ...(ctx.builderSocials?.length ? { builderSocials: ctx.builderSocials } : {}),
+    ...(ctx.githubCommits != null ? { githubCommits: ctx.githubCommits } : {}),
     // Stats land with phase 6; an em dash is what the design shows for "no
     // data yet" and is honest until the counts are real.
     likes: '—',
@@ -93,12 +104,25 @@ export function toOwnedApp(row: ListingLike, ctx: ListingContext): OwnedApp {
     shotLayout: (row.shot_layout as ShotLayout) ?? 'vertical',
     prompts,
     ideal: idealUsers,
-    badges: [],
+    badges: Array.isArray((row as { badges?: string[] }).badges)
+      ? ((row as { badges?: string[] }).badges ?? [])
+      : [],
     links: Object.entries(links)
       .filter(([, value]) => value)
       .map(([kind, value]) => [LINK_LABELS[kind] ?? kind, value] as [string, string]),
     code: row.test_code ?? undefined,
     asked: joined(row.feedback_wanted, '').toLowerCase() || undefined,
+    problemOf: row.problem_of || undefined,
+    problemFor: row.problem_for || undefined,
+    pricingModel: row.pricing_model || undefined,
+    priceFrom: row.price_from || undefined,
+    onboarding: row.onboarding || undefined,
+    ...(row.store_rating != null ? { storeRating: Number(row.store_rating) } : {}),
+    ...(row.store_rating_count != null ? { storeRatingCount: Number(row.store_rating_count) } : {}),
+    ...(row.store_url ? { storeUrl: row.store_url } : {}),
+    ...(row.pitch_path
+      ? { pitchUri: publicUrl('listing-media', row.pitch_path), pitchSeconds: row.pitch_seconds ?? 0 }
+      : {}),
     views: 0,
     matches: 0,
     primary: row.is_primary,
@@ -142,6 +166,17 @@ export function toListingPatch(app: Partial<OwnedApp>): AppPatch {
   if (app.code !== undefined) patch.test_code = app.code || null;
   if (app.primary !== undefined) patch.is_primary = app.primary;
   if (app.layout !== undefined) patch.layout = app.layout;
+  if (app.cover === '') patch.cover_path = null;
+  if (app.problemOf !== undefined) patch.problem_of = app.problemOf;
+  if (app.problemFor !== undefined) patch.problem_for = app.problemFor;
+  if (app.pricingModel !== undefined) patch.pricing_model = app.pricingModel;
+  if (app.priceFrom !== undefined) patch.price_from = app.priceFrom;
+  if (app.onboarding !== undefined) patch.onboarding = app.onboarding;
+  if (app.storeRating !== undefined) patch.store_rating = app.storeRating;
+  if (app.storeRatingCount !== undefined) patch.store_rating_count = app.storeRatingCount;
+  if (app.storeUrl !== undefined) patch.store_url = app.storeUrl || null;
+  if (app.pitchSeconds !== undefined) patch.pitch_seconds = app.pitchSeconds;
+  if (app.pitchUri === '') patch.pitch_path = null;
 
   if (app.ideal !== undefined) {
     patch.ideal_users = {

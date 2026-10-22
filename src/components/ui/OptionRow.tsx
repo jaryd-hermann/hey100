@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { Pressable, View } from 'react-native';
@@ -13,9 +14,11 @@ export type OptionRowProps = {
   onPress: () => void;
   /** Radio circle for single-select, check square for multi-select. */
   single?: boolean;
+  /** Drawn in the text colour, for options that carry a mark instead of an emoji. */
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
 };
 
-export function OptionRow({ label, selected, onPress, single }: OptionRowProps) {
+export function OptionRow({ label, selected, onPress, single, icon }: OptionRowProps) {
   const { c } = useTheme();
 
   return (
@@ -40,6 +43,12 @@ export function OptionRow({ label, selected, onPress, single }: OptionRowProps) 
         opacity: pressed ? 0.8 : 1,
       })}
     >
+      {icon ? (
+        <View style={{ width: 22, alignItems: 'center' }}>
+          <Ionicons name={icon} size={19} color={c.ink} />
+        </View>
+      ) : null}
+
       <Txt size={16} weight={selected ? 500 : 400} style={{ flex: 1 }}>
         {label}
       </Txt>

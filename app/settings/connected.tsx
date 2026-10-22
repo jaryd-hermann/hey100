@@ -4,12 +4,16 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Label, Txt } from '@/components/ui/Txt';
 import { INTEGRATIONS, shortName } from '@/data/mock';
-import type { Integration } from '@/data/types';
+import {
+  ConnectSheets,
+  IntegrationRow,
+  useIntegrationActions,
+} from '@/features/apps/connect/ConnectSheets';
+import { useConnectionsSync } from '@/features/apps/connect/useConnect';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -24,7 +28,9 @@ export default function ConnectedAccounts() {
   // Connections are per listing, so a builder with two apps picks which one.
   const [appId, setAppId] = useState(store.primaryApp.id);
   const app = store.apps[appId] ?? store.primaryApp;
-  const connections = store.connections[app.id] ?? {};
+  useConnectionsSync(app.id);
+  const connect = useIntegrationActions(app.id);
+  const connections = connect.connected;
   const connectedCount = Object.values(connections).filter(Boolean).length;
 
   return (
@@ -80,18 +86,45 @@ export default function ConnectedAccounts() {
           </View>
 
           {INTEGRATIONS.map((integration) => (
-            <IntegrationRow
-              key={integration.key}
-              integration={integration}
-              connected={!!connections[integration.key]}
-              onToggle={() => {
-                store.toggleIntegration(app.id, integration.key);
-                captureEvent('integration_toggled', {
-                  provider: integration.key,
-                  connected: !connections[integration.key],
-                });
-              }}
-            />
+            <View key={integration.key} style={{ gap: 9 }}>
+              <IntegrationRow
+                integration={integration}
+                connected={connections[integration.key] ?? null}
+                onPress={() => {
+                  void connect.run(integration.key);
+                  captureEvent('integration_toggled', {
+                    provider: integration.key,
+                    connected: !connections[integration.key],
+                  });
+                }}
+              />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: c.bg,
+                  borderRadius: radii.card,
+                  borderWidth: 1,
+                  borderColor: c.line,
+                  paddingHorizontal: 11,
+                  paddingVertical: 9,
+                }}
+              >
+                <Ionicons
+                  name={connections[integration.key] ? 'shield-checkmark' : 'shield-outline'}
+                  size={14}
+                  color={connections[integration.key] ? c.accentText : c.muted}
+                />
+                <Txt size={11.5} lh={1.35} muted style={{ flex: 1 }}>
+                  {connections[integration.key] ? 'On your page: ' : 'Unlocks: '}
+                  {(connections[integration.key]?.badges ??
+                    (connections[integration.key]?.badge ? [connections[integration.key]!.badge] : null) ??
+                    [integration.badge]
+                  ).join(' · ')}
+                </Txt>
+              </View>
+            </View>
           ))}
         </Card>
 
@@ -122,85 +155,13 @@ export default function ConnectedAccounts() {
           <Ionicons name="chevron-forward" size={16} color={c.accentText} />
         </Pressable>
       </ScrollView>
-    </View>
-  );
-}
 
-/** Same anatomy as the owner app page, plus what the connection unlocks. */
-function IntegrationRow({
-  integration,
-  connected,
-  onToggle,
-}: {
-  integration: Integration;
-  connected: boolean;
-  onToggle: () => void;
-}) {
-  const { c } = useTheme();
-
-  return (
-    <View style={{ gap: 9 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 11,
-            backgroundColor: connected ? c.soft : c.raised,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Txt font="mono" size={15} weight={700} color={connected ? c.accentText : c.muted}>
-            {integration.letter}
-          </Txt>
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Txt size={14.5} weight={600}>
-            {integration.name}
-          </Txt>
-          <Txt size={12.5} muted numberOfLines={1}>
-            {connected ? integration.on : integration.desc}
-          </Txt>
-          {connected && integration.detail ? (
-            <Txt size={11.5} muted numberOfLines={1} style={{ marginTop: 1 }}>
-              {integration.detail}
-            </Txt>
-          ) : null}
-        </View>
-
-        <Btn
-          label={connected ? 'Connected' : 'Connect'}
-          variant={connected ? 'ghost' : 'surface'}
-          size="sm"
-          onPress={onToggle}
-        />
-      </View>
-
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 8,
-          backgroundColor: c.bg,
-          borderRadius: radii.card,
-          borderWidth: 1,
-          borderColor: c.line,
-          paddingHorizontal: 11,
-          paddingVertical: 9,
-        }}
-      >
-        <Ionicons
-          name={connected ? 'shield-checkmark' : 'shield-outline'}
-          size={14}
-          color={connected ? c.accentText : c.muted}
-        />
-        <Txt size={11.5} lh={1.35} muted style={{ flex: 1 }}>
-          {connected ? 'On your page: ' : 'Unlocks: '}
-          {integration.badge}
-        </Txt>
-      </View>
+      <ConnectSheets
+        appId={app.id}
+        storeUrl={app.links?.find(([kind]) => kind === 'App Store')?.[1]}
+        sheet={connect.sheet}
+        onClose={() => connect.setSheet(null)}
+      />
     </View>
   );
 }

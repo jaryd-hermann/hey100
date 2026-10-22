@@ -28,7 +28,7 @@ export function PromptsStep({ answered, answers, onPickSlot, onEditSlot }: Promp
   return (
     <View style={{ gap: 12 }}>
       <Txt size={15.5} lh={1.5} muted>
-        Three is plenty to start. Specific answers get more heys than clever ones.
+        Specific answers get more heys than clever ones.
       </Txt>
 
       {SLOTS.map((slot) => {
@@ -199,13 +199,6 @@ export function WriteAnswer({ promptId, value, onChange, onChangePrompt }: Write
           style={{ textAlign: 'right' }}
         >
           {ANSWER_MAX - value.length}
-        </Txt>
-      </Card>
-
-      <Card tone="soft" padding={14}>
-        <Txt size={14} lh={1.45} color={c.accentText}>
-          Be specific. &ldquo;Six taps to log a brew, should be two&rdquo; beats &ldquo;feedback on
-          UX&rdquo;.
         </Txt>
       </Card>
     </View>

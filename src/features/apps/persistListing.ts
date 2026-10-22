@@ -9,7 +9,7 @@ import type { MediaItem, OwnedApp } from '@/data/types';
 import { isServerId, publicUrl } from '@/lib/supabase';
 
 import { toListingPatch } from './mapListing';
-import { uploadShots } from './uploadShots';
+import { uploadAsset, uploadShots } from './uploadShots';
 
 /** The edit sheets hand back prompt labels, not ids, so this maps them back. */
 function promptIdFor(label: string): string | null {
@@ -90,5 +90,28 @@ export async function persistListing(
 
   if (patch.media) {
     await setListingMedia(appId, await toMediaRows(ownerId, patch.media));
+  }
+
+  if (patch.cover) {
+    const existing = storagePathOf(patch.cover);
+    const path = existing ?? (await uploadAsset(ownerId, patch.cover, 'image', 'cover'));
+    if (path) await updateListing(appId, { cover_path: path });
+  }
+
+  if (patch.icon) {
+    const existing = storagePathOf(patch.icon);
+    const path = existing ?? (await uploadAsset(ownerId, patch.icon, 'image', 'icon'));
+    if (path) await updateListing(appId, { icon_path: path });
+  }
+
+  if (patch.pitchUri) {
+    const existing = storagePathOf(patch.pitchUri);
+    const path = existing ?? (await uploadAsset(ownerId, patch.pitchUri, 'video', 'pitch'));
+    if (path) {
+      await updateListing(appId, {
+        pitch_path: path,
+        pitch_seconds: patch.pitchSeconds ?? null,
+      });
+    }
   }
 }

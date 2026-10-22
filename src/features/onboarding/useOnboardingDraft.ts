@@ -16,7 +16,18 @@ const ADJECTIVES = [
   'north',
 ];
 
-const NOUNS = ['shape', 'otter', 'ledger', 'harbor', 'signal', 'ember', 'pilot', 'maple', 'atlas', 'river'];
+const NOUNS = [
+  'shape',
+  'otter',
+  'ledger',
+  'harbor',
+  'signal',
+  'ember',
+  'pilot',
+  'maple',
+  'atlas',
+  'river',
+];
 
 /** adjective + noun + 4 digits, per the username step. */
 export function generateUsername(): string {
@@ -47,6 +58,10 @@ export type Draft = {
   links: { web: string; tiktok: string; instagram: string };
   /** Picked shots in carousel order. The first one is the cover. */
   shots: PickedShot[];
+  problemOf: string;
+  problemFor: string;
+  storeRating?: number;
+  storeRatingCount?: number;
 
   /** Multi-select answers keyed by step group. */
   sel: Record<string, string[]>;
@@ -60,6 +75,11 @@ export type Draft = {
 
   workplace: string;
   job: string;
+  /** Market the workplace sits in, for matching rather than display. */
+  industry: string;
+  companySize: string;
+  department: string;
+  yearsExperience: string;
 
   username: string;
   showAs: 'username' | 'realName';
@@ -84,6 +104,8 @@ function initialDraft(startStep: number): Draft {
     storeUrl: '',
     links: { web: '', tiktok: '', instagram: '' },
     shots: [],
+    problemOf: '',
+    problemFor: '',
     sel: {},
     own: {},
     vis: {},
@@ -91,10 +113,14 @@ function initialDraft(startStep: number): Draft {
     answers: {},
     workplace: '',
     job: '',
+    industry: '',
+    companySize: '',
+    department: '',
+    yearsExperience: '',
     username: generateUsername(),
     showAs: 'username',
     photo: '',
-    terms: false,
+    terms: true,
   };
 }
 
@@ -124,8 +150,9 @@ export function useOnboardingDraft(startStep = 0, storageKey: string | null = nu
         // worse than losing the field.
         if (!Array.isArray(parsed.shots)) delete parsed.shots;
         // Spread over a fresh draft so a shape change in a new build cannot
-        // leave a field undefined.
-        setDraft((prev) => ({ ...prev, ...parsed }));
+        // leave a field undefined. Terms start accepted, including drafts
+        // written before that was the default.
+        setDraft((prev) => ({ ...prev, ...parsed, terms: true }));
       })
       .catch(() => {})
       .finally(() => {

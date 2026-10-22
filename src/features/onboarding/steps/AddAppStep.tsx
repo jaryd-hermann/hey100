@@ -11,7 +11,7 @@ import { Field } from '@/components/ui/Field';
 import { Sheet } from '@/components/ui/Sheet';
 import { Label, Txt } from '@/components/ui/Txt';
 import { NAME_MAX, fetchAppMetadata, type AppMetadata } from '@/data/repo/metadata';
-import type { PickedShot } from '@/data/types';
+import { SHOT_RATIO, type PickedShot } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
@@ -190,7 +190,7 @@ export function AddAppStep({
                         // from a website stays a thumbnail instead of filling
                         // the card.
                         width: '14.5%',
-                        aspectRatio: 9 / 16,
+                        aspectRatio: SHOT_RATIO.vertical,
                         borderRadius: 8,
                         overflow: 'hidden',
                         backgroundColor: c.raised,

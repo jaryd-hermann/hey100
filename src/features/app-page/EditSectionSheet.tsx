@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Modal, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
@@ -10,10 +12,22 @@ import { Field } from '@/components/ui/Field';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
+import { PRICING_MODELS } from '@/data/mock';
+import { NAME_MAX } from '@/data/repo/metadata';
+import { updateMyProfile } from '@/data/repo/profile';
 import { PROMPT_LIBRARY, promptLabel } from '@/data/prompts';
 import type { IdealUsers, MediaItem, OwnedApp, SectionKey, ShotLayout } from '@/data/types';
+import { BannerCrop } from '@/features/apps/BannerCrop';
+import { BANNER_RATIO, pickBanner } from '@/features/apps/pickBanner';
 import { MAX_SHOTS, pickShots } from '@/features/apps/pickShots';
+import { ShotGrid } from '@/features/apps/ShotGrid';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { pickAvatar } from '@/features/profile/avatar';
+import { SKILLS } from '@/features/onboarding/steps';
 import { PromptPicker, WriteAnswer } from '@/features/onboarding/steps/PromptsStep';
+import { BIO_MAX } from '@/features/profile/fields';
+import { toProfilePatch } from '@/features/profile/mapProfile';
+import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -21,9 +35,11 @@ import { sectionName } from './AppPage';
 
 const PROMPT_MAX = 5;
 
+export type EditSectionKey = SectionKey | 'listing';
+
 export type EditSectionSheetProps = {
   /** The section being edited, or null when the sheet is closed. */
-  section: SectionKey | null;
+  section: EditSectionKey | null;
   app: OwnedApp;
   onClose: () => void;
   onSave: (patch: Partial<OwnedApp>) => void;
@@ -51,17 +67,20 @@ export function EditSectionSheet({ section, app, onClose, onSave }: EditSectionS
 }
 
 type EditorProps = {
-  section: SectionKey;
+  section: EditSectionKey;
   app: OwnedApp;
   onClose: () => void;
   onSave: (patch: Partial<OwnedApp>) => void;
 };
 
 function SectionEditor({ section, app, onClose, onSave }: EditorProps) {
+  if (section === 'listing') return <ListingEditor app={app} onClose={onClose} onSave={onSave} />;
   if (section === 'shots') return <ShotsEditor app={app} onClose={onClose} onSave={onSave} />;
+  if (section === 'problem') return <ProblemEditor app={app} onClose={onClose} onSave={onSave} />;
+  if (section === 'pricing') return <PricingEditor app={app} onClose={onClose} onSave={onSave} />;
   if (section === 'looking') return <IdealEditor app={app} onClose={onClose} onSave={onSave} />;
   if (section === 'builder') return <BuilderEditor app={app} onClose={onClose} onSave={onSave} />;
-  if (section.startsWith('p')) {
+  if (/^p\d+$/.test(section)) {
     return (
       <PromptEditor slot={Number(section.slice(1))} app={app} onClose={onClose} onSave={onSave} />
     );
@@ -69,15 +88,17 @@ function SectionEditor({ section, app, onClose, onSave }: EditorProps) {
   return <ReadOnlyNote section={section} onClose={onClose} />;
 }
 
-function Header({ title, hint }: { title: string; hint: string }) {
+function Header({ title, hint }: { title: string; hint?: string }) {
   return (
     <View style={{ gap: 6, marginBottom: 4 }}>
       <Txt font="mono" size={19} weight={500}>
         {title}
       </Txt>
-      <Txt size={13.5} lh={1.45} muted>
-        {hint}
-      </Txt>
+      {hint ? (
+        <Txt size={13.5} lh={1.45} muted>
+          {hint}
+        </Txt>
+      ) : null}
     </View>
   );
 }
@@ -122,6 +143,126 @@ function Actions({
   );
 }
 
+function ListingEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
+  const toast = useToast();
+  const [name, setName] = useState(app.name);
+  const [sub, setSub] = useState(app.sub);
+  const [icon, setIcon] = useState(app.icon ?? '');
+  const [picking, setPicking] = useState(false);
+
+  const pick = async () => {
+    if (picking) return;
+    setPicking(true);
+    const result = await pickAvatar();
+    setPicking(false);
+    if (!result) return;
+    if ('error' in result) {
+      toast(result.error);
+      return;
+    }
+    setIcon(result.uri);
+  };
+
+  return (
+    <View style={{ gap: 14 }}>
+      <Header title="Listing" hint="Name, icon and subtitle — the same fields builders see first." />
+      <Pressable
+        onPress={() => void pick()}
+        style={({ pressed }) => ({ alignSelf: 'center', opacity: pressed ? 0.8 : 1 })}
+        accessibilityRole="button"
+        accessibilityLabel="Change app icon"
+      >
+        <AppIcon hue={app.hue} name={name || app.name} uri={icon || undefined} size={72} />
+      </Pressable>
+      <Field label="Name" value={name} onChangeText={setName} max={NAME_MAX} autoCapitalize="words" />
+      <Field
+        label="Subtitle"
+        value={sub}
+        onChangeText={setSub}
+        max={30}
+        placeholder="One line about the app"
+      />
+      <Actions
+        dim={!name.trim()}
+        onClose={onClose}
+        onSave={() => onSave({ name: name.trim(), sub: sub.trim(), ...(icon ? { icon } : {}) })}
+      />
+    </View>
+  );
+}
+
+function ProblemEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
+  const [problemOf, setProblemOf] = useState(app.problemOf ?? '');
+  const [problemFor, setProblemFor] = useState(app.problemFor ?? '');
+
+  return (
+    <View style={{ gap: 14 }}>
+      <Header title="The problem" />
+      <Field
+        label="This solves the problem of"
+        value={problemOf}
+        onChangeText={setProblemOf}
+        placeholder="late-night calendar chaos"
+        max={80}
+        autoCapitalize="none"
+      />
+      <Field
+        label="For"
+        value={problemFor}
+        onChangeText={setProblemFor}
+        placeholder="busy parents"
+        max={80}
+        autoCapitalize="none"
+      />
+      <Actions
+        onClose={onClose}
+        onSave={() => onSave({ problemOf: problemOf.trim(), problemFor: problemFor.trim() })}
+      />
+    </View>
+  );
+}
+
+function PricingEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
+  const [model, setModel] = useState(app.pricingModel ?? '');
+  const [from, setFrom] = useState(app.priceFrom ?? '');
+  const paid = !!model && model !== 'Free';
+
+  return (
+    <View style={{ gap: 14 }}>
+      <Header title="Pricing" hint="Pick the model that matches how people pay — or don't." />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {PRICING_MODELS.map((option) => (
+          <Chip
+            key={option}
+            label={option}
+            selected={model === option}
+            onPress={() => setModel(option)}
+          />
+        ))}
+      </View>
+      {paid ? (
+        <Field
+          label="From price"
+          value={from}
+          onChangeText={setFrom}
+          placeholder="$4.99"
+          autoCapitalize="none"
+        />
+      ) : null}
+      <Actions
+        dim={!model}
+        onClose={onClose}
+        onSave={() =>
+          onSave({
+            pricingModel: model,
+            priceFrom: paid ? from.trim() : '',
+          })
+        }
+      />
+    </View>
+  );
+}
+
 function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
   const { c } = useTheme();
   const toast = useToast();
@@ -151,7 +292,7 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
     <View style={{ gap: 14 }}>
       <Header
         title="Screenshots"
-        hint="The first one is your cover. Every screenshot in this listing uses the layout you pick."
+        hint="Hold a shot to drag it into a new place. The listing banner is separate."
       />
 
       <View style={{ gap: 9 }}>
@@ -173,77 +314,24 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
         </View>
       </View>
 
-      <View style={{ gap: 9 }}>
-        <Label>Media</Label>
-
-        {items.map((item, index) => (
-          <View key={index} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            {item.uri ? (
-              <Image
-                source={{ uri: item.uri }}
-                style={{ width: 34, height: 48, borderRadius: 8, backgroundColor: c.raised }}
-                contentFit="cover"
-              />
-            ) : null}
-            <Field
-              value={item.label}
-              placeholder="What this screenshot shows"
-              minHeight={48}
-              style={{ flex: 1 }}
-              onChangeText={(label) =>
-                setItems((prev) =>
-                  prev.map((entry, i) => (i === index ? { ...entry, label } : entry)),
-                )
-              }
-            />
-            {index === 0 ? (
-              <Chip label="Cover" size="sm" tone="accent" />
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Remove ${item.label}`}
-                hitSlop={8}
-                onPress={() => setItems((prev) => prev.filter((_, i) => i !== index))}
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: c.line,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="close" size={16} color={c.ink} />
-              </Pressable>
-            )}
-          </View>
-        ))}
-
-        {items.length < MAX_SHOTS ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void addShots()}
-            style={({ pressed }) => ({
-              minHeight: 48,
-              borderRadius: radii.option,
-              borderWidth: 1.5,
-              borderStyle: 'dashed',
-              borderColor: c.muted,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Ionicons name={picking ? 'hourglass-outline' : 'add'} size={18} color={c.muted} />
-            <Txt size={14.5} weight={500} muted>
-              {picking ? 'Opening photos…' : 'Add a screenshot'}
-            </Txt>
-          </Pressable>
-        ) : null}
-      </View>
+      <ShotGrid
+        shots={items
+          .filter((item) => !!item.uri)
+          .map((item) => ({ uri: item.uri!, kind: item.video ? ('video' as const) : ('image' as const) }))}
+        layout={shotLayout}
+        max={MAX_SHOTS}
+        busy={picking}
+        onReorder={(shots) =>
+          setItems(
+            shots.map((shot) => {
+              const kept = items.find((item) => item.uri === shot.uri);
+              return kept ?? { label: '', video: shot.kind === 'video', uri: shot.uri };
+            }),
+          )
+        }
+        onRemove={(index) => setItems((prev) => prev.filter((_, at) => at !== index))}
+        onAdd={() => void addShots()}
+      />
 
       <Actions onClose={onClose} onSave={() => onSave({ media: items, shotLayout })} />
     </View>
@@ -287,14 +375,26 @@ function IdealEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
 }
 
 function BuilderEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
-  const [role, setRole] = useState(app.role ?? '');
-  const [style, setStyle] = useState(app.style ?? '');
+  const store = useStore();
+  const { userId } = useAuth();
+  const toast = useToast();
+  const [role, setRole] = useState(app.role || store.user.job);
+  const [bio, setBio] = useState(store.user.bio || app.style || '');
+  const [skills, setSkills] = useState<string[]>(store.user.tags.sk ?? app.skills ?? []);
+
+  const toggleSkill = (skill: string) => {
+    setSkills((prev) => {
+      if (prev.includes(skill)) return prev.filter((item) => item !== skill);
+      if (prev.length >= 10) return prev;
+      return [...prev, skill];
+    });
+  };
 
   return (
     <View style={{ gap: 14 }}>
       <Header
         title="Builder card"
-        hint="Your name and avatar come from your profile. This is what you build with, and how you give feedback."
+        hint="Your name and avatar come from your profile. Bio and skills show on every listing."
       />
 
       <Field
@@ -305,16 +405,52 @@ function BuilderEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
         onChangeText={setRole}
       />
       <Field
-        label="Feedback style"
-        value={style}
-        placeholder="Balanced feedback · replies within a day"
-        minHeight={48}
-        onChangeText={setStyle}
+        label="Bio"
+        value={bio}
+        placeholder="What you build, and how you work with testers"
+        max={BIO_MAX}
+        multiline
+        minHeight={96}
+        onChangeText={setBio}
       />
+
+      <View style={{ gap: 8 }}>
+        <Label>Skills</Label>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+          {[...new Set([...SKILLS, ...skills])].slice(0, 24).map((skill) => (
+            <Chip
+              key={skill}
+              label={skill}
+              size="sm"
+              selected={skills.includes(skill)}
+              onPress={() => toggleSkill(skill)}
+            />
+          ))}
+        </View>
+      </View>
 
       <Actions
         onClose={onClose}
-        onSave={() => onSave({ role: role.trim(), style: style.trim() })}
+        onSave={() => {
+          const nextBio = bio.trim().slice(0, BIO_MAX);
+          const nextRole = role.trim();
+          store.updateUser({
+            bio: nextBio,
+            tags: { ...store.user.tags, sk: skills },
+            ownWords: { ...store.user.ownWords, bio: nextBio },
+          });
+          if (userId) {
+            void updateMyProfile(
+              userId,
+              toProfilePatch({
+                bio: nextBio,
+                tags: { ...store.user.tags, sk: skills },
+                ownWords: { ...store.user.ownWords, bio: nextBio },
+              }),
+            ).catch(() => toast("Couldn't save your profile"));
+          }
+          onSave({ role: nextRole, style: nextBio, skills });
+        }}
       />
     </View>
   );
@@ -424,6 +560,108 @@ function ReadOnlyNote({ section, onClose }: { section: SectionKey; onClose: () =
         </Txt>
       </Card>
       <Btn label="Got it" variant="surface" size="lg" full onPress={onClose} />
+    </View>
+  );
+}
+
+export function BannerEditor({
+  app,
+  onClose,
+  onSave,
+}: {
+  app: OwnedApp;
+  onClose: () => void;
+  onSave: (patch: Partial<OwnedApp>) => void;
+}) {
+  const toast = useToast();
+  const insets = useSafeAreaInsets();
+  const [cover, setCover] = useState(app.cover ?? '');
+  const [picking, setPicking] = useState(false);
+  const [cropUri, setCropUri] = useState<string | null>(null);
+
+  const pick = async () => {
+    if (picking) return;
+    setPicking(true);
+    const result = await pickBanner();
+    setPicking(false);
+    if (!result) return;
+    if ('error' in result) {
+      toast(result.error);
+      return;
+    }
+    setCropUri(result.uri);
+  };
+
+  return (
+    <View style={{ gap: 14 }}>
+      <Header
+        title="Listing banner"
+        hint="1584 × 528, or any 3:1 crop. This sits above your app icon — screenshots stay in the carousel."
+      />
+
+      <Pressable onPress={() => void pick()} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+        {cover ? (
+          <Image
+            source={{ uri: cover }}
+            style={{ width: '100%', aspectRatio: BANNER_RATIO, borderRadius: radii.cardLg, backgroundColor: '#111' }}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={{
+              aspectRatio: BANNER_RATIO,
+              borderRadius: radii.cardLg,
+              borderWidth: 1.5,
+              borderStyle: 'dashed',
+              borderColor: '#888',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Txt size={14} muted>
+              {picking ? 'Opening photos…' : 'Pick a photo to crop'}
+            </Txt>
+          </View>
+        )}
+      </Pressable>
+
+      <Actions
+        onClose={onClose}
+        onSave={() => onSave({ cover })}
+        destructive={
+          cover
+            ? { label: 'Remove banner', onPress: () => onSave({ cover: '' }) }
+            : undefined
+        }
+      />
+
+      <Modal visible={!!cropUri} animationType="slide" presentationStyle="fullScreen">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: '#111',
+            paddingTop: insets.top + 16,
+            paddingHorizontal: 20,
+            paddingBottom: insets.bottom + 16,
+            gap: 16,
+          }}
+        >
+          <Txt font="mono" size={20} weight={500} color="#fff">
+            Crop banner
+          </Txt>
+          {cropUri ? (
+            <BannerCrop
+              uri={cropUri}
+              onDone={(uri) => {
+                setCover(uri);
+                setCropUri(null);
+                onSave({ cover: uri });
+              }}
+              onCancel={() => setCropUri(null)}
+            />
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }

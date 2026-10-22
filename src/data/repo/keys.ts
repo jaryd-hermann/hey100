@@ -14,6 +14,7 @@ export const queryKeys = {
   messages: (matchId: string | null) => ['messages', matchId] as const,
   feedback: (userId: string | null) => ['feedback', userId] as const,
   counters: (userId: string | null) => ['counters', userId] as const,
+  sponsoredTools: ['sponsored-tools'] as const,
 };
 
 export const staleTimes = {

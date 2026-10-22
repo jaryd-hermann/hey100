@@ -14,6 +14,16 @@ export const PROMPT_LIBRARY: Prompt[] = [
   { id: 'weird', tag: 'Story', label: 'The weirdest thing I learned building it…' },
   { id: 'next', tag: 'Product', label: "What's coming next…" },
   { id: 'stuck', tag: 'Feedback', label: 'Where people get stuck…' },
+  { id: 'magic', tag: 'Product', label: 'The magic moment is…' },
+  { id: 'solves', tag: 'Product', label: 'I solve the problem of…' },
+  { id: 'different', tag: 'Product', label: 'My app is different because…' },
+  { id: 'skipping', tag: 'Product', label: "What I'm deliberately not building…" },
+  { id: 'premise', tag: 'Story', label: 'The premise is…' },
+  { id: 'strength', tag: 'Story', label: 'My strength as a builder is…' },
+  { id: 'hardest', tag: 'Story', label: 'The hardest part to get right…' },
+  { id: 'hearing', tag: 'Story', label: 'What I keep hearing from users…' },
+  { id: 'who', tag: 'Audience', label: 'Who this is really for…' },
+  { id: 'try', tag: 'Feedback', label: 'Try this first:' },
 ];
 
 export const PROMPT_TAGS = ['All', 'Product', 'Audience', 'Story', 'Feedback'] as const;

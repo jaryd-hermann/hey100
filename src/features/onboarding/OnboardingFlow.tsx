@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,20 +24,21 @@ import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { SPLASH_BG, layout, radii } from '@/theme/tokens';
-import type { OwnedApp, ShotLayout } from '@/data/types';
+import { SHOT_RATIO, type OwnedApp, type ShotLayout } from '@/data/types';
 
 import { ADD_APP_RANGE, LAST_STEP, STEPS } from './steps';
 import { useOnboardingDraft } from './useOnboardingDraft';
 import { useUsernameState } from './useUsernameState';
 import { AddAppStep } from './steps/AddAppStep';
+import { ProblemStep } from './steps/ProblemStep';
 import { AuthStep, ProviderButtons, type AuthProvider } from './steps/AuthStep';
 import { CheckStep } from './steps/CheckStep';
 import { InviteStep } from './steps/InviteStep';
-import { MediaStep } from './steps/MediaStep';
+import { MediaStep, shotTally } from './steps/MediaStep';
 import { PickStep } from './steps/PickStep';
 import { PromptPicker, PromptsStep, WriteAnswer } from './steps/PromptsStep';
 import { SummaryStep, type SummaryRow } from './steps/SummaryStep';
-import { TextStep } from './steps/TextStep';
+import { RoleStep, WorkStep } from './steps/WorkStep';
 import { UsernameStep } from './steps/UsernameStep';
 import { WelcomeStep } from './steps/WelcomeStep';
 
@@ -76,7 +77,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const lastStep = addApp ? ADD_APP_RANGE.last : LAST_STEP;
   const isWelcome = step.kind === 'welcome';
   const isCheckLike = step.kind === 'check';
-  const isSummary = step.kind === 'summary' || step.kind === 'summary2';
+  const isSummary = step.kind === 'summary';
 
   const valid = useMemo(() => {
     switch (step.kind) {
@@ -140,8 +141,13 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       gender: picked('ig')[0] ?? 'Anyone',
       interests: picked('ii').map(stripEmoji).join(', ') || 'Anyone',
       plat: picked('ip').map(stripEmoji).join(', ') || 'iPhone',
-      wants: picked('f').join(', ').toLowerCase() || 'anything',
+      wants: (picked('f').join(', ') || draft.own.f || '').toLowerCase() || 'anything',
     },
+    problemOf: draft.problemOf.trim() || undefined,
+    problemFor: draft.problemFor.trim() || undefined,
+    storeRating: draft.storeRating,
+    storeRatingCount: draft.storeRatingCount,
+    storeUrl: draft.storeUrl || undefined,
     links: draft.links.web ? [['Web', draft.links.web]] : [],
     // The first listing is the one heys are attributed to by default.
     primary: !addApp,
@@ -173,6 +179,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     ideal: app.ideal!,
     badges: [],
     links: app.links ?? [],
+    problemOf: app.problemOf,
+    problemFor: app.problemFor,
+    storeRating: app.storeRating,
+    storeRatingCount: app.storeRatingCount,
+    storeUrl: app.storeUrl,
     primary: app.primary,
     layout: [...DEFAULT_LAYOUT],
   });
@@ -250,6 +261,10 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         showAs: draft.showAs,
         job: draft.job,
         workplace: draft.workplace,
+        industry: draft.industry,
+        companySize: draft.companySize,
+        department: draft.department,
+        yearsExperience: draft.yearsExperience,
         tags: draft.sel,
         ownWords: draft.own,
         hidden: Object.fromEntries(
@@ -333,10 +348,14 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       display_pref: draft.showAs === 'username' ? ('username' as const) : ('real_name' as const),
       job: draft.job || null,
       workplace: draft.workplace || null,
+      industry: draft.industry || null,
+      company_size: draft.companySize || null,
+      department: draft.department || null,
+      years_experience: draft.yearsExperience || null,
       looking_for: picked('look'),
       app_interests: picked('cat'),
-      life_tags: picked('l'),
       test_devices: picked('d'),
+      skills: picked('sk'),
       own_words: draft.own,
       visibility: draft.vis,
     };
@@ -415,29 +434,46 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   };
 
   const summaryRows = (): SummaryRow[] => {
-    if (step.kind === 'summary') {
-      return [
-        { icon: '▣', text: draft.appName || 'Your app' },
-        { icon: '◷', text: stripEmoji(picked('stage')[0] ?? 'Stage not set') },
-        { icon: '▤', text: `${draft.shots.length} screenshots` },
-        { icon: '◎', text: picked('ii').map(stripEmoji).join(', ') || 'Ideal users' },
-        { icon: '◔', text: picked('ia').join(', ') || 'Ages' },
-        { icon: '⊘', text: 'Prompts', pending: true },
-        { icon: '⊘', text: 'Your builder profile', pending: true },
-      ];
-    }
+    const gender = stripEmoji(picked('ig')[0] ?? '').toLowerCase();
+    const stage = stripEmoji(picked('stage')[0] ?? 'Stage not set');
+    const devices = picked('ip').join(', ');
+
     return [
-      { icon: '◉', text: store.user.realName },
-      { icon: '▣', text: draft.job || 'Your job' },
-      { icon: '✦', text: picked('look').map(stripEmoji).join(', ') || "What you're looking for" },
-      { icon: '♥', text: picked('cat').map(stripEmoji).join(', ') || "Apps you'd try" },
-      { icon: '⊘', text: 'Your age', pending: true },
-      { icon: '⊘', text: 'Your email', pending: true },
+      {
+        icon: '▣',
+        text: draft.appName || 'Your app',
+        sub: draft.appSub || undefined,
+        image: draft.appIcon || undefined,
+      },
+      { text: devices ? `${stage} — on ${devices}` : stage },
+      {
+        text: `${draft.shots.length} screenshot${draft.shots.length === 1 ? '' : 's'}`,
+        thumbs: draft.shots.slice(0, 5).map((shot) => shot.uri),
+        ratio: SHOT_RATIO[shotLayout],
+      },
+      {
+        label: "You're looking for",
+        text: picked('ii').map(stripEmoji).join(', ') || 'Ideal users',
+      },
+      {
+        label: 'Who are',
+        text: [picked('ia').join(', '), gender].filter(Boolean).join(' · ') || 'Any age',
+      },
+      {
+        label: 'From users, you want feedback on',
+        text: picked('f').join(', ') || draft.own.f || 'Anything',
+      },
+      { icon: '⊘', text: 'Next → Matching Prompts', pending: true },
+      { icon: '⊘', text: 'Next → Your builder profile', pending: true },
     ];
   };
 
   // The splash is the one screen that breaks the palette, in light mode only.
   const background = isWelcome && !isDark ? SPLASH_BG.light : c.bg;
+
+  if (!addApp && store.onboarded) {
+    return <Redirect href="/(tabs)/discover" />;
+  }
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: background }} />;
 
@@ -595,6 +631,10 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
                 Visible on profile
               </Txt>
             </Pressable>
+          ) : step.kind === 'media' && draft.shots.length ? (
+            <Txt size={13.5} lh={1.4} muted style={{ flex: 1 }}>
+              Continue with {draft.shots.length === 1 ? 'this' : 'these'} {shotTally(draft.shots)}
+            </Txt>
           ) : (
             <View style={{ flex: 1 }} />
           )}
@@ -686,6 +726,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
                 appCats: result.cats,
                 appIcon: result.icon ?? '',
                 storeUrl: result.storeUrl ?? '',
+                storeRating: result.rating,
+                storeRatingCount: result.ratingCount,
                 // Store screenshots become the starting carousel. Anything
                 // the builder picked from their camera roll is their own work
                 // and survives a re-fetch; shots from an earlier lookup are
@@ -706,6 +748,16 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           />
         );
 
+      case 'problem':
+        return (
+          <ProblemStep
+            problemOf={draft.problemOf}
+            problemFor={draft.problemFor}
+            onChangeOf={(problemOf) => update({ problemOf })}
+            onChangeFor={(problemFor) => update({ problemFor })}
+          />
+        );
+
       case 'media':
         return (
           <MediaStep
@@ -723,7 +775,16 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             opts={step.opts!}
             selected={picked(step.group!)}
             single={step.single}
-            onToggle={(label) => toggle(step.group!, label, step.single)}
+            onToggle={(label) => {
+              const chosen = picked(step.group!);
+              if (step.max && chosen.length >= step.max && !chosen.includes(label)) {
+                toast(`Pick up to ${step.max}. Unpick one to change it.`);
+                return;
+              }
+              toggle(step.group!, label, step.single);
+            }}
+            subtitle={step.max ? `Pick up to ${step.max}` : undefined}
+            search={step.search}
             own={step.own}
             ownText={draft.own[step.group!] ?? ''}
             ownOpen={draft.own[step.group!] !== undefined}
@@ -735,7 +796,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         );
 
       case 'summary':
-      case 'summary2':
         return <SummaryStep rows={summaryRows()} />;
 
       case 'prompts':
@@ -755,27 +815,39 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           />
         );
 
-      case 'text':
+      case 'work':
         return (
-          <TextStep
-            cards={[
-              {
-                key: 'workplace',
-                label: 'Where do you work?',
-                hint: 'Optional, but it says a lot about your day-to-day.',
-                value: draft.workplace,
-                visible: isVisible('workplace'),
-              },
-              {
-                key: 'job',
-                label: "What's your job title?",
-                hint: 'Full-time indie? Say that.',
-                value: draft.job,
-                visible: isVisible('job'),
-              },
-            ]}
-            onChange={(key, value) => update({ [key]: value } as never)}
-            onToggleVisible={toggleVisible}
+          <WorkStep
+            industry={draft.industry}
+            onChangeIndustry={(industry) => update({ industry })}
+            companySize={draft.companySize}
+            onChangeCompanySize={(companySize) => update({ companySize })}
+            workplace={{
+              label: 'Where do you work?',
+              hint: 'The company, studio, or “indie”.',
+              value: draft.workplace,
+              visible: isVisible('workplace'),
+              onChange: (workplace) => update({ workplace }),
+              onToggleVisible: () => toggleVisible('workplace'),
+            }}
+          />
+        );
+
+      case 'role':
+        return (
+          <RoleStep
+            department={draft.department}
+            onChangeDepartment={(department) => update({ department })}
+            years={draft.yearsExperience}
+            onChangeYears={(yearsExperience) => update({ yearsExperience })}
+            job={{
+              label: "What's your job title?",
+              hint: 'Full-time indie? Say that.',
+              value: draft.job,
+              visible: isVisible('job'),
+              onChange: (job) => update({ job }),
+              onToggleVisible: () => toggleVisible('job'),
+            }}
           />
         );
 
@@ -802,8 +874,9 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             appSub={draft.appSub}
             appHue={draft.appHue}
             appIcon={draft.appIcon || undefined}
-            promptCount={draft.answered.length}
-            shots={draft.shots.length}
+            username={draft.username}
+            realName={store.user.realName}
+            photo={draft.photo || store.user.photo}
             pending={authPending || publishing}
             signedIn={!!userId}
             onSignIn={signUpWith}

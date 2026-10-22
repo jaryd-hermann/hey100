@@ -20,6 +20,8 @@ import type {
   SentHeyStatus,
 } from '@/data/types';
 import { toOwnedApp } from '@/features/apps/mapListing';
+import { groupReactions, type ReactionRow } from '@/features/chat/reactions';
+import { socialsFromLinks } from '@/features/profile/builderCard';
 import { publicUrl } from '@/lib/supabase';
 
 /**
@@ -82,14 +84,21 @@ export function cardToListing(card: ListingCard, preferRealName = false): AppLis
   );
 
   const photo = builderPhoto(card.builder);
-  const role = card.builder?.job?.trim();
+  const role = [card.builder?.job, card.builder?.workplace].filter(Boolean).join(' · ');
+  const words = (card.builder?.own_words ?? {}) as Record<string, string>;
+  const skills = card.builder?.skills ?? [];
+  const socials = socialsFromLinks((card.builder?.links ?? {}) as Record<string, string>);
 
   return {
     ...listing,
     ...(photo ? { builderPhoto: photo } : {}),
-    // The job title lives on the profile, so it is the builder's role unless
-    // the listing says something more specific.
-    role: listing.role || role || 'Builder',
+    role: listing.role || role,
+    style: listing.style || words.bio || '',
+    ...(skills.length ? { skills } : {}),
+    ...(socials.length ? { builderSocials: socials } : {}),
+    ...((card.builder as { github_commits?: number | null } | null)?.github_commits != null
+      ? { githubCommits: (card.builder as { github_commits?: number }).github_commits }
+      : {}),
   };
 }
 
@@ -168,7 +177,7 @@ export function threadToMatch(row: ThreadRow): Match {
 
 type MediaJson = { storage_path?: string; kind?: string; label?: string };
 
-export function mediaFromJson(value: MessageRow['media']): MediaItem[] {
+export function mediaFromJson(value: unknown): MediaItem[] {
   if (!Array.isArray(value)) return [];
 
   return (value as MediaJson[])
@@ -180,16 +189,33 @@ export function mediaFromJson(value: MessageRow['media']): MediaItem[] {
     }));
 }
 
-export function messageToMessage(row: MessageRow, me: string): Message {
-  const mine = row.sender_id === me;
+type MessageEmbed = MessageRow & {
+  chat_reactions?: ReactionRow[] | null;
+  reply?: { id: string; body: string | null } | null;
+};
 
-  if (row.kind === 'system') return { kind: 'system', body: row.body ?? '' };
+export function messageToMessage(row: MessageEmbed, me: string): Message {
+  const mine = row.sender_id === me;
+  const reactions = groupReactions(row.chat_reactions, me);
+  const reply = row.reply?.id
+    ? { id: row.reply.id, body: row.reply.body?.trim() || 'Attachment' }
+    : undefined;
+  const extra = {
+    id: row.id,
+    ...(reply ? { reply } : {}),
+    ...(reactions.length ? { reactions } : {}),
+  };
+
+  if (row.kind === 'system') return { kind: 'system', body: row.body ?? '', ...extra };
 
   if (row.kind === 'announcement') {
+    const media = mediaFromJson(row.media);
     return {
       kind: 'announcement',
       body: row.body ?? '',
       when: shortAgo(row.created_at),
+      ...(media.length ? { media } : {}),
+      ...extra,
     };
   }
 
@@ -210,6 +236,7 @@ export function messageToMessage(row: MessageRow, me: string): Message {
       ]
         .filter(Boolean)
         .join(' · '),
+      ...extra,
     };
   }
 
@@ -219,6 +246,7 @@ export function messageToMessage(row: MessageRow, me: string): Message {
     kind: mine ? 'me' : 'them',
     ...(row.body ? { body: row.body } : {}),
     ...(media.length ? { media } : {}),
+    ...extra,
   };
 }
 

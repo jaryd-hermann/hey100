@@ -43,24 +43,24 @@ export default function FeedbackInbox() {
         </Pressable>
       }
     >
-      {!data ? (
-        <View style={{ paddingTop: 60, gap: 10 }}>
-          <Txt font="mono" size={17} weight={500}>
-            No feedback yet
-          </Txt>
-          <Txt size={15} lh={1.5} muted>
-            Once a match sends feedback on {shortName(app.name)}, it lands here.
-          </Txt>
-        </View>
-      ) : (
+      {(() => {
+        const funnel = data?.funnel ?? { views: 0, skips: 0, heys: 0, ratio: '—' };
+        const responses = data?.responses ?? 0;
+        const impression = data?.impression ?? '—';
+        const price = data?.price ?? '—';
+        const yes = data?.yes ?? 0;
+        const maybe = data?.maybe ?? 0;
+        const no = data?.no ?? 0;
+
+        return (
         <View style={{ gap: 16 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {(
               [
-                ['Views', data.funnel.views, false],
-                ['Skips', data.funnel.skips, false],
-                ['Heys', data.funnel.heys, false],
-                ['Hey ratio', data.funnel.ratio, true],
+                ['Views', funnel.views, false],
+                ['Skips', funnel.skips, false],
+                ['Heys', funnel.heys, false],
+                ['Hey ratio', funnel.ratio, true],
               ] as const
             ).map(([label, value, accent]) => (
               <Card key={label} padding={14} style={{ width: '47.5%', gap: 4 }}>
@@ -79,9 +79,9 @@ export default function FeedbackInbox() {
             <View style={{ flexDirection: 'row' }}>
               {(
                 [
-                  ['Responses', String(data.responses)],
-                  ['Avg impression', data.impression],
-                  ['Fair price', data.price],
+                  ['Responses', String(responses)],
+                  ['Avg impression', impression],
+                  ['Fair price', price],
                 ] as const
               ).map(([label, value]) => (
                 <View key={label} style={{ flex: 1, gap: 3 }}>
@@ -103,21 +103,34 @@ export default function FeedbackInbox() {
                   overflow: 'hidden',
                 }}
               >
-                <View style={{ flex: data.yes, backgroundColor: c.accent }} />
-                <View style={{ flex: data.maybe, backgroundColor: c.mid }} />
-                <View style={{ flex: data.no || 0.001, backgroundColor: c.raised }} />
+                <View style={{ flex: yes || 0.001, backgroundColor: c.accent }} />
+                <View style={{ flex: maybe || 0.001, backgroundColor: c.mid }} />
+                <View style={{ flex: no || 0.001, backgroundColor: c.raised }} />
               </View>
               <Txt size={12} muted>
-                {data.yes}% yes · {data.maybe}% maybe · {data.no}% no
+                {yes}% yes · {maybe}% maybe · {no}% no
               </Txt>
             </View>
           </Card>
 
-          {data.list.map((entry) => (
-            <FeedbackCard key={entry.id} appId={appId} entry={entry} />
-          ))}
+          {data?.list.length
+            ? data.list.map((entry) => (
+                <FeedbackCard key={entry.id} appId={appId} entry={entry} />
+              ))
+            : (
+              <View style={{ paddingTop: 28, alignItems: 'center', gap: 10 }}>
+                <Txt size={16} weight={600} center>
+                  No feedback yet
+                </Txt>
+                <Txt size={14} lh={1.5} muted center style={{ maxWidth: 280 }}>
+                  Send some heys to find matches. Reviews on {shortName(app.name)} land here after
+                  a trade.
+                </Txt>
+              </View>
+            )}
         </View>
-      )}
+        );
+      })()}
 
       <Sheet visible={switcherOpen} onClose={() => setSwitcherOpen(false)}>
         <View style={{ gap: 10 }}>

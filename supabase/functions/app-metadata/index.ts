@@ -19,6 +19,8 @@ type Metadata = {
   storeUrl?: string;
   /** Generated from the host, so a listing without an icon still has a colour. */
   hue: number;
+  rating?: number;
+  ratingCount?: number;
 };
 
 /** Media slots a listing has, kept in step with the client's own cap. */
@@ -129,6 +131,8 @@ async function fromAppStore(appId: string, country: string): Promise<Metadata | 
       ].slice(0, MAX_SHOTS),
       storeUrl,
       hue: hueOf(web || String(app.trackName ?? '')),
+      rating: typeof app.averageUserRating === 'number' ? app.averageUserRating : undefined,
+      ratingCount: typeof app.userRatingCount === 'number' ? app.userRatingCount : undefined,
     };
   }
 

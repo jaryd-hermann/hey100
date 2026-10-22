@@ -1,21 +1,33 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
+import {
+  broadcastsToMessages,
+  dmsToMessages,
+  type AdminDm,
+  type Broadcast,
+} from '@/data/repo/admin';
 import { queryKeys } from '@/data/repo/keys';
+import type { Message } from '@/data/types';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { TEAM_ID } from '@/features/chat/chatMeta';
 import { getSupabase } from '@/lib/supabase';
+import { useStore } from '@/store/AppStore';
 
 /**
- * Chat is the one surface that cannot wait for a refetch, so messages, matches
- * and heys arrive over Realtime and invalidate what they touch.
+ * Chat cannot wait for a pull-to-refresh. Match threads, team broadcasts and
+ * admin DMs land over Realtime and are written into the store immediately.
  *
  * There is no per-user filter on the subscription because row level security
  * applies to the stream as well: a change to a row the user cannot read is
  * never delivered.
  */
 export function useLoopRealtime(): void {
-  const { userId } = useAuth();
+  const { userId, isAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const store = useStore();
+  const storeRef = useRef(store);
+  storeRef.current = store;
 
   useEffect(() => {
     const db = getSupabase();
@@ -23,6 +35,13 @@ export function useLoopRealtime(): void {
 
     const invalidate = (keys: readonly (readonly unknown[])[]) => {
       for (const queryKey of keys) queryClient.invalidateQueries({ queryKey: [...queryKey] });
+    };
+
+    const appendTeam = (message: Message) => {
+      if (!message.id) return;
+      const current = storeRef.current.messages[TEAM_ID] ?? [];
+      if (current.some((item) => item.id === message.id)) return;
+      storeRef.current.setMessages(TEAM_ID, [...current, message]);
     };
 
     const channel = db
@@ -41,10 +60,57 @@ export function useLoopRealtime(): void {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'heys' }, () =>
         invalidate([queryKeys.heys(userId), queryKeys.counters(userId)]),
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'team_broadcasts' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const [message] = broadcastsToMessages([payload.new as Broadcast], userId, false);
+            if (message) appendTeam(message);
+          }
+          invalidate([['broadcasts'], ['team-chat', userId]]);
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'admin_dms' },
+        (payload) => {
+          const row = payload.new as AdminDm | undefined;
+          if (payload.eventType === 'INSERT' && row?.user_id === userId) {
+            const [message] = dmsToMessages([row], userId, false);
+            if (message) appendTeam(message);
+          }
+          invalidate([
+            ['team-chat', userId],
+            ['admin-threads'],
+            ...(row?.user_id ? [['admin-dm', row.user_id] as const] : []),
+            ...(isAdmin ? [['broadcasts'] as const] : []),
+          ]);
+        },
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reactions' }, (payload) => {
+        const row = (payload.new ?? payload.old) as {
+          message_id?: string | null;
+          dm_id?: string | null;
+          broadcast_id?: string | null;
+        };
+        invalidate([
+          ['team-chat', userId],
+          ['broadcasts'],
+          ['admin-threads'],
+          ...(row.message_id ? [queryKeys.messages(null)] : []),
+        ]);
+        if (row.message_id) {
+          queryClient.invalidateQueries({ queryKey: ['messages'] });
+        }
+        if (row.dm_id) {
+          queryClient.invalidateQueries({ queryKey: ['admin-dm'] });
+        }
+      })
       .subscribe();
 
     return () => {
       db.removeChannel(channel);
     };
-  }, [queryClient, userId]);
+  }, [isAdmin, queryClient, userId]);
 }

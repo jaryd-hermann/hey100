@@ -1,25 +1,23 @@
 import type { Profile, ProfilePatch } from '@/data/repo/profile';
+import { SOCIAL_KEYS } from '@/features/profile/fields';
 import type { UserProfile } from '@/store/AppStore';
 
 /**
- * The two directions live together so they cannot drift. `links` is the spec's
- * {x, github, linkedin, web}; the client carries the same data as
- * [label, value] pairs, and the tag groups keep their onboarding keys.
+ * The two directions live together so they cannot drift. `links` is
+ * {x, github, linkedin, instagram, tiktok, youtube, discord, web}; the client
+ * carries the same data as [label, value] pairs.
  */
-const SOCIALS: [key: string, label: string][] = [
-  ['x', 'X'],
-  ['github', 'GitHub'],
-  ['linkedin', 'LinkedIn'],
-  ['web', 'Web'],
-];
+const SOCIALS = SOCIAL_KEYS;
 
-const TAG_GROUPS: [group: string, column: 'looking_for' | 'app_interests' | 'life_tags' | 'test_devices'][] =
-  [
-    ['look', 'looking_for'],
-    ['cat', 'app_interests'],
-    ['l', 'life_tags'],
-    ['d', 'test_devices'],
-  ];
+const TAG_GROUPS: [
+  group: string,
+  column: 'looking_for' | 'app_interests' | 'test_devices' | 'skills',
+][] = [
+  ['look', 'looking_for'],
+  ['cat', 'app_interests'],
+  ['d', 'test_devices'],
+  ['sk', 'skills'],
+];
 
 export function toUserProfile(row: Profile): Partial<UserProfile> {
   const links = (row.links ?? {}) as Record<string, string>;
@@ -35,7 +33,11 @@ export function toUserProfile(row: Profile): Partial<UserProfile> {
     showAs: row.display_pref === 'real_name' ? 'realName' : 'username',
     job: row.job ?? '',
     workplace: row.workplace ?? '',
-    ...(ownWords.bio ? { bio: ownWords.bio } : {}),
+    industry: row.industry ?? '',
+    companySize: row.company_size ?? '',
+    department: row.department ?? '',
+    yearsExperience: row.years_experience ?? '',
+    bio: typeof ownWords.bio === 'string' ? ownWords.bio : '',
     socials: SOCIALS.filter(([key]) => links[key]).map(
       ([key, label]) => [label, links[key]] as [string, string],
     ),
@@ -49,6 +51,12 @@ export function toUserProfile(row: Profile): Partial<UserProfile> {
     ),
     referralCode: row.referral_code,
     bonusMatches: row.bonus_matches,
+    ...((row as { github_login?: string | null }).github_login
+      ? { githubLogin: (row as { github_login: string }).github_login }
+      : {}),
+    ...((row as { github_commits?: number | null }).github_commits != null
+      ? { githubCommits: (row as { github_commits: number }).github_commits }
+      : {}),
   };
 }
 
@@ -63,6 +71,10 @@ export function toProfilePatch(user: Partial<UserProfile>): ProfilePatch {
   }
   if (user.job !== undefined) patch.job = user.job || null;
   if (user.workplace !== undefined) patch.workplace = user.workplace || null;
+  if (user.industry !== undefined) patch.industry = user.industry || null;
+  if (user.companySize !== undefined) patch.company_size = user.companySize || null;
+  if (user.department !== undefined) patch.department = user.department || null;
+  if (user.yearsExperience !== undefined) patch.years_experience = user.yearsExperience || null;
 
   if (user.ownWords !== undefined || user.bio !== undefined) {
     patch.own_words = {

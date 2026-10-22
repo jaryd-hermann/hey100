@@ -2,9 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
-import { AppIcon } from '@/components/ui/AppIcon';
+import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
-import { Label, Txt } from '@/components/ui/Txt';
+import { Txt } from '@/components/ui/Txt';
 import type { AuthProviderId } from '@/features/auth/signIn';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
@@ -67,8 +67,9 @@ export type AuthStepProps = {
   appSub: string;
   appHue: number;
   appIcon?: string;
-  promptCount: number;
-  shots: number;
+  username: string;
+  realName?: string;
+  photo?: string;
   pending?: boolean;
   /** Set when a session already exists, e.g. the app was killed mid-flow. */
   signedIn?: boolean;
@@ -82,8 +83,9 @@ export function AuthStep({
   appSub,
   appHue,
   appIcon,
-  promptCount,
-  shots,
+  username,
+  realName,
+  photo,
   pending = false,
   signedIn = false,
   onSignIn,
@@ -96,7 +98,7 @@ export function AuthStep({
       <Txt size={15.5} lh={1.5} muted>
         {signedIn
           ? "You're signed in. Publishing puts this listing in Discover."
-          : 'Sign in so your listing is saved and you can get back to it.'}
+          : 'Sign in to save your details and get started'}
       </Txt>
 
       <Card padding={16} style={{ gap: 14 }}>
@@ -112,19 +114,20 @@ export function AuthStep({
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 20, borderTopWidth: 1, borderColor: c.line, paddingTop: 13 }}>
-          <View>
-            <Label>Screenshots</Label>
-            <Txt font="mono" size={16} weight={500}>
-              {shots}
-            </Txt>
-          </View>
-          <View>
-            <Label>Prompts</Label>
-            <Txt font="mono" size={16} weight={500}>
-              {promptCount}
-            </Txt>
-          </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            borderTopWidth: 1,
+            borderColor: c.line,
+            paddingTop: 13,
+          }}
+        >
+          <Avatar name={realName || username || 'Y'} uri={photo} size={28} />
+          <Txt font="mono" size={14} weight={500} numberOfLines={1} style={{ flex: 1 }}>
+            @{username || 'you'}
+          </Txt>
         </View>
       </Card>
 

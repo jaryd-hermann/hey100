@@ -11,14 +11,18 @@ import { Lightbox } from '@/components/ui/Lightbox';
 import { MediaPlaceholder } from '@/components/ui/MediaPlaceholder';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
-import type {
-  AppListing,
-  HeyTargetType,
-  MediaItem,
-  OwnedApp,
-  SectionKey,
-  ShotLayout,
+import {
+  SHOT_RATIO,
+  type AppListing,
+  type HeyTargetType,
+  type MediaItem,
+  type OwnedApp,
+  type SectionKey,
+  type ShotLayout,
 } from '@/data/types';
+import { BANNER_RATIO } from '@/features/apps/pickBanner';
+import { builderFromUser } from '@/features/profile/builderCard';
+import { useStore, withDefaultSections } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
@@ -41,32 +45,19 @@ export type AppPageProps = {
    * layout and editing the content are deliberately separate modes.
    */
   onEditSection?: (section: SectionKey) => void;
+  /** Owner only: tapping the name/icon block opens the listing editor. */
+  onEditListing?: () => void;
+  /** Owner only: the listing banner is its own image, not a screenshot. */
+  onEditCover?: () => void;
   /** Pinned above the page, e.g. a liker's note. */
   banner?: React.ReactNode;
 };
 
-const COVER_RATIO = 16 / 9;
-
-/** Carousel card size per orientation. Every shot in one listing shares it. */
-const SHOT: Record<ShotLayout, { width: number; ratio: number }> = {
-  vertical: { width: 168, ratio: 9 / 19.5 },
-  horizontal: { width: 272, ratio: 16 / 9 },
-};
+/** Carousel card width per orientation. Every shot in one listing shares it. */
+const SHOT_WIDTH: Record<ShotLayout, number> = { vertical: 168, horizontal: 272 };
 
 const PROMPT_SLOTS: SectionKey[] = ['p0', 'p1', 'p2', 'p3', 'p4'];
 
-const DEFAULT_ORDER: SectionKey[] = [
-  'shots',
-  'p0',
-  'builder',
-  'p1',
-  'looking',
-  'p2',
-  'p3',
-  'stats',
-  'verified',
-  'p4',
-];
 
 /** What the full-screen viewer is showing, if anything. */
 type Viewer = { items: MediaItem[]; index: number; layout: ShotLayout };
@@ -80,14 +71,17 @@ export function AppPage({
   editLayout,
   onMoveSection,
   onEditSection,
+  onEditListing,
+  onEditCover,
   banner,
 }: AppPageProps) {
   const { c } = useTheme();
   const [viewer, setViewer] = useState<Viewer | null>(null);
 
   const isOwner = mode === 'owner';
-  const layoutOrder: SectionKey[] =
-    'layout' in listing && listing.layout?.length ? listing.layout : DEFAULT_ORDER;
+  const layoutOrder: SectionKey[] = withDefaultSections(
+    'layout' in listing ? listing.layout : undefined,
+  );
 
   // Match-app stubs arrive without media, prompts or an orientation.
   const media = listing.media ?? [];
@@ -95,15 +89,16 @@ export function AppPage({
   const prompts = listing.prompts ?? [];
   const links = (listing.links ?? []).filter(([, value]) => !!value);
 
-  const cover = media[0];
-  const shots = media.slice(1);
+  const cover = listing.cover;
+  const shots = media;
 
   // Content editing is the owner's alone, and never while reordering.
   const editSection = isOwner && !editLayout ? onEditSection : undefined;
 
-  /** The first empty prompt slot, so one "Add prompt" tile shows, not five. */
-  const nextPromptSlot =
-    editSection && prompts.length < PROMPT_SLOTS.length ? PROMPT_SLOTS[prompts.length] : null;
+  /** Owner sees every unused prompt slot, not just the next one. */
+  const emptyPromptSlots = new Set(
+    editSection ? PROMPT_SLOTS.filter((_, index) => !prompts[index]) : [],
+  );
 
   // The links block belongs under the carousel, or under the header without one.
   const linksAfter = shots.length && layoutOrder.includes('shots') ? 'shots' : null;
@@ -111,10 +106,14 @@ export function AppPage({
   /** Empty sections render nothing, so they must not take a gap either. */
   const hasContent = (section: SectionKey): boolean => {
     if (section === 'shots') return shots.length > 0 || !!editSection;
-    if (section.startsWith('p')) {
-      return !!prompts[Number(section.slice(1))] || section === nextPromptSlot;
-    }
+    if (section === 'problem') return !!(listing.problemOf || listing.problemFor) || !!editSection;
+    if (section === 'pricing') return !!listing.pricingModel || !!editSection;
+    if (section === 'pitch') return !!listing.pitchUri || !!editSection;
+    if (section === 'onboarding') return !!listing.onboarding;
     if (section === 'verified') return (listing.badges ?? []).length > 0;
+    if (/^p\d+$/.test(section)) {
+      return !!prompts[Number(section.slice(1))] || emptyPromptSlots.has(section);
+    }
     return true;
   };
 
@@ -147,38 +146,56 @@ export function AppPage({
     <View style={{ gap: 18 }}>
       {banner}
 
-      {cover ? (
-        cover.video ? (
-          <InlineVideo
-            item={cover}
-            hue={listing.hue}
-            layout="horizontal"
-            radius={radii.cardLg}
-          />
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={editSection ? 'Edit screenshots' : 'View cover full screen'}
-            onPress={() =>
-              editSection
-                ? editSection('shots')
-                : setViewer({ items: [cover], index: 0, layout: 'horizontal' })
-            }
-            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-          >
+      {cover || onEditCover ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={onEditCover ? 'Edit banner' : 'View banner'}
+          onPress={() =>
+            onEditCover
+              ? onEditCover()
+              : cover
+                ? setViewer({ items: [{ label: 'Banner', uri: cover }], index: 0, layout: 'horizontal' })
+                : undefined
+          }
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        >
+          {cover ? (
             <MediaPlaceholder
-              label={cover.label}
+              label="Banner"
               hue={listing.hue}
-              uri={cover.uri}
+              uri={cover}
               radius={radii.cardLg}
-              style={{ aspectRatio: COVER_RATIO }}
+              style={{ aspectRatio: BANNER_RATIO }}
             />
-          </Pressable>
-        )
+          ) : (
+            <View
+              style={{
+                aspectRatio: BANNER_RATIO,
+                borderRadius: radii.cardLg,
+                borderWidth: 1.5,
+                borderStyle: 'dashed',
+                borderColor: c.muted,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: c.surface,
+              }}
+            >
+              <Txt size={14} weight={500} muted>
+                Add a banner
+              </Txt>
+            </View>
+          )}
+        </Pressable>
       ) : null}
 
       <View style={{ gap: 12 }}>
-        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+        <Pressable
+          disabled={!onEditListing || editLayout}
+          onPress={onEditListing}
+          accessibilityRole={onEditListing && !editLayout ? 'button' : undefined}
+          accessibilityLabel={onEditListing && !editLayout ? 'Edit listing' : undefined}
+          style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}
+        >
           <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={62} />
           <View style={{ flex: 1 }}>
             {/* The full name always fits on one line, shrinking rather than clipping. */}
@@ -196,12 +213,22 @@ export function AppPage({
               {listing.sub}
             </Txt>
           </View>
-        </View>
+          {onEditListing && !editLayout ? (
+            <Ionicons name="create-outline" size={18} color={c.muted} />
+          ) : null}
+        </Pressable>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
           {[listing.cat, listing.plat, listing.stage].filter(Boolean).map((value) => (
             <Chip key={value} label={value} size="sm" />
           ))}
+          {listing.storeRating != null ? (
+            <Chip
+              label={`${listing.storeRating.toFixed(1)}${listing.storeRatingCount ? ` (${listing.storeRatingCount.toLocaleString()})` : ''}`}
+              size="sm"
+              left={<Ionicons name="star" size={12} color="#FFCC00" />}
+            />
+          ) : null}
         </View>
 
         {listing.fit && mode !== 'owner' ? (
@@ -261,9 +288,19 @@ export function AppPage({
               onHey={onHey}
               onOpenBuilder={onOpenBuilder}
               onEdit={editSection ? () => editSection(section) : undefined}
-              addPrompt={section === nextPromptSlot}
+              addPrompt={emptyPromptSlots.has(section)}
               onOpenShots={(shotIndex) =>
                 setViewer({ items: shots, index: shotIndex, layout: shotLayout })
+              }
+              onOpenPitch={
+                listing.pitchUri
+                  ? () =>
+                      setViewer({
+                        items: [{ label: 'Quick pitch', uri: listing.pitchUri, video: true }],
+                        index: 0,
+                        layout: 'vertical',
+                      })
+                  : undefined
               }
             />
 
@@ -284,17 +321,37 @@ export function AppPage({
   );
 }
 
+function builderFirstName(listing: AppListing | OwnedApp): string {
+  const raw = (listing.builder || '').replace(/^@/, '').trim();
+  return raw.split(/[\s·]/)[0] || 'them';
+}
+
+function listingRevenue(listing: AppListing | OwnedApp): string {
+  const badge = (listing.badges ?? []).find((row) =>
+    /mrr|revenue|stripe|revenuecat/i.test(row),
+  );
+  if (!badge) return '—';
+  const money = badge.match(/\$[\d.,]+(?:\s*[–-]\s*\$?[\d.,]+)?[kKmM]?/);
+  return money?.[0].replace(/\s+/g, '') ?? '—';
+}
+
 export function sectionName(section: SectionKey): string {
-  if (section.startsWith('p')) return `Prompt ${Number(section.slice(1)) + 1}`;
+  if (/^p\d+$/.test(section)) return `Prompt ${Number(section.slice(1)) + 1}`;
   return (
-    {
-      shots: 'Screenshots',
-      builder: 'Builder',
-      looking: 'Ideal users',
-      stats: 'Stats',
-      verified: 'Verified',
-    } as Record<string, string>
-  )[section] ?? section;
+    (
+      {
+        shots: 'Screenshots',
+        problem: 'The problem',
+        builder: 'Builder',
+        pricing: 'Pricing',
+        pitch: 'Quick pitch',
+        onboarding: 'Onboarding',
+        looking: 'Ideal users',
+        stats: 'Stats',
+        verified: 'Verified',
+      } as Record<string, string>
+    )[section] ?? section
+  );
 }
 
 type SectionProps = {
@@ -313,6 +370,7 @@ type SectionProps = {
   /** This is the first empty prompt slot, so it offers to add one. */
   addPrompt?: boolean;
   onOpenShots: (index: number) => void;
+  onOpenPitch?: () => void;
 };
 
 function Section({
@@ -328,8 +386,11 @@ function Section({
   onEdit,
   addPrompt,
   onOpenShots,
+  onOpenPitch,
 }: SectionProps) {
   const { c } = useTheme();
+  const store = useStore();
+  const card = isOwner ? { ...listing, ...builderFromUser(store.user) } : listing;
   const canHey = mode === 'discover' || mode === 'liker' || mode === 'web';
 
   if (section === 'shots') {
@@ -337,13 +398,14 @@ function Section({
       return onEdit ? <AddTile label="+ Add screenshots" onPress={onEdit} /> : null;
     }
 
-    const size = SHOT[shotLayout];
+    const width = SHOT_WIDTH[shotLayout];
+    const height = Math.round(width / SHOT_RATIO[shotLayout]);
 
     return (
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={size.width + 10}
+        snapToInterval={width + 10}
         decelerationRate="fast"
         contentContainerStyle={{ gap: 10, paddingRight: layout.gutter }}
         style={{ marginHorizontal: -layout.gutter, paddingHorizontal: layout.gutter }}
@@ -352,7 +414,7 @@ function Section({
           <View
             key={`${item.label}-${index}`}
             // Explicit height, so an absolutely filled video can't fight the ratio.
-            style={{ width: size.width, height: Math.round(size.width / size.ratio) }}
+            style={{ width, height }}
           >
             {item.video ? (
               // Absolute fill, so the card's shape wins over the video's own ratio.
@@ -395,7 +457,77 @@ function Section({
     );
   }
 
-  if (section.startsWith('p')) {
+  if (section === 'problem') {
+    const of = listing.problemOf?.trim();
+    const forWho = listing.problemFor?.trim();
+    if (!of && !forWho && onEdit) {
+      return <AddTile label="+ This solves the problem of… for…" onPress={onEdit} />;
+    }
+    if (!of && !forWho) return null;
+
+    const problemLabel = of
+      ? `This solves the problem of ${of}`
+      : 'This solves the problem of';
+
+    return (
+      <View>
+        <EditTarget label="Edit the problem" onPress={onEdit}>
+          <Card
+            padding={18}
+            radius={radii.cardLg}
+            style={{ gap: 10, paddingBottom: canHey ? 64 : 18 }}
+          >
+            <Label>This solves the problem of</Label>
+            <Txt size={16} weight={500} lh={1.35}>
+              {of || '—'}
+            </Txt>
+            <Label>For</Label>
+            <Txt size={16} weight={500} lh={1.35}>
+              {forWho || '—'}
+            </Txt>
+          </Card>
+        </EditTarget>
+        {canHey ? (
+          <HeyPill
+            size={40}
+            label={problemLabel}
+            onPress={() => onHey?.({ type: 'prompt', id: 'problem', label: problemLabel })}
+            style={{ position: 'absolute', right: 14, bottom: 14 }}
+          />
+        ) : null}
+      </View>
+    );
+  }
+
+  if (section === 'pricing') {
+    if (!listing.pricingModel && onEdit) {
+      return <AddTile label="+ Add pricing" onPress={onEdit} />;
+    }
+    if (!listing.pricingModel) return null;
+
+    const from =
+      listing.pricingModel !== 'Free' && listing.priceFrom
+        ? `From ${listing.priceFrom}`
+        : null;
+
+    return (
+      <EditTarget label="Edit pricing" onPress={onEdit}>
+        <Card padding={18} radius={radii.cardLg} style={{ gap: 10 }}>
+          <Label>Pricing</Label>
+          <Txt size={16} weight={500}>
+            {listing.pricingModel}
+          </Txt>
+          {from ? (
+            <Txt size={14.5} muted>
+              {from}
+            </Txt>
+          ) : null}
+        </Card>
+      </EditTarget>
+    );
+  }
+
+  if (/^p\d+$/.test(section)) {
     const prompt = prompts[Number(section.slice(1))];
 
     if (!prompt) {
@@ -431,30 +563,125 @@ function Section({
     );
   }
 
+  if (section === 'pitch') {
+    if (!listing.pitchUri) {
+      return onEdit ? (
+        <AddTile label="+ Record a quick pitch" icon="videocam" onPress={onEdit} />
+      ) : null;
+    }
+
+    const seconds = listing.pitchSeconds ?? 0;
+    const length = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+    const who = (card.builder || 'this builder').replace(/^@/, '').split(/[\s·]/)[0] || 'this builder';
+    const title = `Watch ${who}'s quick pitch`;
+
+    return (
+      <Card padding={12} radius={radii.cardLg}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={title}
+          onPress={onOpenPitch}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            gap: 14,
+            alignItems: 'center',
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <InlineVideo
+            item={{ label: 'Quick pitch', uri: listing.pitchUri, video: true }}
+            hue={listing.hue}
+            layout="vertical"
+            radius={14}
+            style={{ width: 92, height: 164 }}
+          />
+          <View style={{ flex: 1, gap: 8 }}>
+            <Label>Quick pitch</Label>
+            <Txt size={17} weight={600} lh={1.3}>
+              {title}
+            </Txt>
+            <Txt size={13} muted>
+              {length}
+            </Txt>
+            {onEdit ? (
+              <Pressable
+                onPress={onEdit}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Retake quick pitch"
+              >
+                <Txt size={13} weight={600} color={c.accentText}>
+                  Retake
+                </Txt>
+              </Pressable>
+            ) : null}
+          </View>
+        </Pressable>
+      </Card>
+    );
+  }
+
   if (section === 'builder') {
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={onEdit ? 'Edit builder card' : `About ${listing.builder}`}
+        accessibilityLabel={onEdit ? 'Edit builder card' : `About ${card.builder}`}
         onPress={onEdit ?? onOpenBuilder}
         style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
       >
-        <Card padding={16} radius={radii.cardLg}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
-            <Avatar name={listing.builder} size={48} />
-            <View style={{ flex: 1 }}>
-              <Txt size={15.5} weight={600}>
-                {listing.builder}
+        <Card padding={18} radius={radii.cardLg} style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}>
+            <Avatar name={card.builder} uri={card.builderPhoto} size={64} />
+            <View style={{ flex: 1, gap: 5, paddingTop: 2 }}>
+              <Txt size={18} weight={700} numberOfLines={2}>
+                {card.builder}
               </Txt>
-              <Txt size={13} muted numberOfLines={1}>
-                {listing.role}
-              </Txt>
-              <Txt size={12.5} muted numberOfLines={1} style={{ marginTop: 3 }}>
-                {listing.style}
-              </Txt>
+              {card.role ? (
+                <Txt size={14} muted>
+                  {card.role}
+                </Txt>
+              ) : null}
+              {card.githubCommits != null || listing.reply ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 }}>
+                  {card.githubCommits != null ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="logo-github" size={14} color={c.ink} />
+                      <Txt size={13} weight={600}>
+                        {card.githubCommits.toLocaleString()} commits
+                      </Txt>
+                    </View>
+                  ) : null}
+                  {listing.reply ? (
+                    <Txt size={13} muted>
+                      {listing.reply} reply rate
+                    </Txt>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
-            <Ionicons name={onEdit ? 'create-outline' : 'chevron-forward'} size={18} color={c.muted} />
+            <Ionicons
+              name={onEdit ? 'create-outline' : 'chevron-forward'}
+              size={18}
+              color={c.muted}
+              style={{ marginTop: 6 }}
+            />
           </View>
+          {card.style ? (
+            <Txt size={14.5} lh={1.45}>
+              {card.style}
+            </Txt>
+          ) : isOwner ? (
+            <Txt size={14} color={c.accentText}>
+              Add a bio
+            </Txt>
+          ) : null}
+          {(card.skills ?? []).length ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {card.skills!.slice(0, 8).map((skill) => (
+                <Chip key={skill} label={skill} size="sm" />
+              ))}
+            </View>
+          ) : null}
         </Card>
       </Pressable>
     );
@@ -497,8 +724,9 @@ function Section({
     // Owners see exact numbers; everyone else sees bands.
     const stats: [string, string][] = [
       ['Heys', isOwner && owned ? String(owned.views) : listing.likes],
+      ['Revenue', listingRevenue(listing)],
+      ['Commits', listing.githubCommits != null ? listing.githubCommits.toLocaleString() : '—'],
       ['Trades', String(listing.trades)],
-      ['Replies', listing.reply],
     ];
 
     return (
@@ -574,7 +802,15 @@ function EditTarget({
 }
 
 /** The dashed "add one" tile the owner sees where a section is still empty. */
-function AddTile({ label, onPress }: { label: string; onPress: () => void }) {
+function AddTile({
+  label,
+  onPress,
+  icon,
+}: {
+  label: string;
+  onPress: () => void;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+}) {
   const { c } = useTheme();
 
   return (
@@ -589,9 +825,11 @@ function AddTile({ label, onPress }: { label: string; onPress: () => void }) {
         borderColor: c.muted,
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 10,
         opacity: pressed ? 0.7 : 1,
       })}
     >
+      {icon ? <Ionicons name={icon} size={28} color={c.ink} /> : null}
       <Txt size={15} weight={500} muted>
         {label}
       </Txt>
@@ -640,6 +878,12 @@ export function CompactAppBar({
         </Txt>
         <Txt size={12} muted numberOfLines={1}>
           {listing.sub}
+        </Txt>
+      </View>
+      <View style={{ alignItems: 'flex-end', gap: 3 }}>
+        <Avatar name={listing.builder} uri={listing.builderPhoto} size={28} />
+        <Txt size={11} muted numberOfLines={1}>
+          by {builderFirstName(listing)}
         </Txt>
       </View>
     </View>

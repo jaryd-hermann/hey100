@@ -4,14 +4,28 @@ import { Pressable, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
 import { Sheet } from '@/components/ui/Sheet';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import type { AppListing, OwnedApp } from '@/data/types';
+import { builderFromUser } from '@/features/profile/builderCard';
+import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
 type SocialRow = [kind: string, value: string, icon: React.ComponentProps<typeof Ionicons>['name']];
+
+const SOCIAL_ICONS: Record<string, SocialRow[2]> = {
+  X: 'logo-twitter',
+  GitHub: 'logo-github',
+  LinkedIn: 'logo-linkedin',
+  Instagram: 'logo-instagram',
+  TikTok: 'logo-tiktok',
+  YouTube: 'logo-youtube',
+  Discord: 'logo-discord',
+  Web: 'globe-outline',
+};
 
 export type BuilderSheetProps = {
   visible: boolean;
@@ -26,36 +40,43 @@ export type BuilderSheetProps = {
  */
 export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderSheetProps) {
   const { c } = useTheme();
+  const store = useStore();
 
   if (!listing) return <Sheet visible={false} onClose={onClose} children={null} />;
 
-  const socials: SocialRow[] = [
-    ['X', `@${shortName(listing.name).toLowerCase()}`, 'logo-twitter'],
-    ['GitHub', shortName(listing.name).toLowerCase(), 'logo-github'],
-    ['LinkedIn', listing.builder, 'logo-linkedin'],
-    ...listing.links
-      .filter(([kind]) => kind === 'Web')
-      .map(([kind, value]) => [kind, value, 'globe-outline'] as SocialRow),
-  ];
+  const mine = store.ownedApps.some((app) => app.id === listing.id);
+  const card = mine ? { ...listing, ...builderFromUser(store.user) } : listing;
+  const socials: SocialRow[] = (mine ? store.user.socials : (listing.builderSocials ?? []))
+    .filter(([, value]) => !!value)
+    .map(([kind, value]) => [kind, value, SOCIAL_ICONS[kind] ?? 'globe-outline']);
 
-  const stats: [string, string][] = [
-    ['Feedback given', String(listing.trades * 2)],
-    ['Reply rate', listing.reply],
-    ['Trades', String(listing.trades)],
-  ];
+  const commits = mine ? store.user.githubCommits : listing.githubCommits;
+  const stats: [string, string][] = mine
+    ? [
+        ['Heys given', String(store.sentHeys.length)],
+        ['Feedback given', String(store.user.feedbackGiven)],
+        ['GitHub', commits != null ? commits.toLocaleString() : '—'],
+      ]
+    : [
+        ['Feedback given', '—'],
+        ['Trades', listing.trades ? String(listing.trades) : '—'],
+        ['GitHub', commits != null ? commits.toLocaleString() : '—'],
+      ];
 
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View style={{ gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <Avatar name={listing.builder} uri={listing.builderPhoto} size={60} />
+          <Avatar name={card.builder} uri={card.builderPhoto} size={60} />
           <View style={{ flex: 1 }}>
             <Txt size={19} weight={700}>
-              {listing.builder}
+              {card.builder}
             </Txt>
-            <Txt size={13.5} muted>
-              {listing.role}
-            </Txt>
+            {card.role ? (
+              <Txt size={13.5} muted>
+                {card.role}
+              </Txt>
+            ) : null}
             <Txt size={13.5} muted style={{ marginTop: 2 }}>
               Building {shortName(listing.name)}
             </Txt>
@@ -75,11 +96,21 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
           </View>
         </Card>
 
-        <Card tone="soft" padding={14}>
-          <Txt size={14} lh={1.45} color={c.accentText}>
-            {listing.style}
-          </Txt>
-        </Card>
+        {card.style ? (
+          <Card tone="soft" padding={14}>
+            <Txt size={14} lh={1.45} color={c.accentText}>
+              {card.style}
+            </Txt>
+          </Card>
+        ) : null}
+
+        {(card.skills ?? []).length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {card.skills!.slice(0, 8).map((skill) => (
+              <Chip key={skill} label={skill} size="sm" />
+            ))}
+          </View>
+        ) : null}
 
         <View style={{ gap: 8 }}>
           {socials.map(([kind, value, icon]) => (

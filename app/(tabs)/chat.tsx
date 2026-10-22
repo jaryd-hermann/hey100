@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
@@ -9,8 +9,10 @@ import { Chip } from '@/components/ui/Chip';
 import { Txt } from '@/components/ui/Txt';
 import { MATCH_APPS, shortName } from '@/data/mock';
 import type { Match } from '@/data/types';
+import { AdminInbox } from '@/features/chat/AdminInbox';
 import { TEAM_ID, threadPreview, timeRank } from '@/features/chat/chatMeta';
 import { TeamMark } from '@/features/chat/TeamMark';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
@@ -21,7 +23,10 @@ type Row =
 
 export default function ChatScreen() {
   const router = useRouter();
+  const { c } = useTheme();
   const store = useStore();
+  const { isAdmin } = useAuth();
+  const [desk, setDesk] = useState<'user' | 'admin'>('user');
   const deleted = store.deletedChats;
 
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
@@ -46,13 +51,43 @@ export default function ChatScreen() {
     <Screen
       title="Chat"
       headerRight={
-        store.isPro ? null : (
+        isAdmin ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              borderRadius: radii.pill,
+              borderWidth: 1.5,
+              borderColor: c.line,
+              overflow: 'hidden',
+            }}
+          >
+            {(['user', 'admin'] as const).map((mode) => (
+              <Pressable
+                key={mode}
+                onPress={() => setDesk(mode)}
+                style={{
+                  paddingHorizontal: 10,
+                  height: 28,
+                  justifyContent: 'center',
+                  backgroundColor: desk === mode ? c.ink : 'transparent',
+                }}
+              >
+                <Txt size={12} weight={600} color={desk === mode ? c.bg : c.muted}>
+                  {mode === 'user' ? 'User' : 'Admin'}
+                </Txt>
+              </Pressable>
+            ))}
+          </View>
+        ) : store.isPro ? null : (
           <Txt font="mono" size={12} muted>
             {store.matches.length} of {FREE_MATCH_LIMIT + store.user.bonusMatches} free
           </Txt>
         )
       }
     >
+      {isAdmin && desk === 'admin' ? (
+        <AdminInbox />
+      ) : (
       <View style={{ gap: 12 }}>
         {rows.map((row) =>
           row.kind === 'team' ? (
@@ -70,6 +105,7 @@ export default function ChatScreen() {
           </View>
         ) : null}
       </View>
+      )}
     </Screen>
   );
 }

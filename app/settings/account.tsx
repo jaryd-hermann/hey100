@@ -25,7 +25,6 @@ const VISIBILITY_FIELDS: { key: string; label: string }[] = [
   { key: 'job', label: 'Job title' },
   { key: 'workplace', label: 'Where you work' },
   { key: 'look', label: "What you're looking for" },
-  { key: 'l', label: 'Life outside building' },
   { key: 'd', label: 'Devices you test on' },
 ];
 
@@ -263,7 +262,13 @@ export default function Account() {
             </Txt>
           </Pressable>
 
-          <Btn label="Keep my account" variant="ghost" size="md" full onPress={() => setConfirmDelete(false)} />
+          <Btn
+            label="Keep my account"
+            variant="ghost"
+            size="md"
+            full
+            onPress={() => setConfirmDelete(false)}
+          />
         </View>
       </Sheet>
     </View>

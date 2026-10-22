@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,31 +10,21 @@ import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import { captureEvent } from '@/lib/analytics';
-import { FREE_DAILY_HEYS, FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
+import {
+  FREE_DAILY_HEYS,
+  FREE_MATCH_LIMIT,
+  PRO_PRICE,
+  PRO_PRICE_NOTE,
+  useStore,
+} from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
-type PlanId = 'monthly' | 'season';
-
-const PLANS: { id: PlanId; name: string; price: string; note: string }[] = [
-  { id: 'monthly', name: 'Monthly', price: '$9.99', note: 'per month' },
-  { id: 'season', name: 'Launch season', price: '$24.99', note: '90 days' },
-];
-
 const PERKS: [string, string][] = [
-  [
-    'Unlimited heys',
-    'Say hey to as many apps as you want each day, so matches come faster.',
-  ],
+  ['Unlimited heys', 'Say hey to as many apps as you want each day, so matches come faster.'],
   ['Better visibility', 'Shown to more builders who fit your ideal users.'],
-  [
-    'More analytics',
-    'Views, skips, hey ratio and which part of your page gets the most heys.',
-  ],
-  [
-    'Unlimited matches',
-    `Keep trading past the ${FREE_MATCH_LIMIT} free matches.`,
-  ],
+  ['More analytics', 'Views, skips, hey ratio and which part of your page gets the most heys.'],
+  ['Unlimited matches', `Keep trading past the ${FREE_MATCH_LIMIT} free matches.`],
 ];
 
 export default function Paywall() {
@@ -51,12 +41,14 @@ export default function Paywall() {
     appId?: string;
   }>();
 
-  const [plan, setPlan] = useState<PlanId>('season');
   const atMatchLimit = reason === 'match5';
 
   const dismiss = () => {
     if (from === 'onboarding') {
-      router.replace({ pathname: '/my-app/[id]', params: { id: 'tide', setup: '1' } });
+      router.replace({
+        pathname: '/setup/notifications',
+        params: { appId: store.primaryApp.id },
+      });
       return;
     }
     if (next === 'chat' && appId) {
@@ -69,8 +61,8 @@ export default function Paywall() {
   const purchase = () => {
     // Apple IAP via RevenueCat replaces this once the native module is wired.
     store.setPlan('pro');
-    captureEvent('pro_started', { plan, reason: reason ?? from ?? 'unknown' });
-    toast(plan === 'season' ? 'Launch season started' : 'Hey100 Pro started');
+    captureEvent('pro_started', { plan: 'monthly', reason: reason ?? from ?? 'unknown' });
+    toast('Hey100 Pro started');
     dismiss();
   };
 
@@ -136,36 +128,15 @@ export default function Paywall() {
           ))}
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 26 }}>
-          {PLANS.map((option) => {
-            const active = plan === option.id;
-            return (
-              <Pressable
-                key={option.id}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: active }}
-                onPress={() => setPlan(option.id)}
-                style={{
-                  flex: 1,
-                  borderRadius: radii.cardLg,
-                  padding: 16,
-                  gap: 4,
-                  backgroundColor: active ? c.raised : c.surface,
-                  borderWidth: 1.5,
-                  borderColor: active ? c.ink : c.line,
-                }}
-              >
-                <Label size={10}>{option.name}</Label>
-                <Txt font="mono" size={20} weight={500}>
-                  {option.price}
-                </Txt>
-                <Txt size={12.5} muted>
-                  {option.note}
-                </Txt>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Card padding={16} radius={radii.cardLg} style={{ marginTop: 26, gap: 4 }}>
+          <Label size={10}>Hey100 Pro</Label>
+          <Txt font="mono" size={28} weight={500}>
+            {PRO_PRICE}
+          </Txt>
+          <Txt size={13.5} muted>
+            {PRO_PRICE_NOTE}
+          </Txt>
+        </Card>
 
         {atMatchLimit ? (
           <Card tone="soft" padding={16} style={{ marginTop: 16, gap: 10 }}>
@@ -201,9 +172,7 @@ export default function Paywall() {
         }}
       >
         <Btn
-          label={
-            plan === 'season' ? 'Start launch season · $24.99' : 'Start Pro · $9.99/mo'
-          }
+          label={`Start Pro · ${PRO_PRICE}/mo`}
           variant="accent"
           size="lg"
           full

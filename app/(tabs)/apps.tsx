@@ -5,17 +5,18 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
-import { AppIcon, Avatar } from '@/components/ui/AppIcon';
+import { Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { Label, Txt } from '@/components/ui/Txt';
 import { MILESTONES } from '@/data/mock';
-import { listingStrength } from '@/features/apps/listingStrength';
 import type { OwnedApp } from '@/data/types';
+import { AppCard } from '@/features/apps/AppCard';
 import { BadgesSheet } from '@/features/apps/BadgesSheet';
 import { ShareListingSheet } from '@/features/apps/ShareListingSheet';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { useDevMode } from '@/lib/devMode';
-import { FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
+import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -23,7 +24,9 @@ export default function AppsScreen() {
   const router = useRouter();
   const { c, isDark } = useTheme();
   const store = useStore();
+  const { isAdmin } = useAuth();
   const { devMode } = useDevMode();
+  const sampleMilestones = isAdmin && devMode;
   const [shareApp, setShareApp] = useState<OwnedApp | null>(null);
   const [badgeApp, setBadgeApp] = useState<OwnedApp | null>(null);
 
@@ -104,7 +107,7 @@ export default function AppsScreen() {
         <View style={{ marginTop: 18, gap: 12 }}>
           <Label>Milestones</Label>
 
-          {devMode
+          {sampleMilestones
             ? MILESTONES.map((milestone) => (
                 <MilestoneCard
                   key={milestone.id}
@@ -223,106 +226,3 @@ function MilestoneCard({
   );
 }
 
-function AppCard({
-  app,
-  onShare,
-  onBadges,
-  onEdit,
-}: {
-  app: OwnedApp;
-  onShare: () => void;
-  onBadges: () => void;
-  onEdit: () => void;
-}) {
-  const { c } = useTheme();
-  const store = useStore();
-  const strength = listingStrength(app, store.connections[app.id] ?? {});
-  const status = app.listedUntilDays
-    ? `listed · ${app.listedUntilDays} days left`
-    : store.isPro
-      ? 'listed · Pro'
-      : `${app.primary ? 'Primary · ' : ''}free · ${store.matches.length} of ${FREE_MATCH_LIMIT + store.user.bonusMatches} matches`;
-
-  return (
-    <Card padding={16} radius={radii.cardLg} style={{ gap: 14 }}>
-      <Pressable onPress={onEdit} accessibilityRole="button" accessibilityLabel={`View and edit ${app.name}`}>
-        <View style={{ gap: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
-            <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={52} />
-            <View style={{ flex: 1 }}>
-              <Txt font="mono" size={15} weight={500} numberOfLines={1}>
-                {app.name}
-              </Txt>
-              <Txt size={12.5} muted numberOfLines={1}>
-                {status}
-              </Txt>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderColor: c.line, paddingTop: 13 }}>
-            {(
-              [
-                ['Views', String(app.views)],
-                ['Heys', app.likes],
-                ['Matches', String(app.matches)],
-              ] as const
-            ).map(([label, value]) => (
-              <View key={label} style={{ flex: 1, gap: 2 }}>
-                <Txt font="mono" size={17} weight={500}>
-                  {value}
-                </Txt>
-                <Label size={10}>{label}</Label>
-              </View>
-            ))}
-          </View>
-
-          <View style={{ gap: 6 }}>
-            <View style={{ height: 6, borderRadius: 3, backgroundColor: c.raised, overflow: 'hidden' }}>
-              <View
-                style={{
-                  width: `${Math.round(strength.ratio * 100)}%`,
-                  height: 6,
-                  backgroundColor: c.accent,
-                }}
-              />
-            </View>
-            <Txt size={11.5} muted>
-              Listing strength · {strength.done}/{strength.total}
-              {strength.items.find((item) => item.key === 'verified')?.done ? ' · verified' : ''}
-            </Txt>
-          </View>
-        </View>
-      </Pressable>
-
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {(
-          [
-            ['Share', onShare],
-            ['Badges', onBadges],
-            ['View/Edit', onEdit],
-          ] as const
-        ).map(([label, onPress]) => (
-          <Pressable
-            key={label}
-            onPress={onPress}
-            style={({ pressed }) => ({
-              flex: 1,
-              height: 40,
-              borderRadius: radii.pill,
-              borderWidth: 1.5,
-              borderColor: c.line,
-              backgroundColor: c.raised,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.75 : 1,
-            })}
-          >
-            <Txt size={13} weight={600}>
-              {label}
-            </Txt>
-          </Pressable>
-        ))}
-      </View>
-    </Card>
-  );
-}

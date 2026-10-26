@@ -1,0 +1,29 @@
+# When this file exists, EAS ignores .gitignore. Keep both in sync, then
+# drop anything the cloud builder does not need.
+
+node_modules/
+web/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+/ios/
+/android/
+
+.env
+.env.local
+.env*.local
+.env*
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+*.key
+
+.DS_Store
+*.log
+.vercel
+.agents/
+
+# Design mocks and spec dumps. They are not part of the native build.
+design/

@@ -7,12 +7,14 @@ import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import type { IncomingHey } from '@/data/types';
+import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import { FollowUpSheet } from '@/features/heys/FollowUpSheet';
 import { HeysSwitcher, type HeysTab } from '@/features/heys/HeysSwitcher';
 import { PassReasonSheet } from '@/features/heys/PassReasonSheet';
 import { ReceivedHeyCard } from '@/features/heys/ReceivedHeyCard';
 import { SentHeyCard } from '@/features/heys/SentHeyCard';
 import { useTick } from '@/features/heys/time';
+import { useDevLoop } from '@/features/dev/useDevLoop';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 
@@ -20,16 +22,18 @@ export default function HeysScreen() {
   const router = useRouter();
   const toast = useToast();
   const store = useStore();
+  const loop = useDevLoop();
 
   const [tab, setTab] = useState<HeysTab>('received');
   const [passing, setPassing] = useState<IncomingHey | null>(null);
   const [followUpId, setFollowUpId] = useState<string | null>(null);
+  const [builderAppId, setBuilderAppId] = useState<string | null>(null);
 
   // Keeps the "unlocks in 19h" countdowns honest while the screen is open.
   useTick();
 
   const heyBack = async (heyId: string) => {
-    const hey = store.heys.find((item) => item.id === heyId);
+    const hey = loop.heys.find((item) => item.id === heyId);
     const result = await store.heyBack(heyId);
     captureEvent('hey_back', { matched: result.matched });
 
@@ -73,21 +77,22 @@ export default function HeysScreen() {
     setPassing(null);
   };
 
-  const followUpTarget = store.sentHeys.find((sent) => sent.id === followUpId);
+  const followUpTarget = loop.sentHeys.find((sent) => sent.id === followUpId);
   const followUpListing = followUpTarget ? store.listing(followUpTarget.appId) : undefined;
   const passingListing = passing ? store.listing(passing.appId) : undefined;
+  const builderListing = builderAppId ? store.listing(builderAppId) : undefined;
 
   return (
     <Screen title="Heys" headerRight={<HeysSwitcher value={tab} onChange={setTab} />}>
       {tab === 'received' ? (
-        store.heys.length === 0 ? (
+        loop.heys.length === 0 ? (
           <EmptyState
             title="No heys waiting."
             body="Say hey to a few apps in Discover. A note doubles your reply rate."
           />
         ) : (
           <View style={{ gap: 14 }}>
-            {store.heys.map((hey) => {
+            {loop.heys.map((hey) => {
               const listing = store.listing(hey.appId);
               if (!listing) return null;
 
@@ -110,14 +115,14 @@ export default function HeysScreen() {
             })}
           </View>
         )
-      ) : store.sentHeys.length === 0 ? (
+      ) : loop.sentHeys.length === 0 ? (
         <EmptyState
           title="No heys sent yet."
           body="Every hey you send from Discover shows up here, with where it got to."
         />
       ) : (
         <View style={{ gap: 14 }}>
-          {store.sentHeys.map((sent) => {
+          {loop.sentHeys.map((sent) => {
             const listing = store.listing(sent.appId);
             if (!listing) return null;
 
@@ -129,7 +134,7 @@ export default function HeysScreen() {
                 viaApp={store.apps[sent.viaAppId]}
                 onFollowUp={() => setFollowUpId(sent.id)}
                 onOpenChat={() => {
-                  const match = store.matches.find((item) => item.appId === sent.appId);
+                  const match = loop.matches.find((item) => item.appId === sent.appId);
                   if (match) {
                     router.push({
                       pathname: '/chat/[id]',
@@ -139,6 +144,10 @@ export default function HeysScreen() {
                     router.push('/chat');
                   }
                 }}
+                onOpenApp={() =>
+                  router.push({ pathname: '/listing/[id]', params: { id: listing.id } })
+                }
+                onOpenBuilder={() => setBuilderAppId(listing.id)}
               />
             );
           })}
@@ -150,6 +159,16 @@ export default function HeysScreen() {
         appName={passingListing ? shortName(passingListing.name) : 'The builder'}
         onClose={(stopAsking) => closePassSheet(stopAsking)}
         onSubmit={(reason, stopAsking) => closePassSheet(stopAsking, reason)}
+      />
+
+      <BuilderSheet
+        visible={!!builderListing}
+        listing={builderListing ?? null}
+        onClose={() => setBuilderAppId(null)}
+        onOpenLink={(kind, value) => {
+          setBuilderAppId(null);
+          router.push({ pathname: '/browser', params: { kind, value } });
+        }}
       />
 
       <FollowUpSheet

@@ -1,3 +1,4 @@
+import { hiResStoreImages } from '@/lib/storeImages';
 import { getSupabase } from '@/lib/supabase';
 
 /** App Store Connect caps the name and subtitle at 30 characters. */
@@ -51,5 +52,9 @@ export async function fetchAppMetadata(url: string): Promise<AppMetadata> {
   });
 
   if (error || !data?.name) return metadataFromHost(url);
-  return { ...data, shots: data.shots ?? [], cats: data.cats ?? [] };
+  return {
+    ...data,
+    shots: hiResStoreImages(data.shots ?? []),
+    cats: data.cats ?? [],
+  };
 }

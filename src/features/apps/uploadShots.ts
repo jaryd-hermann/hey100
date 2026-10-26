@@ -32,7 +32,13 @@ async function bytesOf(uri: string): Promise<Uint8Array> {
     return new Uint8Array(await response.arrayBuffer());
   }
 
-  return new File(uri).bytes();
+  try {
+    return await new File(uri).bytes();
+  } catch {
+    const response = await fetch(uri);
+    if (!response.ok) throw new Error(`Could not read ${uri}`);
+    return new Uint8Array(await response.arrayBuffer());
+  }
 }
 
 /**

@@ -232,13 +232,20 @@ export default function OwnerAppPage() {
         visible={editSection === 'pitch'}
         builder={app.builder || store.user.realName}
         onClose={() => setEditSection(null)}
-        onPublish={(uri, seconds) => {
+        onPublish={async (uri, seconds) => {
           const patch = { pitchUri: uri, pitchSeconds: seconds };
           store.updateApp(app.id, patch);
-          persist(patch);
-          captureEvent('listing_section_edited', { section: 'pitch' });
-          setEditSection(null);
-          toast('Quick pitch published');
+          try {
+            await persistListing(userId, app.id, patch);
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.myListings(userId),
+            });
+            captureEvent('listing_section_edited', { section: 'pitch' });
+            setEditSection(null);
+            toast('Quick pitch published');
+          } catch {
+            toast('The pitch did not save. Try again.');
+          }
         }}
       />
 

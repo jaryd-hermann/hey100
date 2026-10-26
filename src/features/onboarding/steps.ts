@@ -1,5 +1,3 @@
-import { AGES } from '@/data/mock';
-
 export type StepKind =
   | 'welcome'
   | 'invite'
@@ -275,6 +273,12 @@ export const FEEDBACK_AREAS = [
 
 /** Platforms, by the name of the thing a builder actually ships to. */
 export const DEVICES = ['iPhone (iOS)', 'Android', 'Mac', 'Windows', 'Web'];
+
+/**
+ * Ideal-user age bands. Defined here so the pick step cannot render empty if
+ * a circular import leaves `mock.ts` mid-initialisation.
+ */
+export const AGES = ['Any age', '18–24', '25–34', '35–44', '45–54', '55+'];
 
 /**
  * Who a listing is for. Long on purpose: a builder should find their actual

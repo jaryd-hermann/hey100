@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,8 +35,9 @@ export default function Account() {
   const toast = useToast();
   const store = useStore();
   const { userId } = useAuth();
+  const { delete: deleteParam } = useLocalSearchParams<{ delete?: string }>();
 
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(deleteParam === '1');
 
   const { user } = store;
   const publicUrl = `hey100.com/${user.username}`;
@@ -207,26 +208,45 @@ export default function Account() {
           </Txt>
         </View>
 
-        <View style={{ gap: 2, marginTop: 4 }}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={signOutAndLeave}
-            style={({ pressed }) => ({ paddingVertical: 14, opacity: pressed ? 0.7 : 1 })}
-          >
-            <Txt size={15} weight={600} color={c.danger}>
-              Sign out
-            </Txt>
-          </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={signOutAndLeave}
+          style={({ pressed }) => ({ paddingVertical: 14, opacity: pressed ? 0.7 : 1 })}
+        >
+          <Txt size={15} weight={600}>
+            Sign out
+          </Txt>
+        </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setConfirmDelete(true)}
-            style={({ pressed }) => ({ paddingVertical: 14, opacity: pressed ? 0.7 : 1 })}
+        <View style={{ gap: 11, marginTop: 8 }}>
+          <Label color={c.danger}>Danger zone</Label>
+
+          <Card
+            padding={16}
+            radius={radii.cardLg}
+            style={{ gap: 12, borderWidth: 1.5, borderColor: c.danger }}
           >
-            <Txt size={15} weight={600} color={c.danger}>
+            <Txt size={15} weight={600}>
               Delete account
             </Txt>
-          </Pressable>
+            <Txt size={13} lh={1.45} muted>
+              Your listings come down, matches and chats close, and feedback you left is
+              anonymised. This can&apos;t be undone.
+            </Txt>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setConfirmDelete(true)}
+              style={({ pressed }) => ({
+                alignSelf: 'flex-start',
+                paddingVertical: 10,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Txt size={15} weight={600} color={c.danger}>
+                Delete my account
+              </Txt>
+            </Pressable>
+          </Card>
         </View>
       </ScrollView>
 

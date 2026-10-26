@@ -8,7 +8,7 @@ import { Txt } from '@/components/ui/Txt';
 import { EMOJI_TRAY } from '@/data/mock';
 import type { MediaItem } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
-import { fonts, layout, radii } from '@/theme/tokens';
+import { fonts, layout } from '@/theme/tokens';
 
 const THUMB = 56;
 
@@ -154,78 +154,80 @@ export function Composer({
         </View>
       ) : null}
 
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          gap: 9,
-          paddingHorizontal: layout.gutter,
-          paddingTop: 8,
-          paddingBottom: bottomInset + 8,
-          borderTopWidth: 1,
-          borderColor: c.line,
-        }}
-      >
-        {hideAttach ? null : (
-        <Pressable
-          onPress={onAttach}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Attach photo or video"
-          style={{ height: 44, justifyContent: 'center' }}
-        >
-          <Ionicons name="add-circle-outline" size={25} color={c.muted} />
-        </Pressable>
-        )}
-
-        <Pressable
-          onPress={() => setEmojiOpen((prev) => !prev)}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Emoji"
-          style={{ height: 44, justifyContent: 'center' }}
-        >
-          <Ionicons name="happy-outline" size={23} color={emojiOpen ? c.accentText : c.muted} />
-        </Pressable>
-
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={c.muted}
-          multiline
+      <View style={{ paddingHorizontal: 14, paddingBottom: bottomInset + 12, paddingTop: 8 }}>
+        <View
           style={{
-            flex: 1,
-            maxHeight: 112,
-            minHeight: 44,
-            borderRadius: radii.input,
-            backgroundColor: c.surface,
-            borderWidth: 1,
-            borderColor: c.line,
-            paddingHorizontal: 14,
-            paddingTop: 12,
-            paddingBottom: 12,
-            color: c.ink,
-            fontFamily: fonts.body,
-            fontSize: 15.5,
-          }}
-        />
-
-        <Pressable
-          onPress={send}
-          accessibilityRole="button"
-          accessibilityLabel="Send"
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: canSend ? c.accent : c.raised,
+            minHeight: 52,
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: 8,
+            paddingLeft: 18,
+            paddingRight: 6,
+            borderRadius: 26,
+            borderWidth: 1,
+            borderColor: c.glassBorder,
+            backgroundColor: c.glass,
           }}
         >
-          <Ionicons name="arrow-up" size={20} color={canSend ? c.accentInk : c.muted} />
-        </Pressable>
+          {hideAttach ? null : (
+            <Pressable
+              onPress={onAttach}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Attach photo or video"
+            >
+              <Txt size={26} style={{ lineHeight: 28, marginTop: -2 }}>
+                +
+              </Txt>
+            </Pressable>
+          )}
+
+          <Pressable
+            onPress={() => setEmojiOpen((prev) => !prev)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Emoji"
+          >
+            <Ionicons name="happy-outline" size={22} color={emojiOpen ? c.accentText : c.ink} />
+          </Pressable>
+
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={c.muted}
+            multiline
+            style={{
+              flex: 1,
+              maxHeight: 100,
+              minHeight: 40,
+              paddingTop: 10,
+              color: c.ink,
+              fontFamily: fonts.body,
+              fontSize: 16,
+            }}
+          />
+
+          {canSend ? (
+            <Pressable
+              onPress={send}
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              style={{
+                height: 40,
+                paddingHorizontal: 16,
+                borderRadius: 20,
+                backgroundColor: c.accent,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Txt size={14.5} weight={700} color={c.accentInk}>
+                Send
+              </Txt>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
     </View>
   );

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Notifications from 'expo-notifications';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -7,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Btn } from '@/components/ui/Btn';
 import { Txt } from '@/components/ui/Txt';
+import { requestPushPermission } from '@/lib/onesignal';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout } from '@/theme/tokens';
 
@@ -24,7 +24,7 @@ export default function SetupNotifications() {
     if (asking) return;
     setAsking(true);
     try {
-      await Notifications.requestPermissionsAsync();
+      await requestPushPermission();
     } catch {
       // Declining is fine — they can turn them on later in Settings.
     } finally {
@@ -41,7 +41,8 @@ export default function SetupNotifications() {
           Know when someone says hey
         </Txt>
         <Txt size={15.5} lh={1.5} muted>
-          A match, a reply, or feedback on your app. You can change this any time in Settings.
+          A match, a reply, feedback, or a group you would actually join. You can turn any of it
+          off later in Settings.
         </Txt>
       </View>
 

@@ -6,6 +6,7 @@ import { getSupabase, isServerId } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
 import { queryKeys, staleTimes } from './keys';
+import type { ListingCard } from './loop';
 
 type Tables = Database['public']['Tables'];
 
@@ -146,6 +147,17 @@ export async function setListingMedia(appId: string, media: NewListing['media'])
 
   const { error } = await db.from('app_media').insert(rows);
   if (error) throw error;
+}
+
+/** Public share page. Published listings only; callable while signed out. */
+export async function listingBySlug(slug: string): Promise<ListingCard | null> {
+  const db = getSupabase();
+  if (!db || !slug.trim()) return null;
+
+  const { data, error } = await db.rpc('listing_by_slug', { p_slug: slug.trim() });
+  if (error) throw error;
+  if (!data) return null;
+  return data as ListingCard;
 }
 
 /** The free plan allows one listed app. The trigger raises with this hint. */

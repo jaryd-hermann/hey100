@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { Redirect, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -54,6 +54,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const store = useStore();
   const { userId } = useAuth();
   const queryClient = useQueryClient();
+  const { invite } = useLocalSearchParams<{ invite?: string }>();
 
   const addApp = mode === 'addApp';
   const { draft, ready, update, toggle, picked, isVisible, toggleVisible, clear } =
@@ -73,11 +74,48 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   const usernameState = useUsernameState(draft.username);
 
-  const step = STEPS[draft.step];
+  const step = STEPS[draft.step] ?? STEPS[0];
   const lastStep = addApp ? ADD_APP_RANGE.last : LAST_STEP;
   const isWelcome = step.kind === 'welcome';
   const isCheckLike = step.kind === 'check';
   const isSummary = step.kind === 'summary';
+  const welcomed = useRef(false);
+  const appliedInvite = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!ready || addApp || !isWelcome || welcomed.current) return;
+    welcomed.current = true;
+    captureEvent('welcome_viewed');
+  }, [ready, addApp, isWelcome]);
+
+  useEffect(() => {
+    if (!ready || addApp) return;
+    const code = typeof invite === 'string' ? invite.trim() : '';
+    if (!code || appliedInvite.current === code) return;
+    appliedInvite.current = code;
+
+    let cancelled = false;
+    update({ inviteCode: code, inviteOk: false, invitedBy: null, step: 1 });
+    void (async () => {
+      try {
+        const status = await checkInviteCode(code);
+        if (cancelled) return;
+        if (!status.valid) {
+          toast("That code isn't valid");
+          return;
+        }
+        const invitedBy = status.inviter ?? 'a builder';
+        update({ inviteOk: true, invitedBy });
+        captureEvent('invite_redeemed', { invited_by: invitedBy });
+      } catch {
+        if (!cancelled) toast('Could not check that code. Try again.');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, addApp, invite, toast, update]);
 
   const valid = useMemo(() => {
     switch (step.kind) {
@@ -280,6 +318,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
     void clear();
 
+    captureEvent('listing_published', { source: 'onboarding' });
     captureEvent('onboarding_completed', {
       prompts: draft.answered.length,
       screenshots: draft.shots.length,
@@ -772,16 +811,26 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'pick':
         return (
           <PickStep
-            opts={step.opts!}
+            opts={step.opts ?? []}
             selected={picked(step.group!)}
             single={step.single}
             onToggle={(label) => {
-              const chosen = picked(step.group!);
+              const group = step.group!;
+              const chosen = picked(group);
               if (step.max && chosen.length >= step.max && !chosen.includes(label)) {
                 toast(`Pick up to ${step.max}. Unpick one to change it.`);
                 return;
               }
-              toggle(step.group!, label, step.single);
+              // "Any age" is exclusive: a band list and "any" cannot both be true.
+              if (group === 'ia' && label === 'Any age') {
+                toggle(group, label, true);
+                return;
+              }
+              if (group === 'ia' && chosen.includes('Any age')) {
+                update((prev) => ({ sel: { ...prev.sel, ia: [label] } }));
+                return;
+              }
+              toggle(group, label, step.single);
             }}
             subtitle={step.max ? `Pick up to ${step.max}` : undefined}
             search={step.search}

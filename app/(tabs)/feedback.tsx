@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import type { FeedbackEntry } from '@/data/types';
+import { useDevLoop } from '@/features/dev/useDevLoop';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -21,12 +22,13 @@ export default function FeedbackInbox() {
   const router = useRouter();
   const { c } = useTheme();
   const store = useStore();
+  const loop = useDevLoop();
 
   const [appId, setAppId] = useState(store.primaryApp.id);
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
   const app = store.apps[appId] ?? store.primaryApp;
-  const data = store.inbox[appId];
+  const data = loop.inbox(appId);
 
   return (
     <Screen

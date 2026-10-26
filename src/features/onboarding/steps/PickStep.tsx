@@ -59,7 +59,7 @@ export type PickStepProps = {
 };
 
 export function PickStep({
-  opts,
+  opts = [],
   selected,
   single,
   onToggle,

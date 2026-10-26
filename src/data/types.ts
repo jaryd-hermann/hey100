@@ -165,6 +165,7 @@ export type SentHey = {
   /** Which of the user's apps it was sent from. */
   viaAppId: string;
   target: string;
+  targetType?: HeyTargetType;
   note: string;
   /** Epoch ms; the follow-up only unlocks 24h after this. */
   sentAt: number;

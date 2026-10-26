@@ -986,7 +986,9 @@ export type Database = {
           job: string | null
           life_tags: string[]
           links: Json
+          last_active_at: string | null
           looking_for: string[]
+          notification_prefs: Json
           onboarded_at: string | null
           own_words: Json
           photo_url: string | null
@@ -999,6 +1001,7 @@ export type Database = {
           skills: string[]
           test_devices: string[]
           theme_pref: string
+          timezone: string | null
           updated_at: string
           username: string | null
           visibility: Json
@@ -1021,7 +1024,9 @@ export type Database = {
           job?: string | null
           life_tags?: string[]
           links?: Json
+          last_active_at?: string | null
           looking_for?: string[]
+          notification_prefs?: Json
           onboarded_at?: string | null
           own_words?: Json
           photo_url?: string | null
@@ -1034,6 +1039,7 @@ export type Database = {
           skills?: string[]
           test_devices?: string[]
           theme_pref?: string
+          timezone?: string | null
           updated_at?: string
           username?: string | null
           visibility?: Json
@@ -1056,7 +1062,9 @@ export type Database = {
           job?: string | null
           life_tags?: string[]
           links?: Json
+          last_active_at?: string | null
           looking_for?: string[]
+          notification_prefs?: Json
           onboarded_at?: string | null
           own_words?: Json
           photo_url?: string | null
@@ -1069,6 +1077,7 @@ export type Database = {
           skills?: string[]
           test_devices?: string[]
           theme_pref?: string
+          timezone?: string | null
           updated_at?: string
           username?: string | null
           visibility?: Json
@@ -1301,10 +1310,12 @@ export type Database = {
         Returns: Json
       }
       discover_deck: { Args: { p_limit?: number }; Returns: Json }
+      ensure_official_builders_group: { Args: never; Returns: string | null }
       follow_up_hey: {
         Args: { p_hey_id: string; p_note: string }
         Returns: Json
       }
+      group_by_id: { Args: { p_id: string }; Returns: Json }
       hey_back: {
         Args: { p_from_app_id?: string; p_hey_id: string }
         Returns: Json
@@ -1334,6 +1345,9 @@ export type Database = {
       my_threads: { Args: never; Returns: Json }
       pass_hey: { Args: { p_hey_id: string; p_reason?: string }; Returns: Json }
       redeem_invite: { Args: { p_code: string }; Returns: Json }
+      record_profile_view: { Args: { p_listing_id: string }; Returns: undefined }
+      my_profile_view_count: { Args: never; Returns: number }
+      touch_presence: { Args: { p_timezone?: string }; Returns: undefined }
       say_hey: {
         Args: {
           p_from_app_id: string

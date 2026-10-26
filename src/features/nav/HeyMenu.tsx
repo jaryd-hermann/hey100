@@ -2,10 +2,13 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, Share, Switch, View } from 'react-native';
 
-import { HandMark, Wordmark } from '@/components/brand/Logo';
+import { Wordmark } from '@/components/brand/Logo';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { useDailyHeyLimit } from '@/features/billing/DailyHeyLimit';
+import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -31,13 +34,15 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
   const { c, isDark, setPref } = useTheme();
   const store = useStore();
   const toast = useToast();
+  const { isAdmin } = useAuth();
+  const { devMode } = useDevMode();
+  const heyLimit = useDailyHeyLimit();
 
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View style={{ gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 }}>
-          <HandMark size={28} fill={c.ink} />
-          <Wordmark size={22} />
+        <View style={{ paddingBottom: 4 }}>
+          <Wordmark size={26} />
         </View>
 
         {!store.isPro ? (
@@ -84,6 +89,27 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
             Preview my app
           </Txt>
         </Pressable>
+
+        {isAdmin && devMode ? (
+          <Pressable
+            onPress={() => {
+              onClose();
+              setTimeout(() => heyLimit.open(), 240);
+            }}
+            style={({ pressed }) => ({
+              paddingHorizontal: 16,
+              minHeight: 54,
+              borderRadius: 16,
+              backgroundColor: c.raised,
+              justifyContent: 'center',
+              opacity: pressed ? 0.75 : 1,
+            })}
+          >
+            <Txt size={16} weight={600}>
+              Preview 8 heys
+            </Txt>
+          </Pressable>
+        ) : null}
 
         <Pressable
           onPress={() => {

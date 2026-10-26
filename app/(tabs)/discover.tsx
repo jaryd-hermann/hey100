@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderLogo } from '@/components/brand/Logo';
@@ -21,6 +21,10 @@ import {
   type FilterState,
 } from '@/features/discover/FilterBar';
 import { HeySheet } from '@/features/discover/HeySheet';
+import { AppCard } from '@/features/apps/AppCard';
+import { BadgesSheet } from '@/features/apps/BadgesSheet';
+import { ShareListingSheet } from '@/features/apps/ShareListingSheet';
+import { useDailyHeyLimit } from '@/features/billing/DailyHeyLimit';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -32,6 +36,7 @@ export default function DiscoverScreen() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const heyLimit = useDailyHeyLimit();
 
   const scrollRef = useRef<ScrollView>(null);
   const { compact, onScroll, reset } = useCompactBar();
@@ -40,10 +45,12 @@ export default function DiscoverScreen() {
   const [index, setIndex] = useState(0);
   const [heyTarget, setHeyTarget] = useState<HeyTarget | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [badgesOpen, setBadgesOpen] = useState(false);
 
   const deck = useMemo(() => {
     if (store.previewAppId) {
-      const mine = store.listing(store.previewAppId);
+      const mine = store.listing(store.previewAppId) ?? store.primaryApp;
       return mine ? [mine] : [];
     }
     // The server already excludes what has been passed, heyed or matched; the
@@ -59,6 +66,14 @@ export default function DiscoverScreen() {
     return applyFilters(listings, filters);
   }, [filters, store, store.previewAppId]);
 
+  useEffect(() => {
+    setIndex(0);
+  }, [store.previewAppId]);
+
+  useEffect(() => {
+    if (index >= deck.length) setIndex(0);
+  }, [deck.length, index]);
+
   const listing = deck[index];
   const viaApp = listing ? store.attributedApp(listing.id) : store.primaryApp;
 
@@ -73,7 +88,7 @@ export default function DiscoverScreen() {
 
     if (!store.isPro && store.heysLeftToday <= 0) {
       setHeyTarget(null);
-      router.push('/paywall?reason=heys');
+      heyLimit.open();
       return;
     }
 
@@ -91,18 +106,20 @@ export default function DiscoverScreen() {
       note,
     });
 
-    captureEvent('hey_sent', {
-      target_type: target.type,
-      has_note: note.length > 0,
-      matched: result.matched,
-    });
-
     if (result.blocked) {
-      if (result.blocked === 'daily_limit') router.push('/paywall?reason=heys');
+      if (result.blocked === 'daily_limit') heyLimit.open();
       else if (result.blocked === 'match_limit') router.push('/paywall?reason=match5');
       else toast("That hey didn't send. Try again.");
       return;
     }
+
+    captureEvent('hey_sent', {
+      app_id: listing.id,
+      target_type: target.type,
+      target: target.label,
+      has_note: note.length > 0,
+      matched: result.matched,
+    });
 
     if (result.matched) {
       router.push({
@@ -128,6 +145,7 @@ export default function DiscoverScreen() {
     filters.stage.length > 0;
 
   if (!listing) {
+    const mine = store.primaryApp;
     return (
       <View
         style={{
@@ -137,37 +155,58 @@ export default function DiscoverScreen() {
           paddingHorizontal: layout.gutter,
         }}
       >
-        {/* The filters stay reachable, since they are the likely cause. */}
         <DiscoverHeader filters={filters} onChange={setFilters} inset={false} />
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 14,
-          }}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: layout.tabBarSpacer + 24, gap: 16, paddingTop: 12 }}
         >
-          <Txt font="mono" size={19} weight={500} center>
+          <Txt font="mono" size={19} weight={500}>
             That&apos;s everyone for now.
           </Txt>
-          <Txt size={15} lh={1.5} muted center style={{ maxWidth: 280 }}>
+          <Txt size={15} lh={1.5} muted>
             {filtered
-              ? 'New apps are listed every day. Clear your filters, or check who said hey to you.'
-              : 'New apps are listed every day. Check who said hey to you in the meantime.'}
+              ? 'New apps are listed every day. Clear your filters, or work on your listing.'
+              : 'New apps are listed every day. Here is your listing in the meantime.'}
           </Txt>
+          {filtered ? (
+            <Btn
+              label="Clear filters"
+              variant="surface"
+              onPress={() => {
+                setFilters(INITIAL_FILTERS);
+                setIndex(0);
+              }}
+            />
+          ) : null}
+
+          {mine ? (
+            <AppCard
+              app={mine}
+              onShare={() => setShareOpen(true)}
+              onBadges={() => setBadgesOpen(true)}
+              onEdit={() => router.push({ pathname: '/my-app/[id]', params: { id: mine.id } })}
+            />
+          ) : null}
+
           <Btn
-            label={filtered ? 'Clear filters' : 'See your heys'}
-            variant="surface"
+            label="Invite builders to Hey100"
+            variant="accent"
+            size="lg"
+            full
             onPress={() => {
-              if (!filtered) {
-                router.navigate('/(tabs)/heys');
-                return;
-              }
-              setFilters(INITIAL_FILTERS);
-              setIndex(0);
+              Share.share({
+                message: 'Find your first 100 users on Hey100: https://hey100.com',
+              }).catch(() => {});
             }}
           />
-        </View>
+        </ScrollView>
+
+        <ShareListingSheet
+          visible={shareOpen}
+          app={mine ?? null}
+          onClose={() => setShareOpen(false)}
+        />
+        <BadgesSheet visible={badgesOpen} app={mine ?? null} onClose={() => setBadgesOpen(false)} />
       </View>
     );
   }

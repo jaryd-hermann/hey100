@@ -64,8 +64,11 @@ export function Avatar({ name, size = 40, uri, style }: AvatarProps) {
 
   if (uri) {
     return (
-      <View style={[{ borderRadius: size / 2, overflow: 'hidden' }, style]}>
-        <Image source={{ uri }} style={{ width: size, height: size, backgroundColor: c.raised }} />
+      <View style={[{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }, style]}>
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c.raised }}
+        />
       </View>
     );
   }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
@@ -22,9 +22,24 @@ export type SentHeyCardProps = {
   viaApp?: AppListing;
   onFollowUp: () => void;
   onOpenChat: () => void;
+  onOpenApp: () => void;
+  onOpenBuilder: () => void;
 };
 
-export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: SentHeyCardProps) {
+function reactionLabel(sent: SentHey): string {
+  if (sent.targetType === 'app' || !sent.target) return 'Hey to the listing';
+  return sent.target.replace(/^["“]|["”]$/g, '');
+}
+
+export function SentHeyCard({
+  sent,
+  listing,
+  viaApp,
+  onFollowUp,
+  onOpenChat,
+  onOpenApp,
+  onOpenBuilder,
+}: SentHeyCardProps) {
   const { c } = useTheme();
 
   const unlocked = canFollowUp(sent);
@@ -32,14 +47,18 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
 
   return (
     <Card padding={16} radius={radii.cardLg} style={{ gap: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
+      <Pressable
+        onPress={onOpenApp}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${listing.name}`}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}
+      >
         <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={52} />
         <View style={{ flex: 1 }}>
           <Txt font="mono" size={15} weight={500} numberOfLines={1}>
             {listing.name}
           </Txt>
           <Txt size={13} muted numberOfLines={1}>
-            {/* A matched app resolves to a stub listing with no category. */}
             {listing.cat ? `${listing.cat} · ` : ''}sent {sinceLabel(sent.sentAt)}
           </Txt>
         </View>
@@ -48,7 +67,7 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
           size="sm"
           tone={sent.status === 'Matched' ? 'accent' : 'default'}
         />
-      </View>
+      </Pressable>
 
       <NoteBlock
         icon={
@@ -56,7 +75,7 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
             <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={18} />
           ) : undefined
         }
-        label={`Said hey about their ${sent.target}`}
+        label={reactionLabel(sent)}
         note={sent.note}
         followUp={
           sent.followUp
@@ -68,7 +87,9 @@ export function SentHeyCard({ sent, listing, viaApp, onFollowUp, onOpenChat }: S
         }
       />
 
-      <BuilderLine name={listing.builder} role={listing.role} photo={listing.builderPhoto} />
+      <Pressable onPress={onOpenBuilder} accessibilityRole="button" accessibilityLabel={`Open ${listing.builder}`}>
+        <BuilderLine name={listing.builder} role={listing.role} photo={listing.builderPhoto} />
+      </Pressable>
 
       {sent.status === 'Passed' ? (
         <View

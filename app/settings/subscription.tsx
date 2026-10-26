@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Progress } from '@/components/ui/Progress';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
+import { manageSubscriptions, restorePurchases } from '@/lib/purchases';
 import {
   FREE_DAILY_HEYS,
   FREE_MATCH_LIMIT,
@@ -46,8 +47,33 @@ export default function Subscription() {
   const matchLimit = FREE_MATCH_LIMIT + store.user.bonusMatches;
   const heysUsed = Math.max(0, FREE_DAILY_HEYS - store.heysLeftToday);
   const includes = store.isPro ? PRO_INCLUDES : FREE_INCLUDES;
+  const [busy, setBusy] = useState(false);
 
   const openPaywall = () => router.push({ pathname: '/paywall', params: { from: 'settings' } });
+
+  const restore = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const result = await restorePurchases();
+      if ('message' in result) {
+        toast(result.message);
+        return;
+      }
+      store.setPlan(result.pro ? 'pro' : 'free');
+      toast(result.pro ? 'Pro restored' : 'No Pro subscription on this Apple ID');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const manage = async () => {
+    try {
+      await manageSubscriptions();
+    } catch {
+      toast('Could not open App Store subscriptions');
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
@@ -146,7 +172,15 @@ export default function Subscription() {
               label="Manage subscription"
               variant="surface"
               size="md"
-              onPress={() => toast('Opens App Store subscriptions once billing is live')}
+              onPress={() => void manage()}
+              style={{ alignSelf: 'flex-start' }}
+            />
+            <Btn
+              label={busy ? 'Restoring…' : 'Restore purchases'}
+              variant="ghost"
+              size="md"
+              disabled={busy}
+              onPress={() => void restore()}
               style={{ alignSelf: 'flex-start' }}
             />
           </Card>
@@ -183,6 +217,14 @@ export default function Subscription() {
                 size="lg"
                 full
                 onPress={openPaywall}
+              />
+              <Btn
+                label={busy ? 'Restoring…' : 'Restore purchases'}
+                variant="ghost"
+                size="md"
+                full
+                disabled={busy}
+                onPress={() => void restore()}
               />
             </View>
 

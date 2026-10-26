@@ -1,12 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 
-import {
-  broadcastsToMessages,
-  dmsToMessages,
-  type AdminDm,
-  type Broadcast,
-} from '@/data/repo/admin';
+import { dmsToMessages, type AdminDm } from '@/data/repo/admin';
 import { queryKeys } from '@/data/repo/keys';
 import type { Message } from '@/data/types';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -15,8 +10,8 @@ import { getSupabase } from '@/lib/supabase';
 import { useStore } from '@/store/AppStore';
 
 /**
- * Chat cannot wait for a pull-to-refresh. Match threads, team broadcasts and
- * admin DMs land over Realtime and are written into the store immediately.
+ * Chat cannot wait for a pull-to-refresh. Match threads and admin DMs land
+ * over Realtime and are written into the store immediately.
  *
  * There is no per-user filter on the subscription because row level security
  * applies to the stream as well: a change to a row the user cannot read is
@@ -59,17 +54,6 @@ export function useLoopRealtime(): void {
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'heys' }, () =>
         invalidate([queryKeys.heys(userId), queryKeys.counters(userId)]),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'team_broadcasts' },
-        (payload) => {
-          if (payload.eventType === 'INSERT' && payload.new) {
-            const [message] = broadcastsToMessages([payload.new as Broadcast], userId, false);
-            if (message) appendTeam(message);
-          }
-          invalidate([['broadcasts'], ['team-chat', userId]]);
-        },
       )
       .on(
         'postgres_changes',

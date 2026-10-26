@@ -21,10 +21,12 @@ export type SheetProps = {
   children: React.ReactNode;
   /** Falls back to a scroll view when content can overflow. */
   scroll?: boolean;
+  /** Nearly full-height, for join previews and member profiles. */
+  tall?: boolean;
 };
 
 /** Slides up over a scrim with a grab handle. Tapping the scrim dismisses. */
-export function Sheet({ visible, onClose, children, scroll = true }: SheetProps) {
+export function Sheet({ visible, onClose, children, scroll = true, tall }: SheetProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -75,7 +77,8 @@ export function Sheet({ visible, onClose, children, scroll = true }: SheetProps)
             borderColor: c.line,
             // A percentage has no definite parent height to resolve against
             // here, since the wrapper is positioned absolutely.
-            maxHeight: height * 0.88,
+            maxHeight: height * 0.92,
+            minHeight: tall ? height * 0.78 : undefined,
             transform: [
               { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] }) },
             ],

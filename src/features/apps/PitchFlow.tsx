@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import { Animated, Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Btn } from '@/components/ui/Btn';
@@ -18,7 +18,7 @@ export type PitchFlowProps = {
   visible: boolean;
   builder: string;
   onClose: () => void;
-  onPublish: (uri: string, seconds: number) => void;
+  onPublish: (uri: string, seconds: number) => void | Promise<void>;
   skipIntro?: boolean;
 };
 
@@ -35,6 +35,8 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
   const [seconds, setSeconds] = useState(0);
   const [camPerm, requestCam] = useCameraPermissions();
   const [micPerm, requestMic] = useMicrophonePermissions();
+  const [lensReady, setLensReady] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -42,8 +44,28 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
       setRecording(false);
       setLeft(LIMIT);
       setUri(null);
+      setLensReady(false);
+      setSaving(false);
     }
   }, [skipIntro, visible]);
+
+  useEffect(() => {
+    if (!visible || step !== 'record') {
+      setLensReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const cam = camPerm?.granted ? camPerm : await requestCam();
+      const mic = micPerm?.granted ? micPerm : await requestMic();
+      if (!cancelled && cam.granted && mic.granted) setLensReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [camPerm, micPerm, requestCam, requestMic, step, visible]);
 
   useEffect(() => {
     if (!recording) return;
@@ -70,6 +92,7 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
       const next = await requestMic();
       if (!next.granted) return;
     }
+    if (!lensReady) return;
     setLeft(LIMIT);
     leftRef.current = LIMIT;
     setRecording(true);
@@ -148,14 +171,25 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
 
         {step === 'record' ? (
           <View style={{ flex: 1 }}>
-            <View style={{ flex: 1, marginHorizontal: layout.gutter, borderRadius: radii.cardLg, overflow: 'hidden' }}>
-              <CameraView
-                ref={camera}
-                facing="front"
-                mode="video"
-                mirror={mirror}
-                style={{ flex: 1 }}
-              />
+            <View style={{ flex: 1, marginHorizontal: layout.gutter, borderRadius: radii.cardLg, overflow: 'hidden', backgroundColor: '#111111' }}>
+              {lensReady ? (
+                <CameraView
+                  key="live"
+                  ref={camera}
+                  facing="front"
+                  mode="video"
+                  mirror={mirror}
+                  style={{ flex: 1 }}
+                />
+              ) : (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                  <Txt size={15} color="#FFFFFF" center>
+                    {camPerm?.granted === false || micPerm?.granted === false
+                      ? 'Allow camera and microphone to record.'
+                      : 'Opening camera…'}
+                  </Txt>
+                </View>
+              )}
               <View
                 pointerEvents="none"
                 style={{
@@ -167,9 +201,12 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
                   alignItems: 'center',
                 }}
               >
-                <Txt font="mono" size={42} weight={700} color="#FFFFFF">
-                  {recording ? left : LIMIT}
-                </Txt>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  {recording ? <RecDot /> : null}
+                  <Txt font="mono" size={42} weight={700} color="#FFFFFF">
+                    {recording ? left : LIMIT}
+                  </Txt>
+                </View>
               </View>
             </View>
 
@@ -209,13 +246,21 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
             uri={uri}
             seconds={seconds}
             bottom={insets.bottom}
+            saving={saving}
             onRetake={() => {
               setUri(null);
               setLeft(LIMIT);
               leftRef.current = LIMIT;
               setStep('record');
             }}
-            onPublish={() => onPublish(uri, seconds || 1)}
+            onPublish={async () => {
+              setSaving(true);
+              try {
+                await Promise.resolve(onPublish(uri, seconds || 1));
+              } finally {
+                setSaving(false);
+              }
+            }}
           />
         ) : null}
       </View>
@@ -223,16 +268,45 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
   );
 }
 
+function RecDot() {
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.25, duration: 480, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 480, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  return (
+    <Animated.View
+      style={{
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#FF3B30',
+        opacity: pulse,
+      }}
+    />
+  );
+}
+
 function Preview({
   uri,
   seconds,
   bottom,
+  saving,
   onRetake,
   onPublish,
 }: {
   uri: string;
   seconds: number;
   bottom: number;
+  saving: boolean;
   onRetake: () => void;
   onPublish: () => void;
 }) {
@@ -253,8 +327,15 @@ function Preview({
         {seconds}s · look good? Publish it, or take it again.
       </Txt>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Btn label="Retake" variant="surface" size="lg" style={{ flex: 1 }} onPress={onRetake} />
-        <Btn label="Publish" variant="accent" size="lg" style={{ flex: 1.4 }} onPress={onPublish} />
+        <Btn label="Retake" variant="surface" size="lg" style={{ flex: 1 }} disabled={saving} onPress={onRetake} />
+        <Btn
+          label={saving ? 'Publishing…' : 'Publish'}
+          variant="accent"
+          size="lg"
+          style={{ flex: 1.4 }}
+          disabled={saving}
+          onPress={onPublish}
+        />
       </View>
     </View>
   );

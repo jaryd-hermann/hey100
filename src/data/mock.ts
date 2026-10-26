@@ -538,6 +538,7 @@ export const SENT_HEYS: SentHey[] = [
     appId: 'brew',
     viaAppId: 'tide',
     target: 'demo video',
+    targetType: 'media',
     note: "Six taps to log a brew is the bit I'd poke at. I weigh my beans, so I'm your user.",
     sentAt: Date.now() - 5 * HOUR,
     status: 'Pending',
@@ -547,6 +548,7 @@ export const SENT_HEYS: SentHey[] = [
     appId: 'ship',
     viaAppId: 'tide',
     target: '"honest thing" prompt',
+    targetType: 'prompt',
     note: "I ship weekly and pay for a changelog tool already. Happy to say whether $12 lands.",
     sentAt: Date.now() - 30 * HOUR,
     status: 'Pending',
@@ -556,6 +558,7 @@ export const SENT_HEYS: SentHey[] = [
     appId: 'lullo',
     viaAppId: 'tally',
     target: 'night mode log screenshot',
+    targetType: 'media',
     note: 'One-button logging is the right call. I can test the bad nights for a week.',
     sentAt: Date.now() - 52 * HOUR,
     status: 'Pending',
@@ -569,6 +572,7 @@ export const SENT_HEYS: SentHey[] = [
     appId: 'fern',
     viaAppId: 'tally',
     target: 'plant ID screenshot',
+    targetType: 'media',
     note: 'I kill a plant a season. Happy to stress-test whether the ID feels trustworthy.',
     sentAt: Date.now() - 72 * HOUR,
     status: 'Passed',
@@ -580,6 +584,7 @@ export const SENT_HEYS: SentHey[] = [
     appId: 'cad',
     viaAppId: 'tide',
     target: 'streak recovery screenshot',
+    targetType: 'media',
     note: 'I break every streak by day nine. I can tell you if the recovery flow saves me.',
     sentAt: Date.now() - 96 * HOUR,
     status: 'Matched',
@@ -664,18 +669,12 @@ export const INITIAL_MESSAGES: Record<string, Message[]> = {
   ],
   team: [
     {
-      kind: 'announcement',
-      when: 'Oct 1',
-      body: "Welcome to Hey100 👋\nEvery builder here has a real product. Say hey to apps you'd actually use, and trade honest feedback.",
-    },
-    {
-      kind: 'announcement',
-      when: 'Oct 12',
-      body: 'New: badges for your site. Show off your Hey100 listing and verified stats. Find them on your app page.',
+      kind: 'them',
+      body: "Hey — Jaryd here. This is a 1:1 with me. Bugs, ideas, or anything that's annoying you, send it here.",
     },
     {
       kind: 'them',
-      body: "Hey, Jaryd here. This thread comes straight to me. Bugs, ideas, or anything that's annoying you, send it here.",
+      body: 'Team posts live in Hey100 builders. Reply on those if you want to chime in publicly.',
     },
   ],
 };
@@ -804,7 +803,7 @@ export const QUICK_CHIPS = ['For you', 'New this week', 'Verified', 'Has revenue
 
 export const EMOJI_TRAY = ['😀', '😂', '🙌', '🔥', '👀', '🎉', '💯', '🙏', '👍', '❤️'];
 
-export const AGES = ['18–24', '25–34', '35–44', '45–54', '55+'];
+export { AGES } from '@/features/onboarding/steps';
 
 /** Drops a leading emoji from an option label for display on profiles. */
 export function stripEmoji(label: string): string {

@@ -3,6 +3,8 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 
 import { ONBOARDED_KEY } from '@/lib/authStorage';
+import { logoutOneSignal } from '@/lib/onesignal';
+import { logoutPurchases } from '@/lib/purchases';
 import { getSupabase } from '@/lib/supabase';
 
 export type AuthProviderId = 'Apple' | 'Google' | 'GitHub';
@@ -130,6 +132,8 @@ async function sessionFromRedirect(url: string): Promise<SignInOutcome> {
 
 export async function signOut(): Promise<void> {
   await AsyncStorage.removeItem(ONBOARDED_KEY).catch(() => {});
+  logoutOneSignal();
+  void logoutPurchases();
   const db = getSupabase();
   if (db) await db.auth.signOut();
 }

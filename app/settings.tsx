@@ -12,6 +12,7 @@ import { INTEGRATIONS } from '@/data/mock';
 import { queryKeys } from '@/data/repo/keys';
 import { demoFeedback, demoHeyMe, demoReply, type DemoResult } from '@/data/repo/loop';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { signOut } from '@/features/auth/signIn';
 import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
 import { useTheme, type ThemePref } from '@/theme/ThemeProvider';
@@ -36,6 +37,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const { c, pref, setPref } = useTheme();
   const store = useStore();
+  const { isAdmin } = useAuth();
   const { devMode, setDevMode } = useDevMode();
 
   const connected = Object.values(store.connections[store.primaryApp.id] ?? {}).filter(
@@ -191,6 +193,7 @@ export default function Settings() {
           ))}
         </Card>
 
+        {isAdmin ? (
         <Pressable
           accessibilityRole="switch"
           accessibilityState={{ checked: devMode }}
@@ -207,7 +210,7 @@ export default function Settings() {
               Dev mode
             </Txt>
             <Txt size={13} muted>
-              Show sample milestones so we can test sharing them.
+              Fill Heys, DMs and Feedback with sample data.
             </Txt>
           </View>
           <View
@@ -229,18 +232,52 @@ export default function Settings() {
             ) : null}
           </View>
         </Pressable>
+        ) : null}
 
         {__DEV__ ? <QaPanel /> : null}
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/settings/account')}
-          style={{ paddingVertical: 14 }}
+          onPress={() =>
+            void signOut().finally(() => {
+              router.replace('/onboarding');
+            })
+          }
+          style={({ pressed }) => ({ paddingVertical: 14, opacity: pressed ? 0.7 : 1 })}
         >
-          <Txt size={15} weight={600} color={c.danger}>
+          <Txt size={15} weight={600}>
             Sign out
           </Txt>
         </Pressable>
+
+        <View style={{ gap: 11, marginTop: 8 }}>
+          <Label color={c.danger}>Danger zone</Label>
+
+          <Card padding={4} radius={radii.cardLg} style={{ borderWidth: 1.5, borderColor: c.danger }}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/settings/account?delete=1')}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 16,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <View style={{ flex: 1, gap: 3 }}>
+                <Txt size={15} weight={600} color={c.danger}>
+                  Delete account
+                </Txt>
+                <Txt size={12.5} lh={1.4} muted>
+                  Permanently remove your listings, matches and chats.
+                </Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={c.danger} />
+            </Pressable>
+          </Card>
+        </View>
       </ScrollView>
     </View>
   );

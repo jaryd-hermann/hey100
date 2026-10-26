@@ -58,11 +58,7 @@ export function WelcomeStep({
         <HeroLogo />
 
         <Txt size={22} weight={600} lh={1.25} tracking={-0.22}>
-          Find your first 100 users.
-        </Txt>
-
-        <Txt size={16} lh={1.5} muted style={{ maxWidth: 300 }}>
-          It&apos;s a match-making app with other developers.
+          Find the next 100 people to try your app
         </Txt>
 
         <View style={{ gap: 12, marginTop: 8 }}>

@@ -90,9 +90,35 @@ function patchLogBox(): void {
   }
 }
 
+function patchFatalHandler(): void {
+  if (__DEV__) return;
+
+  const utils = globalThis as {
+    ErrorUtils?: {
+      getGlobalHandler?: () => (error: Error, isFatal?: boolean) => void;
+      setGlobalHandler?: (handler: (error: Error, isFatal?: boolean) => void) => void;
+    };
+  };
+
+  const errorUtils = utils.ErrorUtils;
+  if (!errorUtils?.getGlobalHandler || !errorUtils.setGlobalHandler) return;
+  if ('__hey100FatalPatched' in errorUtils) return;
+  Object.defineProperty(errorUtils, '__hey100FatalPatched', { value: true });
+
+  const previous = errorUtils.getGlobalHandler();
+  errorUtils.setGlobalHandler((error, _isFatal) => {
+    if (IGNORE.test(error?.message ?? '')) return;
+    console.error('[uncaught]', error);
+    // Production default is RCTFatal → SIGABRT. Report it as non-fatal so a
+    // JS throw on launch cannot kill the process before ErrorBoundary paints.
+    previous?.(error, false);
+  });
+}
+
 wrapConsole();
 patchNativeSecureStore();
 patchLogBox();
+patchFatalHandler();
 setTimeout(() => {
   wrapConsole();
   patchLogBox();

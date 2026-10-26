@@ -65,8 +65,8 @@ export function HeySheet({
           <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={38} />
           <View style={{ flex: 1 }}>
             <Label size={10}>{target.type === 'app' ? 'Their app' : target.label}</Label>
-            <Txt size={14} lh={1.4} numberOfLines={3} style={{ marginTop: 4 }}>
-              {target.type === 'app' ? listing.sub : target.label}
+            <Txt size={14} lh={1.4} numberOfLines={target.body ? 8 : 3} style={{ marginTop: 4 }}>
+              {target.type === 'app' ? listing.sub : (target.body ?? target.label)}
             </Txt>
           </View>
         </Card>

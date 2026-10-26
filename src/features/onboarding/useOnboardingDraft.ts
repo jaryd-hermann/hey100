@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { PickedShot } from '@/data/types';
 
+import { LAST_STEP } from './steps';
+
 const ADJECTIVES = [
   'ship',
   'quiet',
@@ -152,7 +154,12 @@ export function useOnboardingDraft(startStep = 0, storageKey: string | null = nu
         // Spread over a fresh draft so a shape change in a new build cannot
         // leave a field undefined. Terms start accepted, including drafts
         // written before that was the default.
-        setDraft((prev) => ({ ...prev, ...parsed, terms: true }));
+        const rawStep =
+          typeof parsed.step === 'number' && Number.isFinite(parsed.step)
+            ? Math.floor(parsed.step)
+            : startStep;
+        const step = Math.min(LAST_STEP, Math.max(0, rawStep));
+        setDraft((prev) => ({ ...prev, ...parsed, step, terms: true }));
       })
       .catch(() => {})
       .finally(() => {

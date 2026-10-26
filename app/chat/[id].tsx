@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
@@ -15,23 +15,21 @@ import type { AppListing, MediaItem, Message } from '@/data/types';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import { ChatMenu } from '@/features/chat/ChatMenu';
 import { Composer } from '@/features/chat/Composer';
-import {
-  fetchBroadcastsWithReactions,
-  broadcastsToMessages,
-  sendAdminDm,
-  sendBroadcast,
-} from '@/data/repo/admin';
+import { sendAdminDm } from '@/data/repo/admin';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { avatarName, TEAM_ID } from '@/features/chat/chatMeta';
+import { useDevLoop } from '@/features/dev/useDevLoop';
 import { MessageActions } from '@/features/chat/MessageActions';
 import { MessageBubble } from '@/features/chat/MessageBubble';
 import { toggleReaction } from '@/features/chat/reactions';
 import { uploadAttachments } from '@/features/chat/uploadAttachments';
-import { TeamMark } from '@/features/chat/TeamMark';
+import { JarydMark } from '@/features/chat/TeamMark';
+import { OfficialMark } from '@/features/community/OfficialMark';
 import { TradeAppSheet } from '@/features/chat/TradeAppSheet';
 import { TradeCard } from '@/features/chat/TradeCard';
 import { useMediaPicker } from '@/features/chat/useMediaPicker';
 import { useThreadMessages } from '@/features/loop/useThreadMessages';
+import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout } from '@/theme/tokens';
@@ -63,11 +61,12 @@ export default function ChatThread() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
-  const { userId, isAdmin } = useAuth();
+  const { userId } = useAuth();
   const queryClient = useQueryClient();
   const pickMedia = useMediaPicker();
 
-  const { id, desk } = useLocalSearchParams<{ id: string; desk?: string }>();
+  const { id } = useLocalSearchParams<{ id: string; desk?: string }>();
+  const loop = useDevLoop();
   const scrollRef = useRef<ScrollView>(null);
 
   const [draft, setDraft] = useState('');
@@ -83,19 +82,13 @@ export default function ChatThread() {
   const [actionFor, setActionFor] = useState<Message | null>(null);
 
   const isTeam = id === TEAM_ID;
-  const isBroadcast = isTeam && desk === 'admin' && isAdmin;
-  const match = store.matches.find((item) => item.id === id);
+  const match = store.matches.find((item) => item.id === id) ?? loop.matches.find((item) => item.id === id);
   // A thread is keyed by the match, so the listing is the one it is about.
   const listing = store.listing(match?.appId ?? id);
   const viaApp = match ? store.apps[match.viaAppId] : undefined;
 
   useThreadMessages(isTeam || !match ? null : id);
-  const stored = useMemo(() => store.messages[id] ?? [], [id, store.messages]);
-  const { data: broadcasts = [] } = useQuery({
-    queryKey: ['broadcasts'],
-    enabled: isBroadcast,
-    queryFn: fetchBroadcastsWithReactions,
-  });
+  const stored = useMemo(() => loop.messages(id), [id, loop]);
 
   // Where the unread run started when the thread was opened, before it was read.
   const [unreadStart] = useState(() => {
@@ -109,9 +102,9 @@ export default function ChatThread() {
     markChatRead(id);
   }, [id, markChatRead]);
 
-  const messages = isBroadcast ? broadcastsToMessages(broadcasts, userId, true) : stored;
+  const messages = stored;
 
-  if (!listing) {
+  if (!isTeam && !listing) {
     return (
       <View
         style={{
@@ -126,15 +119,15 @@ export default function ChatThread() {
     );
   }
 
-  const builder = avatarName(listing.builder);
+  const builder = avatarName(listing?.builder ?? 'Jaryd');
   // Whatever gets the tester into the app fastest: the store page, the build,
   // then the site.
   const tradeLink = ['App Store', 'TestFlight', 'Web']
-    .map((kind) => listing.links?.find(([label]) => label === kind))
+    .map((kind) => listing?.links?.find(([label]) => label === kind))
     .find(Boolean);
   const link: [string, string] = isTeam
     ? ['Web', 'hey100.com']
-    : (tradeLink ?? ['Web', `${slugify(listing.name)}.app`]);
+    : (tradeLink ?? ['Web', `${slugify(listing?.name ?? 'app')}.app`]);
 
   const send = () => {
     const body = draft.trim();
@@ -142,17 +135,7 @@ export default function ChatThread() {
     const replyId = replyTo?.id;
     const pending = attachments;
 
-    if (isBroadcast && userId) {
-      void uploadAttachments(userId, pending)
-        .then((media) => sendBroadcast(body, media, replyId))
-        .then(() =>
-          Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['broadcasts'] }),
-            queryClient.invalidateQueries({ queryKey: ['team-chat'] }),
-          ]),
-        )
-        .catch(() => toast("That didn't send"));
-    } else if (isTeam && userId) {
+    if (isTeam && userId) {
       store.setMessages(id, [
         ...(store.messages[id] ?? []),
         {
@@ -167,7 +150,15 @@ export default function ChatThread() {
         .then(() => queryClient.invalidateQueries({ queryKey: ['team-chat', userId] }))
         .catch(() => toast("That didn't send"));
     } else {
-      void store.sendMessage(id, body, pending, replyId).catch(() => toast("That didn't send"));
+      void store
+        .sendMessage(id, body, pending, replyId)
+        .then(() =>
+          captureEvent('message_sent', {
+            has_media: pending.length > 0,
+            is_reply: !!replyId,
+          }),
+        )
+        .catch(() => toast("That didn't send"));
     }
     setAttachments([]);
     setDraft('');
@@ -179,16 +170,12 @@ export default function ChatThread() {
     if (!message.id || !userId) return;
     try {
       await toggleReaction(
-        isBroadcast || message.kind === 'announcement'
-          ? { broadcastId: message.id }
-          : isTeam
-            ? { dmId: message.id }
-            : { messageId: message.id },
+        isTeam ? { dmId: message.id } : { messageId: message.id },
         emoji,
         userId,
       );
       await queryClient.invalidateQueries({
-        queryKey: isBroadcast ? ['broadcasts'] : isTeam ? ['team-chat', userId] : ['messages', id],
+        queryKey: isTeam ? ['team-chat', userId] : ['messages', id],
       });
     } catch {
       toast("Couldn't react");
@@ -217,49 +204,81 @@ export default function ChatThread() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1, backgroundColor: c.bg }}
     >
-      <View style={{ paddingTop: insets.top }}>
-        <Glass radius={0} bordered={false} intensity={50}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 11,
-              paddingHorizontal: layout.gutter,
-              // Clear of the status bar, like every other pushed screen.
-              paddingTop: 10,
-              paddingBottom: 12,
-              borderBottomWidth: 1,
-              borderColor: c.line,
-            }}
-          >
-            <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back">
-              <Ionicons name="chevron-back" size={26} color={c.ink} />
-            </Pressable>
-
-            {isTeam ? (
-              <TeamMark size={38} badge={24} ring={c.bg} />
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={36} />
-                <Avatar name={builder} uri={listing.builderPhoto} size={36} />
-              </View>
-            )}
-
-            <View style={{ flex: 1 }}>
-              <Txt font="mono" size={15} weight={500} numberOfLines={1}>
-                {isTeam ? listing.name : shortName(listing.name)}
-              </Txt>
-              {/* Chat always shows the real name, since this is a match. */}
-              <Txt size={12.5} muted numberOfLines={1}>
-                {isBroadcast ? 'Broadcast to everyone' : listing.builder}
-              </Txt>
+      <View
+        style={{
+          position: 'absolute',
+          top: insets.top + 6,
+          left: 12,
+          right: 12,
+          zIndex: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Pressable onPress={() => router.back()} accessibilityLabel="Back">
+          <Glass radius={22} intensity={55} style={{ width: 44, height: 44 }}>
+            <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="chevron-back" size={22} color={c.ink} />
             </View>
+          </Glass>
+        </Pressable>
 
-            <Pressable hitSlop={10} accessibilityLabel="More" onPress={() => setMenuOpen(true)}>
-              <Ionicons name="ellipsis-horizontal" size={21} color={c.muted} />
-            </Pressable>
-          </View>
-        </Glass>
+        <Pressable onPress={() => (isTeam ? setMenuOpen(true) : setBuilderOpen(true))} style={{ flex: 1, minWidth: 0 }}>
+          <Glass radius={26} intensity={55} style={{ height: 52, flex: 1 }}>
+            <View
+              style={{
+                height: 52,
+                paddingLeft: 5,
+                paddingRight: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 9,
+              }}
+            >
+              {isTeam || !listing ? (
+                <JarydMark size={42} />
+              ) : (
+                <View style={{ width: 42, height: 42 }}>
+                  <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={42} />
+                  {listing.builderPhoto || listing.builder ? (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        right: -3,
+                        bottom: -3,
+                        borderWidth: 2,
+                        borderColor: c.bg,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <Avatar name={listing.builder} uri={listing.builderPhoto} size={18} />
+                    </View>
+                  ) : null}
+                </View>
+              )}
+              <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Txt size={15} weight={600} numberOfLines={1} style={{ flexShrink: 1 }}>
+                    {isTeam || !listing ? 'Jaryd from Hey100' : shortName(listing.name)}
+                  </Txt>
+                  {isTeam ? <OfficialMark size={15} /> : null}
+                </View>
+                <Txt size={12.5} muted numberOfLines={1}>
+                  {isTeam || !listing ? 'Founder of hey100' : listing.builder}
+                </Txt>
+              </View>
+            </View>
+          </Glass>
+        </Pressable>
+
+        <Pressable onPress={() => setMenuOpen(true)} accessibilityLabel="More">
+          <Glass radius={22} intensity={55} style={{ width: 44, height: 44 }}>
+            <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="ellipsis-horizontal" size={18} color={c.ink} />
+            </View>
+          </Glass>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -268,12 +287,12 @@ export default function ChatThread() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingTop: 16,
+          paddingTop: insets.top + 80,
           paddingBottom: 20,
         }}
         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
       >
-        {match && !isTeam ? (
+        {match && listing && !isTeam ? (
           <TradeCard
             match={match}
             theirAppName={listing.name}
@@ -299,14 +318,14 @@ export default function ChatThread() {
               {index === unreadStart ? <UnreadDivider /> : null}
               <MessageBubble
                 message={message}
-                hue={listing.hue}
+                hue={listing?.hue ?? 128}
                 unread={unreadStart >= 0 && index >= unreadStart}
                 avatar={
-                  <Avatar
-                    name={isTeam ? 'Jaryd' : builder}
-                    uri={isTeam ? undefined : listing.builderPhoto}
-                    size={26}
-                  />
+                  isTeam ? (
+                    <JarydMark size={26} />
+                  ) : (
+                    <Avatar name={builder} uri={listing?.builderPhoto} size={26} />
+                  )
                 }
                 onOpenMedia={(items, at) => setViewer({ items, index: at })}
                 onLongPress={() => setActionFor(message)}
@@ -334,9 +353,9 @@ export default function ChatThread() {
           setAttachments((prev) => prev.filter((_, at) => at !== index))
         }
         onSend={send}
-        hue={listing.hue}
+        hue={listing?.hue ?? 128}
         bottomInset={insets.bottom}
-        placeholder={isBroadcast ? 'Message every builder…' : 'Message'}
+        placeholder={isTeam ? 'Message Jaryd' : 'Message'}
         replyTo={replyTo?.body || (replyTo ? 'Attachment' : null)}
         onCancelReply={() => setReplyTo(null)}
       />
@@ -357,17 +376,17 @@ export default function ChatThread() {
       <ChatMenu
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
-        appName={isTeam ? listing.name : shortName(listing.name)}
-        builder={listing.builder}
+        appName={isTeam || !listing ? 'Jaryd' : shortName(listing.name)}
+        builder={isTeam || !listing ? 'Jaryd' : listing.builder}
         isTeam={isTeam}
         link={link}
         onViewApp={() => {
           setMenuOpen(false);
-          setAppOpen(true);
+          setTimeout(() => setAppOpen(true), 240);
         }}
         onViewProfile={() => {
           setMenuOpen(false);
-          setBuilderOpen(true);
+          setTimeout(() => setBuilderOpen(true), 240);
         }}
         onOpenLink={() => {
           setMenuOpen(false);
@@ -385,46 +404,50 @@ export default function ChatThread() {
         }}
       />
 
-      <TradeAppSheet
-        visible={appOpen}
-        listing={{ ...LISTING_FALLBACK, ...listing }}
-        onClose={() => setAppOpen(false)}
-        onOpenLink={(kind, value) => {
-          setAppOpen(false);
-          openBrowser(kind, value);
-        }}
-        onOpenProfile={() => {
-          setAppOpen(false);
-          setBuilderOpen(true);
-        }}
-        onOpenFullListing={
-          listing.media?.length
-            ? () => {
-                setAppOpen(false);
-                router.push({
-                  pathname: '/web/[slug]',
-                  params: { slug: listing.slug ?? slugify(listing.name) },
-                });
-              }
-            : undefined
-        }
-      />
+      {listing ? (
+        <TradeAppSheet
+          visible={appOpen}
+          listing={{ ...LISTING_FALLBACK, ...listing }}
+          onClose={() => setAppOpen(false)}
+          onOpenLink={(kind, value) => {
+            setAppOpen(false);
+            openBrowser(kind, value);
+          }}
+          onOpenProfile={() => {
+            setAppOpen(false);
+            setTimeout(() => setBuilderOpen(true), 240);
+          }}
+          onOpenFullListing={
+            listing.media?.length
+              ? () => {
+                  setAppOpen(false);
+                  router.push({
+                    pathname: '/web/[slug]',
+                    params: { slug: listing.slug ?? slugify(listing.name) },
+                  });
+                }
+              : undefined
+          }
+        />
+      ) : null}
 
-      <BuilderSheet
-        visible={builderOpen}
-        listing={{ ...LISTING_FALLBACK, ...listing }}
-        onClose={() => setBuilderOpen(false)}
-        onOpenLink={(kind, value) => {
-          setBuilderOpen(false);
-          openBrowser(kind, value);
-        }}
-      />
+      {listing ? (
+        <BuilderSheet
+          visible={builderOpen}
+          listing={{ ...LISTING_FALLBACK, ...listing }}
+          onClose={() => setBuilderOpen(false)}
+          onOpenLink={(kind, value) => {
+            setBuilderOpen(false);
+            openBrowser(kind, value);
+          }}
+        />
+      ) : null}
 
       <Lightbox
         visible={!!viewer}
         items={viewer?.items ?? []}
         index={viewer?.index ?? 0}
-        hue={listing.hue}
+        hue={listing?.hue ?? 128}
         layout="vertical"
         onClose={() => setViewer(null)}
       />

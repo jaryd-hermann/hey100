@@ -8,6 +8,7 @@
 export const queryKeys = {
   prompts: ['prompts'] as const,
   myListings: (userId: string | null) => ['listings', 'mine', userId] as const,
+  listingBySlug: (slug: string | undefined) => ['listings', 'slug', slug] as const,
   deck: (userId: string | null) => ['deck', userId] as const,
   heys: (userId: string | null) => ['heys', userId] as const,
   threads: (userId: string | null) => ['threads', userId] as const,
@@ -15,6 +16,12 @@ export const queryKeys = {
   feedback: (userId: string | null) => ['feedback', userId] as const,
   counters: (userId: string | null) => ['counters', userId] as const,
   sponsoredTools: ['sponsored-tools'] as const,
+  communityHome: (userId: string | null) => ['community', 'home', userId] as const,
+  communityGroup: (groupId: string | null) => ['community', 'group', groupId] as const,
+  communityThread: (threadId: string | null) => ['community', 'thread', threadId] as const,
+  communityMembers: (groupId: string | null) => ['community', 'members', groupId] as const,
+  communityRequests: (groupId: string | null) => ['community', 'requests', groupId] as const,
+  toolDiscussion: (toolId: string | null) => ['tools', 'discussion', toolId] as const,
 };
 
 export const staleTimes = {
@@ -22,6 +29,7 @@ export const staleTimes = {
   prompts: 24 * 60 * 60 * 1000,
   /** The owner's own listings, which only they can change. */
   myListings: 5 * 60 * 1000,
+  listingBySlug: 5 * 60 * 1000,
   /** The deck is refetched on focus; a stale card can have been heyed already. */
   deck: 60 * 1000,
   heys: 30 * 1000,

@@ -107,11 +107,10 @@ export async function persistListing(
   if (patch.pitchUri) {
     const existing = storagePathOf(patch.pitchUri);
     const path = existing ?? (await uploadAsset(ownerId, patch.pitchUri, 'video', 'pitch'));
-    if (path) {
-      await updateListing(appId, {
-        pitch_path: path,
-        pitch_seconds: patch.pitchSeconds ?? null,
-      });
-    }
+    if (!path) throw new Error('Could not save the pitch video');
+    await updateListing(appId, {
+      pitch_path: path,
+      pitch_seconds: patch.pitchSeconds ?? null,
+    });
   }
 }

@@ -5,6 +5,9 @@ import { version } from './package.json';
 const BUNDLE_ID = 'com.hey100.app';
 const DOMAIN = 'hey100.com';
 const EAS_PROJECT_ID = '3eb6e463-d0f8-4949-93c1-f7b93dbb10b7';
+const BUILD_PROFILE = process.env.EAS_BUILD_PROFILE;
+const IS_DEV_CLIENT = BUILD_PROFILE === 'development' || BUILD_PROFILE === 'device';
+const IS_STORE_BUILD = BUILD_PROFILE === 'production';
 
 const FONTS = [
   './assets/fonts/TitanOne_400Regular.ttf',
@@ -16,6 +19,9 @@ const FONTS = [
   './assets/fonts/JetBrainsMono_500Medium.ttf',
   './assets/fonts/JetBrainsMono_600SemiBold.ttf',
   './assets/fonts/JetBrainsMono_700Bold.ttf',
+  // Bake the icon face into the binary so the first Ionicons render does not
+  // call ExpoFontLoader (same iOS 26 Hermes conversion crash as useFonts).
+  './node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf',
 ];
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
@@ -58,6 +64,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSPrivacyCollectedDataTypes: [],
       NSPrivacyTracking: false,
     },
+    entitlements: {
+      'aps-environment': IS_STORE_BUILD ? 'production' : 'development',
+    },
     infoPlist: {
       UIBackgroundModes: ['remote-notification'],
       ITSAppUsesNonExemptEncryption: false,
@@ -89,10 +98,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   plugins: [
     'expo-router',
-    'expo-dev-client',
+    ...(IS_DEV_CLIENT ? (['expo-dev-client'] as const) : []),
     'expo-apple-authentication',
     'expo-secure-store',
-    'expo-notifications',
+    [
+      'expo-notifications',
+      {
+        // Background remote-notification in Info.plist is a known TestFlight
+        // launch kill when the app does not implement the fetch handler.
+        enableBackgroundRemoteNotifications: false,
+        mode: IS_STORE_BUILD ? 'production' : 'development',
+      },
+    ],
     'expo-web-browser',
     'expo-video',
     [
@@ -132,7 +149,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
 
   runtimeVersion: { policy: 'appVersion' },
-  updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
+  // Store builds ship the embedded bundle only. expo-updates on SDK 54 has
+  // aborted TestFlight launches when a leftover or empty update is activated.
+  updates: {
+    url: `https://u.expo.dev/${EAS_PROJECT_ID}`,
+    enabled: !IS_STORE_BUILD,
+    checkAutomatically: 'NEVER',
+  },
 
   extra: {
     router: { origin: false },
@@ -142,5 +165,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     EXPO_PUBLIC_POSTHOG_API_KEY: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
     EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
+    EXPO_PUBLIC_ONESIGNAL_APP_ID: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID,
+    EXPO_PUBLIC_REVENUECAT_APPLE_KEY: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY,
   },
 });

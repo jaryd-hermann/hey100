@@ -20,6 +20,8 @@ export const config = {
   supabaseAnonKey: read('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
   posthogApiKey: read('EXPO_PUBLIC_POSTHOG_API_KEY'),
   posthogHost: read('EXPO_PUBLIC_POSTHOG_HOST') ?? 'https://us.i.posthog.com',
+  onesignalAppId: read('EXPO_PUBLIC_ONESIGNAL_APP_ID'),
+  revenueCatAppleKey: read('EXPO_PUBLIC_REVENUECAT_APPLE_KEY'),
 };
 
 export const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabaseAnonKey);

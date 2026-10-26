@@ -1,0 +1,13 @@
+# CLI deploys of hey100.com should not upload the native tree.
+ios/
+android/
+.expo/
+.agents/
+design/
+web/node_modules/
+web/.next/
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+*.key

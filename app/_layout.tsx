@@ -1,11 +1,10 @@
 import '@/lib/secureStoreGuard';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PostHogProvider } from 'posthog-react-native';
@@ -17,6 +16,9 @@ import { AuthProvider } from '@/features/auth/AuthProvider';
 import { useLoopSync } from '@/features/loop/useLoopSync';
 import { useLoopRealtime } from '@/features/loop/useRealtime';
 import { useTeamChat } from '@/features/chat/useTeamChat';
+import { DailyHeyLimitProvider } from '@/features/billing/DailyHeyLimit';
+import { usePurchases } from '@/features/billing/usePurchases';
+import { usePush } from '@/features/push/usePush';
 import { HeyMenuProvider } from '@/features/nav/HeyMenu';
 import { useProfileSync } from '@/features/profile/useProfileSync';
 import { getPostHog } from '@/lib/analytics';
@@ -40,50 +42,18 @@ const queryClient = new QueryClient({
   },
 });
 
-const sharedPostHog = getPostHog();
-
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    TitanOne_400Regular: require('../assets/fonts/TitanOne_400Regular.ttf'),
-    Inter_400Regular: require('../assets/fonts/Inter_400Regular.ttf'),
-    Inter_500Medium: require('../assets/fonts/Inter_500Medium.ttf'),
-    Inter_600SemiBold: require('../assets/fonts/Inter_600SemiBold.ttf'),
-    Inter_700Bold: require('../assets/fonts/Inter_700Bold.ttf'),
-    JetBrainsMono_400Regular: require('../assets/fonts/JetBrainsMono_400Regular.ttf'),
-    JetBrainsMono_500Medium: require('../assets/fonts/JetBrainsMono_500Medium.ttf'),
-    JetBrainsMono_600SemiBold: require('../assets/fonts/JetBrainsMono_600SemiBold.ttf'),
-    JetBrainsMono_700Bold: require('../assets/fonts/JetBrainsMono_700Bold.ttf'),
-  });
-
-  // Never hang on a white screen waiting for fonts; fall back to system faces.
-  const [fontsTimedOut, setFontsTimedOut] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setFontsTimedOut(true), 5000);
-    return () => clearTimeout(timer);
-  }, []);
-
   useEffect(() => {
     warnOnMissingConfig();
+    SplashScreen.hideAsync().catch(() => {});
   }, []);
 
-  const ready = fontsLoaded || !!fontError || fontsTimedOut;
-
-  useEffect(() => {
-    if (ready) SplashScreen.hideAsync().catch(() => {});
-  }, [ready]);
-
-  if (!ready) return null;
-
+  // Fonts are embedded by the expo-font plugin. Calling useFonts here talks to
+  // ExpoFontLoader on first paint, and that NSArray→JSI conversion abort()s
+  // Hermes on iOS 26 (TestFlight 0.1.0 build 10, 367ms after icon tap).
   return (
     <ErrorBoundary>
-      <PostHogProvider
-        client={sharedPostHog ?? undefined}
-        apiKey={sharedPostHog ? undefined : 'phc_unconfigured'}
-        autocapture={{
-          captureScreens: isPostHogConfigured,
-          captureTouches: isPostHogConfigured,
-        }}
-      >
+      <AnalyticsGate>
         <SafeAreaProvider>
           <ThemeProvider>
             <QueryClientProvider client={queryClient}>
@@ -91,17 +61,38 @@ export default function RootLayout() {
               <AuthProvider>
                 <AppStoreProvider>
                   <ToastProvider>
-                    <HeyMenuProvider>
-                      <Shell />
-                    </HeyMenuProvider>
+                    <DailyHeyLimitProvider>
+                      <HeyMenuProvider>
+                        <Shell />
+                      </HeyMenuProvider>
+                    </DailyHeyLimitProvider>
                   </ToastProvider>
                 </AppStoreProvider>
               </AuthProvider>
             </QueryClientProvider>
           </ThemeProvider>
         </SafeAreaProvider>
-      </PostHogProvider>
+      </AnalyticsGate>
     </ErrorBoundary>
+  );
+}
+
+/** Skip the native client when the key is missing. A dummy `phc_` token still
+ *  constructs PostHog, starts session replay, and can abort a store build. */
+function AnalyticsGate({ children }: { children: React.ReactNode }) {
+  const client = getPostHog();
+  if (!client || !isPostHogConfigured) return children;
+
+  return (
+    <PostHogProvider
+      client={client}
+      autocapture={{
+        captureScreens: true,
+        captureTouches: true,
+      }}
+    >
+      {children}
+    </PostHogProvider>
   );
 }
 
@@ -114,6 +105,8 @@ function Shell() {
   useLoopSync();
   useLoopRealtime();
   useTeamChat();
+  usePush();
+  usePurchases();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>

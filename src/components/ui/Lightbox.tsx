@@ -16,6 +16,7 @@ import type { MediaItem, ShotLayout } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout as layoutTokens, radii } from '@/theme/tokens';
 
+import { HeyPill } from './HeyPill';
 import { InlineVideo } from './InlineVideo';
 import { MediaPlaceholder } from './MediaPlaceholder';
 import { Txt } from './Txt';
@@ -33,10 +34,11 @@ export type LightboxProps = {
   hue: number;
   layout: ShotLayout;
   onClose: () => void;
+  onHey?: (item: MediaItem, index: number) => void;
 };
 
 /** Full-screen viewer for a listing's carousel: swipe across, swipe down to close. */
-export function Lightbox({ visible, items, index, hue, layout, onClose }: LightboxProps) {
+export function Lightbox({ visible, items, index, hue, layout, onClose, onHey }: LightboxProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   // A percentage can't resolve against the absolutely positioned modal content.
@@ -44,6 +46,7 @@ export function Lightbox({ visible, items, index, hue, layout, onClose }: Lightb
 
   const scroller = useRef<ScrollView>(null);
   const [page, setPage] = useState(index);
+  const [progress, setProgress] = useState(0);
   const drop = useRef(new Animated.Value(0)).current;
 
   // The pan responder is created once, so it reads the latest handler by ref.
@@ -53,6 +56,7 @@ export function Lightbox({ visible, items, index, hue, layout, onClose }: Lightb
   useEffect(() => {
     if (!visible) return;
     setPage(index);
+    setProgress(items.length > 1 ? index / (items.length - 1) : 1);
     drop.setValue(0);
     // The list is laid out by the time the modal has mounted.
     requestAnimationFrame(() => scroller.current?.scrollTo({ x: index * width, animated: false }));
@@ -110,6 +114,12 @@ export function Lightbox({ visible, items, index, hue, layout, onClose }: Lightb
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            onScroll={(e) => {
+              const x = e.nativeEvent.contentOffset.x;
+              const span = Math.max(1, items.length - 1) * width;
+              setProgress(Math.max(0, Math.min(1, x / span)));
+            }}
+            scrollEventThrottle={16}
             onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
             style={{ flex: 1 }}
           >
@@ -161,23 +171,50 @@ export function Lightbox({ visible, items, index, hue, layout, onClose }: Lightb
           <Ionicons name="close" size={22} color={OVER_SCRIM} />
         </Pressable>
 
-        {items.length > 1 ? (
-          <View
-            style={{
-              position: 'absolute',
-              bottom: insets.bottom + 24,
-              alignSelf: 'center',
-              paddingHorizontal: 12,
-              paddingVertical: 5,
-              borderRadius: radii.pill,
-              backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            }}
-          >
-            <Txt font="mono" size={12} weight={500} color={OVER_SCRIM}>
-              {page + 1}/{items.length}
-            </Txt>
-          </View>
-        ) : null}
+        <View
+          style={{
+            position: 'absolute',
+            left: layoutTokens.gutter,
+            right: layoutTokens.gutter,
+            bottom: insets.bottom + 24,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          {items.length > 1 ? (
+            <View style={{ flex: 1, gap: 6 }}>
+              <View
+                style={{
+                  height: 3,
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                  overflow: 'hidden',
+                }}
+              >
+                <View
+                  style={{
+                    width: `${Math.max(8, Math.round(progress * 100))}%`,
+                    height: 3,
+                    backgroundColor: OVER_SCRIM,
+                  }}
+                />
+              </View>
+              <Txt font="mono" size={12} weight={500} color={OVER_SCRIM}>
+                {page + 1}/{items.length}
+              </Txt>
+            </View>
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
+          {onHey && items[page] ? (
+            <HeyPill
+              size={58}
+              label={items[page].label}
+              onPress={() => onHey(items[page], page)}
+            />
+          ) : null}
+        </View>
       </Animated.View>
     </Modal>
   );

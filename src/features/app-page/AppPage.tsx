@@ -29,7 +29,13 @@ import { layout, radii } from '@/theme/tokens';
 /** Where the page is being rendered, which changes stats and affordances. */
 export type AppPageMode = 'discover' | 'liker' | 'owner' | 'web';
 
-export type HeyTarget = { type: HeyTargetType; id: string; label: string };
+export type HeyTarget = {
+  type: HeyTargetType;
+  id: string;
+  label: string;
+  /** The prompt answer (or other context) shown under the title in the hey sheet. */
+  body?: string;
+};
 
 export type AppPageProps = {
   listing: AppListing | OwnedApp;
@@ -316,6 +322,14 @@ export function AppPage({
         hue={listing.hue}
         layout={viewer?.layout ?? shotLayout}
         onClose={() => setViewer(null)}
+        onHey={
+          onHey
+            ? (item, shotIndex) => {
+                setViewer(null);
+                onHey({ type: 'media', id: String(shotIndex + 1), label: item.label });
+              }
+            : undefined
+        }
       />
     </View>
   );
@@ -491,7 +505,14 @@ function Section({
           <HeyPill
             size={40}
             label={problemLabel}
-            onPress={() => onHey?.({ type: 'prompt', id: 'problem', label: problemLabel })}
+            onPress={() =>
+              onHey?.({
+                type: 'prompt',
+                id: 'problem',
+                label: problemLabel,
+                body: [of, forWho ? `For ${forWho}` : null].filter(Boolean).join('\n'),
+              })
+            }
             style={{ position: 'absolute', right: 14, bottom: 14 }}
           />
         ) : null}
@@ -555,7 +576,9 @@ function Section({
           <HeyPill
             size={40}
             label={prompt[0]}
-            onPress={() => onHey?.({ type: 'prompt', id: section, label: prompt[0] })}
+            onPress={() =>
+              onHey?.({ type: 'prompt', id: section, label: prompt[0], body: prompt[1] })
+            }
             style={{ position: 'absolute', right: 14, bottom: 14 }}
           />
         ) : null}

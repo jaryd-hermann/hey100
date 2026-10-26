@@ -1,0 +1,15 @@
+{
+  "framework": "nextjs",
+  "trailingSlash": false,
+  "rewrites": [{ "source": "/w/:code", "destination": "/landing.html" }],
+  "headers": [
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    },
+    {
+      "source": "/apple-app-site-association",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    }
+  ]
+}

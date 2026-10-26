@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/AppIcon';
@@ -8,8 +8,10 @@ import { Chip } from '@/components/ui/Chip';
 import { Sheet } from '@/components/ui/Sheet';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
-import type { AppListing, OwnedApp } from '@/data/types';
+import type { AppConnection, AppListing, OwnedApp } from '@/data/types';
+import { recordProfileView } from '@/data/repo/notifications';
 import { builderFromUser } from '@/features/profile/builderCard';
+import { isServerId } from '@/lib/supabase';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
@@ -41,27 +43,31 @@ export type BuilderSheetProps = {
 export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderSheetProps) {
   const { c } = useTheme();
   const store = useStore();
+  const mine = !!listing && store.ownedApps.some((app) => app.id === listing.id);
+
+  useEffect(() => {
+    if (!visible || !listing || mine || !isServerId(listing.id)) return;
+    void recordProfileView(listing.id);
+  }, [listing, mine, visible]);
 
   if (!listing) return <Sheet visible={false} onClose={onClose} children={null} />;
-
-  const mine = store.ownedApps.some((app) => app.id === listing.id);
   const card = mine ? { ...listing, ...builderFromUser(store.user) } : listing;
   const socials: SocialRow[] = (mine ? store.user.socials : (listing.builderSocials ?? []))
     .filter(([, value]) => !!value)
     .map(([kind, value]) => [kind, value, SOCIAL_ICONS[kind] ?? 'globe-outline']);
 
   const commits = mine ? store.user.githubCommits : listing.githubCommits;
-  const stats: [string, string][] = mine
-    ? [
-        ['Heys given', String(store.sentHeys.length)],
-        ['Feedback given', String(store.user.feedbackGiven)],
-        ['GitHub', commits != null ? commits.toLocaleString() : '—'],
-      ]
-    : [
-        ['Feedback given', '—'],
-        ['Trades', listing.trades ? String(listing.trades) : '—'],
-        ['GitHub', commits != null ? commits.toLocaleString() : '—'],
-      ];
+  const verified = verifiedStats(
+    listing,
+    mine
+      ? store.ownedApps.flatMap((app) => Object.values(store.connections[app.id] ?? {}))
+      : [],
+  );
+  const stats: [string, string][] = [
+    [verified.revenue, 'Verified revenue'],
+    [verified.customers, 'Verified customers'],
+    [commits != null ? commits.toLocaleString() : '—', 'GitHub'],
+  ];
 
   return (
     <Sheet visible={visible} onClose={onClose}>
@@ -85,7 +91,7 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
 
         <Card padding={16}>
           <View style={{ flexDirection: 'row' }}>
-            {stats.map(([label, value]) => (
+            {stats.map(([value, label]) => (
               <View key={label} style={{ flex: 1, gap: 3 }}>
                 <Txt font="mono" size={19} weight={500}>
                   {value}
@@ -145,4 +151,40 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
       </View>
     </Sheet>
   );
+}
+
+function connectionLines(row?: AppConnection): string[] {
+  if (!row) return [];
+  return [row.badge, row.on, row.detail, ...(row.badges ?? [])].filter(
+    (line): line is string => !!line,
+  );
+}
+
+function bandFrom(lines: string[], pattern: RegExp): string | null {
+  for (const line of lines) {
+    const match = line.match(pattern);
+    if (match?.[1]) return match[1].replace(/\s+/g, '');
+  }
+  return null;
+}
+
+function verifiedStats(
+  listing: AppListing | OwnedApp,
+  extra: (AppConnection | undefined)[],
+): { revenue: string; customers: string } {
+  const lines = [
+    ...(listing.badges ?? []),
+    ...extra.flatMap((row) => connectionLines(row)),
+  ];
+  const revenueBand = bandFrom(lines, /(\$[\d.,]+(?:\s*[–-]\s*\$?[\d.,]+)?[kKmM]?)/i);
+  const customerBand = bandFrom(
+    lines,
+    /([\d.,]+(?:\s*[–-]\s*[\d.,]+)?[kKmM]?)\s+(?:customers|subscribers)/i,
+  );
+  const hasRevenue = lines.some((line) => /stripe|revenuecat|\bmrr\b|revenue/i.test(line));
+  const hasCustomers = lines.some((line) => /customer|subscriber|revenuecat/i.test(line));
+  return {
+    revenue: revenueBand ?? (hasRevenue ? 'Verified' : '—'),
+    customers: customerBand ?? (hasCustomers ? 'Verified' : '—'),
+  };
 }

@@ -12,7 +12,7 @@ type PitchFlowProps = {
   visible: boolean;
   builder: string;
   onClose: () => void;
-  onPublish: (uri: string, seconds: number) => void;
+  onPublish: (uri: string, seconds: number) => void | Promise<void>;
   skipIntro?: boolean;
 };
 

@@ -37,7 +37,7 @@ export function previewText(message: Message): string {
  */
 export function threadPreview(messages: Message[]): { last: string; time: string } {
   const last = messages[messages.length - 1];
-  if (!last) return { last: 'Bugs, ideas, anything annoying you.', time: '' };
+  if (!last) return { last: 'Bugs, ideas, anything — this comes straight to me.', time: '' };
 
   return { last: previewText(last), time: last.kind === 'me' ? 'now' : '2d' };
 }

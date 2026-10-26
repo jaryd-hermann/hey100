@@ -1,21 +1,27 @@
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
-import { AppIcon } from '@/components/ui/AppIcon';
-import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
+import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { Txt } from '@/components/ui/Txt';
 import { MATCH_APPS, shortName } from '@/data/mock';
 import type { Match } from '@/data/types';
+import { Segmented } from '@/components/ui/Segmented';
 import { AdminInbox } from '@/features/chat/AdminInbox';
-import { TEAM_ID, threadPreview, timeRank } from '@/features/chat/chatMeta';
-import { TeamMark } from '@/features/chat/TeamMark';
+import { firstName, TEAM_ID, threadPreview, timeRank } from '@/features/chat/chatMeta';
+import { JarydMark } from '@/features/chat/TeamMark';
+import { CommunityHome } from '@/features/community/CommunityHome';
+import { OfficialMark } from '@/features/community/OfficialMark';
+import { useDevLoop } from '@/features/dev/useDevLoop';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
+import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radii } from '@/theme/tokens';
+
+const HEY100_ICON = require('../../assets/images/icon.png');
+
+type ChatDesk = 'dms' | 'community' | 'admin';
 
 type Row =
   | { kind: 'team'; id: string; time: string; last: string }
@@ -23,88 +29,74 @@ type Row =
 
 export default function ChatScreen() {
   const router = useRouter();
-  const { c } = useTheme();
   const store = useStore();
+  const loop = useDevLoop();
   const { isAdmin } = useAuth();
-  const [desk, setDesk] = useState<'user' | 'admin'>('user');
+  const [desk, setDesk] = useState<ChatDesk>('dms');
   const deleted = store.deletedChats;
 
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
-  // The Team thread is a normal chat, so it sorts by recency with the matches.
+  // Jaryd's 1:1 sorts with match rows, including for the admin account.
   const rows = useMemo<Row[]>(() => {
-    const team = threadPreview(store.messages[TEAM_ID] ?? []);
+    const team = threadPreview(loop.messages(TEAM_ID));
 
     const items: Row[] = [
-      ...(deleted.includes(TEAM_ID)
-        ? []
-        : [{ kind: 'team', id: TEAM_ID, time: team.time, last: team.last } as Row]),
-      ...store.matches
+      ...(!deleted.includes(TEAM_ID)
+        ? [{ kind: 'team', id: TEAM_ID, time: team.time, last: team.last } as Row]
+        : []),
+      ...loop.matches
         .filter((match) => !deleted.includes(match.id))
         .map((match): Row => ({ kind: 'match', id: match.id, time: match.time, match })),
     ];
 
     return items.sort((a, b) => timeRank(a.time) - timeRank(b.time));
-  }, [deleted, store.matches, store.messages]);
+  }, [deleted, loop]);
 
   return (
     <Screen
       title="Chat"
       headerRight={
-        isAdmin ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              borderRadius: radii.pill,
-              borderWidth: 1.5,
-              borderColor: c.line,
-              overflow: 'hidden',
-            }}
-          >
-            {(['user', 'admin'] as const).map((mode) => (
-              <Pressable
-                key={mode}
-                onPress={() => setDesk(mode)}
-                style={{
-                  paddingHorizontal: 10,
-                  height: 28,
-                  justifyContent: 'center',
-                  backgroundColor: desk === mode ? c.ink : 'transparent',
-                }}
-              >
-                <Txt size={12} weight={600} color={desk === mode ? c.bg : c.muted}>
-                  {mode === 'user' ? 'User' : 'Admin'}
-                </Txt>
-              </Pressable>
-            ))}
-          </View>
-        ) : store.isPro ? null : (
-          <Txt font="mono" size={12} muted>
-            {store.matches.length} of {FREE_MATCH_LIMIT + store.user.bonusMatches} free
-          </Txt>
-        )
+        <Segmented
+          value={desk}
+          onChange={setDesk}
+          options={
+            isAdmin
+              ? [
+                  { id: 'dms', label: 'DMs' },
+                  { id: 'community', label: 'Community' },
+                  { id: 'admin', label: 'Admin' },
+                ]
+              : [
+                  { id: 'dms', label: 'DMs' },
+                  { id: 'community', label: 'Community' },
+                ]
+          }
+        />
       }
     >
-      {isAdmin && desk === 'admin' ? (
+      {desk === 'admin' && isAdmin ? (
         <AdminInbox />
+      ) : desk === 'community' ? (
+        <CommunityHome />
       ) : (
-      <View style={{ gap: 12 }}>
-        {rows.map((row) =>
-          row.kind === 'team' ? (
-            <TeamRow key={row.id} last={row.last} time={row.time} onPress={() => open(row.id)} />
-          ) : (
-            <MatchRow key={row.id} match={row.match} onPress={() => open(row.id)} />
-          ),
-        )}
+        <View style={{ gap: 4 }}>
+          {rows.map((row) =>
+            row.kind === 'team' ? (
+              <TeamRow key={row.id} last={row.last} time={row.time} onPress={() => open(row.id)} />
+            ) : (
+              <MatchRow key={row.id} match={row.match} onPress={() => open(row.id)} />
+            ),
+          )}
 
-        {store.matches.length === 0 ? (
-          <View style={{ paddingTop: 50, alignItems: 'center', gap: 10 }}>
-            <Txt size={15} lh={1.5} muted center style={{ maxWidth: 260 }}>
-              No matches yet. A chat opens once you both say hey.
-            </Txt>
-          </View>
-        ) : null}
-      </View>
+          {loop.matches.length === 0 && deleted.includes(TEAM_ID) ? (
+            <View style={{ paddingTop: 50, alignItems: 'center', gap: 10 }}>
+              <Txt size={15} lh={1.5} muted center style={{ maxWidth: 260 }}>
+                No matches yet. A chat opens once you both say hey.
+              </Txt>
+            </View>
+          ) : null}
+        </View>
       )}
     </Screen>
   );
@@ -112,37 +104,55 @@ export default function ChatScreen() {
 
 function TeamRow({ last, time, onPress }: { last: string; time: string; onPress: () => void }) {
   const { c } = useTheme();
+  const badgeSize = Math.round(58 * 0.4);
 
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingVertical: 12,
+        opacity: pressed ? 0.8 : 1,
+      })}
     >
-      <Card padding={14} radius={radii.cardLg}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <TeamMark size={48} badge={22} />
-
-          <View style={{ flex: 1, gap: 3 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Txt font="mono" size={15} weight={500} style={{ flex: 1 }} numberOfLines={1}>
-                Hey100 Team
-              </Txt>
-              <Txt size={11.5} muted>
-                {time}
-              </Txt>
-            </View>
-
-            <Txt size={13.5} muted numberOfLines={1}>
-              {last}
-            </Txt>
-
-            <Txt size={11.5} color={c.accentText} numberOfLines={1}>
-              Jaryd, founder · DMs open
-            </Txt>
-          </View>
+      <View style={{ width: 58, height: 58 }}>
+        <JarydMark size={58} />
+        <View
+          style={{
+            position: 'absolute',
+            right: -3,
+            bottom: -3,
+            borderWidth: 2,
+            borderColor: c.bg,
+            borderRadius: Math.round(badgeSize * 0.26),
+            overflow: 'hidden',
+          }}
+        >
+          <Image source={HEY100_ICON} style={{ width: badgeSize, height: badgeSize }} />
         </View>
-      </Card>
+      </View>
+
+      <View style={{ flex: 1, gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0 }}>
+            <Txt size={16.5} weight={600} numberOfLines={1} style={{ flexShrink: 1 }}>
+              Jaryd from Hey100
+            </Txt>
+            <OfficialMark size={15} />
+          </View>
+          {time ? (
+            <Txt size={13} muted>
+              {time}
+            </Txt>
+          ) : null}
+        </View>
+        <Txt size={14.5} muted numberOfLines={1}>
+          {last}
+        </Txt>
+      </View>
     </Pressable>
   );
 }
@@ -152,98 +162,69 @@ function MatchRow({ match, onPress }: { match: Match; onPress: () => void }) {
   const store = useStore();
 
   const listing = store.listing(match.appId) ?? MATCH_APPS[match.appId];
-  const viaApp = store.apps[match.viaAppId];
   if (!listing) return null;
 
   const unread = match.unread ?? 0;
-  const complete = match.mine === 'Feedback sent' && match.theirs === 'Feedback sent';
-  const status = complete
-    ? { label: 'Trade complete', tone: 'default' as const }
-    : match.turn
-      ? { label: 'Your turn', tone: 'accent' as const }
-      : match.expiresInDays
-        ? { label: `${match.expiresInDays} days left`, tone: 'default' as const }
-        : { label: 'Waiting', tone: 'default' as const };
+  const builder = firstName(listing.builder);
+  const app = shortName(listing.name);
+  const badgeSize = Math.round(58 * 0.4);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={unread ? `${shortName(listing.name)}, ${unread} unread` : undefined}
+      accessibilityLabel={unread ? `${builder} from ${app}, ${unread} unread` : `${builder} from ${app}`}
       onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      style={({ pressed }) => ({
+        position: 'relative',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingVertical: 12,
+        opacity: pressed ? 0.8 : 1,
+      })}
     >
-      <Card
-        padding={14}
-        radius={radii.cardLg}
-        style={unread ? { borderColor: c.accent } : undefined}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View>
-            <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={48} />
-            {viaApp ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: -3,
-                  right: -4,
-                  borderRadius: 8,
-                  borderWidth: 2,
-                  borderColor: c.surface,
-                }}
-              >
-                <AppIcon hue={viaApp.hue} name={viaApp.name} uri={viaApp.icon} size={22} />
-              </View>
-            ) : null}
-          </View>
+      {unread ? (
+        <View
+          style={{
+            position: 'absolute',
+            left: -14,
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: c.accentText,
+          }}
+        />
+      ) : null}
 
-          <View style={{ flex: 1, gap: 3 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Txt font="mono" size={15} weight={500} style={{ flex: 1 }} numberOfLines={1}>
-                {shortName(listing.name)}
-              </Txt>
-              <Txt size={11.5} muted={!unread} color={unread ? c.accentText : undefined}>
-                {match.time}
-              </Txt>
-            </View>
-
-            <Txt
-              size={13.5}
-              weight={unread ? 500 : 400}
-              muted={!unread}
-              numberOfLines={1}
-            >
-              {match.last}
-            </Txt>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 }}>
-              <Chip label={status.label} size="sm" tone={status.tone} />
-              {viaApp ? (
-                <Txt size={11.5} muted numberOfLines={1}>
-                  via {shortName(viaApp.name)}
-                </Txt>
-              ) : null}
-            </View>
-          </View>
-
-          {unread ? (
-            <View
-              style={{
-                minWidth: 22,
-                height: 22,
-                borderRadius: 11,
-                paddingHorizontal: 7,
-                backgroundColor: c.accent,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Txt font="mono" size={12} weight={600} color={c.accentInk}>
-                {unread}
-              </Txt>
-            </View>
-          ) : null}
+      <View style={{ width: 58, height: 58 }}>
+        <Avatar name={listing.builder} uri={listing.builderPhoto} size={58} />
+        <View
+          style={{
+            position: 'absolute',
+            right: -3,
+            bottom: -3,
+            borderWidth: 2,
+            borderColor: c.bg,
+            borderRadius: Math.round(badgeSize * 0.26),
+          }}
+        >
+          <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={badgeSize} />
         </View>
-      </Card>
+      </View>
+
+      <View style={{ flex: 1, gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Txt size={16.5} weight={600} style={{ flex: 1 }} numberOfLines={1}>
+            {builder} from {app}
+          </Txt>
+          <Txt size={13} muted={!unread} color={unread ? c.accentText : undefined}>
+            {match.time}
+          </Txt>
+        </View>
+        <Txt size={14.5} muted={!unread} numberOfLines={1}>
+          {match.last}
+        </Txt>
+      </View>
     </Pressable>
   );
 }

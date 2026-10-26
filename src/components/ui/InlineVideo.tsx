@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import React, { useRef, useState } from 'react';
-import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useState } from 'react';
+import { Modal, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SHOT_RATIO, type MediaItem, type ShotLayout } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -34,9 +35,10 @@ export function InlineVideo({
   style,
 }: InlineVideoProps) {
   const { c } = useTheme();
-  const view = useRef<VideoView>(null);
+  const insets = useSafeAreaInsets();
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // A null source is valid, so the hook still runs for placeholder-only items.
   const player = useVideoPlayer(item.uri ?? null, (instance) => {
@@ -65,86 +67,125 @@ export function InlineVideo({
 
   const expand = () => {
     if (!playable) return;
-    view.current?.enterFullscreen().catch(() => {});
+    setStarted(true);
+    player.play();
+    setPlaying(true);
+    setExpanded(true);
   };
 
   return (
-    <Pressable
-      onPress={toggle}
-      accessibilityRole="button"
-      accessibilityLabel={playing ? 'Pause video' : 'Play video'}
-      style={[frame, style]}
-    >
-      {started && playable ? (
-        <VideoView
-          ref={view}
-          player={player}
-          allowsFullscreen
-          allowsPictureInPicture={false}
-          nativeControls={false}
-          contentFit="cover"
-          style={{ flex: 1 }}
-        />
-      ) : (
-        <MediaPlaceholder label={item.label} hue={hue} radius={radius} style={{ flex: 1 }} />
-      )}
+    <>
+      <Pressable
+        onPress={toggle}
+        accessibilityRole="button"
+        accessibilityLabel={playing ? 'Pause video' : 'Play video'}
+        style={[frame, style]}
+      >
+        {started && playable ? (
+          <VideoView
+            player={player}
+            allowsFullscreen={false}
+            allowsPictureInPicture={false}
+            nativeControls={false}
+            contentFit="cover"
+            style={{ flex: 1 }}
+          />
+        ) : (
+          <MediaPlaceholder label={item.label} hue={hue} radius={radius} style={{ flex: 1 }} />
+        )}
 
-      {/* The poster affordance stays until the first play. */}
-      {!playing ? (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
+        {!playing ? (
           <View
+            pointerEvents="none"
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: SCRIM,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="play" size={24} color={OVER_MEDIA} style={{ marginLeft: 3 }} />
+            </View>
+            {!playable ? (
+              <Txt font="mono" size={10} weight={500} color={OVER_MEDIA}>
+                preview coming soon
+              </Txt>
+            ) : null}
+          </View>
+        ) : null}
+
+        {playable ? (
+          <Pressable
+            onPress={expand}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Expand to full screen"
+            style={{
+              position: 'absolute',
+              right: 10,
+              bottom: 10,
+              width: 32,
+              height: 32,
+              borderRadius: 16,
               backgroundColor: SCRIM,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="play" size={24} color={OVER_MEDIA} style={{ marginLeft: 3 }} />
-          </View>
-          {!playable ? (
-            <Txt font="mono" size={10} weight={500} color={OVER_MEDIA}>
-              preview coming soon
-            </Txt>
-          ) : null}
-        </View>
-      ) : null}
+            <Ionicons name="expand" size={16} color={OVER_MEDIA} />
+          </Pressable>
+        ) : null}
+      </Pressable>
 
-      {playable ? (
-        <Pressable
-          onPress={expand}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Expand to full screen"
-          style={{
-            position: 'absolute',
-            right: 10,
-            bottom: 10,
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            backgroundColor: SCRIM,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name="expand" size={16} color={OVER_MEDIA} />
-        </Pressable>
-      ) : null}
-    </Pressable>
+      <Modal
+        visible={expanded}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setExpanded(false)}
+        statusBarTranslucent
+      >
+        <View style={{ flex: 1, backgroundColor: '#000000' }}>
+          <VideoView
+            player={player}
+            nativeControls
+            contentFit="contain"
+            style={{ flex: 1 }}
+          />
+          <Pressable
+            onPress={() => setExpanded(false)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close video"
+            style={{
+              position: 'absolute',
+              top: insets.top + 8,
+              right: 16,
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: SCRIM,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="close" size={22} color={OVER_MEDIA} />
+          </Pressable>
+        </View>
+      </Modal>
+    </>
   );
 }

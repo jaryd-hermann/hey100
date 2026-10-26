@@ -9,7 +9,7 @@ type AuthState = {
   session: Session | null;
   userId: string | null;
   email: string | null;
-  /** The founder account, which can broadcast to every builder. */
+  /** The founder account. Posts in Hey100 builders and sees every inbound DM. */
   isAdmin: boolean;
   /** True until the stored session has been read, so no screen flashes a
    *  signed-out state at a signed-in user on cold start. */

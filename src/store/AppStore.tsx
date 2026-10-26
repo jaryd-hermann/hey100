@@ -537,6 +537,18 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       const via = input.viaAppId ?? attributedApp(input.appId).id;
 
       if (remote) {
+        const optimistic: SentHey = {
+          id: `pending-${input.appId}-${Date.now()}`,
+          appId: input.appId,
+          viaAppId: via,
+          target: input.target,
+          targetType: input.targetType,
+          note: input.note,
+          sentAt: Date.now(),
+          status: 'Pending',
+        };
+        patch((prev) => ({ sentHeys: [optimistic, ...prev.sentHeys] }));
+
         const result = await loop.sayHey({
           toAppId: input.appId,
           fromAppId: via,
@@ -553,6 +565,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         if (!result || result.status === 'blocked') {
+          patch((prev) => ({
+            sentHeys: prev.sentHeys.filter((hey) => hey.id !== optimistic.id),
+          }));
           return { matched: false, blocked: result?.reason ?? 'failed' };
         }
 
@@ -570,6 +585,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         appId: input.appId,
         viaAppId: via,
         target: input.target,
+        targetType: input.targetType,
         note: input.note,
         sentAt: Date.now(),
         status: 'Pending',
@@ -600,8 +616,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
       if (!remote || !userId) return;
 
-      await loop.passApp(userId, appId, reason);
-      await refresh([queryKeys.deck(userId)]);
+      try {
+        await loop.passApp(userId, appId, reason);
+        await refresh([queryKeys.deck(userId)]);
+      } catch {
+        // The card already left the deck. A grant miss must not crash the screen.
+      }
     },
     [patch, refresh, remote, userId],
   );
@@ -854,15 +874,22 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const hydrateLoop = useCallback<Store['hydrateLoop']>(
     (data) =>
-      patch({
-        listings: data.listings,
-        deckIds: data.deckIds,
-        heys: data.heys,
-        sentHeys: data.sentHeys,
-        matches: data.matches,
-        inbox: data.inbox,
-        ...(data.plan ? { plan: data.plan } : {}),
-        ...(data.heysLeftToday !== undefined ? { heysLeftToday: data.heysLeftToday } : {}),
+      patch((prev) => {
+        const pending = prev.sentHeys.filter(
+          (hey) =>
+            hey.id.startsWith('pending-') &&
+            !data.sentHeys.some((row) => row.appId === hey.appId && row.note === hey.note),
+        );
+        return {
+          listings: data.listings,
+          deckIds: data.deckIds,
+          heys: data.heys,
+          sentHeys: pending.length ? [...pending, ...data.sentHeys] : data.sentHeys,
+          matches: data.matches,
+          inbox: data.inbox,
+          ...(data.plan ? { plan: data.plan } : {}),
+          ...(data.heysLeftToday !== undefined ? { heysLeftToday: data.heysLeftToday } : {}),
+        };
       }),
     [patch],
   );

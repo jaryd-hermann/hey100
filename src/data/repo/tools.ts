@@ -17,6 +17,9 @@ export type SponsoredTool = {
   down: number;
   score: number;
   myVote: -1 | 1 | 0;
+  threadCount: number;
+  talkerCount: number;
+  talkers: { name: string; photo?: string }[];
 };
 
 export const TOOL_CATEGORIES = [
@@ -52,6 +55,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
   {
     id: 'revenuecat',
@@ -65,6 +71,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
   {
     id: 'granola',
@@ -78,6 +87,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
   {
     id: 'attio',
@@ -91,6 +103,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
   {
     id: 'onesignal',
@@ -104,6 +119,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
   {
     id: 'resend',
@@ -117,6 +135,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
   {
     id: 'supabase',
@@ -130,6 +151,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
   {
     id: 'cursor',
@@ -143,6 +167,9 @@ const FALLBACK: SponsoredTool[] = [
     down: 0,
     score: 0,
     myVote: 0,
+    threadCount: 0,
+    talkerCount: 0,
+    talkers: [],
   },
 ];
 
@@ -191,6 +218,27 @@ export function useSponsoredTools(): SponsoredTool[] {
       if (!rows?.length) return FALLBACK;
 
       const { data: votes } = await db.from('sponsored_tool_votes').select('tool_id, user_id, vote');
+      const { data: discussionRows } = await (db as unknown as {
+        rpc: (name: string) => Promise<{ data: unknown }>;
+      }).rpc('sponsored_tool_discussion_counts');
+      const discussions = new Map<
+        string,
+        { threadCount: number; talkerCount: number; talkers: { name: string; photo?: string }[] }
+      >();
+      for (const row of (discussionRows ?? []) as {
+        tool_id: string;
+        thread_count?: number;
+        talker_count?: number;
+        talkers?: { name?: string; photo?: string | null }[];
+      }[]) {
+        discussions.set(row.tool_id, {
+          threadCount: Number(row.thread_count) || 0,
+          talkerCount: Number(row.talker_count) || 0,
+          talkers: (row.talkers ?? [])
+            .filter((person) => person.name)
+            .map((person) => ({ name: person.name!, photo: person.photo ?? undefined })),
+        });
+      }
 
       const tallies = new Map<string, { up: number; down: number; mine: -1 | 1 | 0 }>();
       for (const row of votes ?? []) {
@@ -210,6 +258,7 @@ export function useSponsoredTools(): SponsoredTool[] {
         let down = tally.down;
         if (!tally.mine && last?.myVote === 1 && !up) up = 1;
         if (!tally.mine && last?.myVote === -1 && !down) down = 1;
+        const discussion = discussions.get(row.id);
         return {
           id: row.id,
           name: row.name,
@@ -222,12 +271,40 @@ export function useSponsoredTools(): SponsoredTool[] {
           down,
           score: up - down,
           myVote: mine,
+          threadCount: discussion?.threadCount ?? last?.threadCount ?? 0,
+          talkerCount: discussion?.talkerCount ?? last?.talkerCount ?? 0,
+          talkers: discussion?.talkers ?? last?.talkers ?? [],
         };
       });
     },
   });
 
-  return data ?? FALLBACK;
+  return (data ?? FALLBACK).map((tool) => ({
+    ...tool,
+    threadCount: tool.threadCount ?? 0,
+    talkerCount: tool.talkerCount ?? 0,
+    talkers: tool.talkers ?? [],
+  }));
+}
+
+export async function ensureToolDiscussion(toolId: string, name?: string): Promise<string> {
+  const db = getSupabase();
+  if (!db) throw new Error('Sign in to discuss');
+  const id = await resolveToolId(toolId, name);
+  const { data, error } = await (db as unknown as {
+    rpc: (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  }).rpc('ensure_tool_discussion', { p_tool_id: id });
+  if (error || typeof data !== 'string') throw new Error(error?.message ?? 'Could not open the discussion');
+  return data;
+}
+
+export function findSponsoredTool(tools: SponsoredTool[], id?: string | null): SponsoredTool | undefined {
+  if (!id) return undefined;
+  const needle = id.toLowerCase();
+  return tools.find((tool) => tool.id === id || tool.name.toLowerCase() === needle);
 }
 
 async function resolveToolId(toolId: string, name: string | undefined): Promise<string> {

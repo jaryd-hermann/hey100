@@ -132,6 +132,7 @@ export function heyToSent(row: HeyRow): SentHey {
     appId: row.app_id,
     viaAppId: row.via_app_id,
     target: row.target,
+    targetType: row.target_type,
     note: row.note ?? '',
     sentAt: new Date(row.created_at).getTime(),
     status: SENT_STATUS[row.status ?? 'pending'] ?? 'Pending',

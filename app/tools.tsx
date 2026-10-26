@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { OptionRow } from '@/components/ui/OptionRow';
@@ -14,6 +15,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { TOOL_CATEGORIES, useSponsoredTools, useVoteSponsoredTool } from '@/data/repo/tools';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { captureEvent } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
@@ -36,6 +38,10 @@ export default function ToolsScreen() {
   const [sort, setSort] = useState<'rated' | 'newest'>('rated');
   const [sortOpen, setSortOpen] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    captureEvent('tool_viewed');
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -74,6 +80,13 @@ export default function ToolsScreen() {
   const cast = (tool: (typeof tools)[number], direction: -1 | 1) => {
     const next: -1 | 1 | 0 = (mine[tool.id] ?? mine[tool.name] ?? tool.myVote) === direction ? 0 : direction;
     setMine((prev) => ({ ...prev, [tool.id]: next, [tool.name]: next }));
+    if (next !== 0) {
+      captureEvent('tool_engaged', {
+        tool_id: tool.id,
+        tool_name: tool.name,
+        action: 'voted',
+      });
+    }
     if (!userId) {
       toast('Sign in to vote');
       return;
@@ -219,6 +232,14 @@ export default function ToolsScreen() {
                   </Pressable>
                 </View>
 
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: '/tool/[id]', params: { id: tool.id } })
+                  }
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Discuss ${tool.name}`}
+                >
                 <View
                   style={{
                     width: 44,
@@ -249,14 +270,44 @@ export default function ToolsScreen() {
                   <Txt size={12.5} muted numberOfLines={2}>
                     {tool.subtitle}
                   </Txt>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                    {(tool.talkers ?? []).length ? (
+                      <View style={{ flexDirection: 'row' }}>
+                        {(tool.talkers ?? []).slice(0, 4).map((person, index) => (
+                          <View
+                            key={`${person.name}-${index}`}
+                            style={{
+                              marginLeft: index ? -6 : 0,
+                              borderWidth: 1.5,
+                              borderColor: c.surface,
+                              borderRadius: 10,
+                            }}
+                          >
+                            <Avatar name={person.name} uri={person.photo} size={18} />
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    <Txt size={12} muted>
+                      {tool.threadCount
+                        ? `${tool.threadCount} thread${tool.threadCount === 1 ? '' : 's'} · ${tool.talkerCount || tool.threadCount} discussing`
+                        : 'Start a discussion'}
+                    </Txt>
+                  </View>
                 </View>
+                </Pressable>
                 <Pressable
-                  onPress={() =>
+                  onPress={() => {
+                    captureEvent('tool_engaged', {
+                      tool_id: tool.id,
+                      tool_name: tool.name,
+                      action: 'website',
+                    });
                     router.push({
                       pathname: '/browser',
                       params: { kind: 'Web', value: tool.url },
-                    })
-                  }
+                    });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${tool.name}`}
                   style={({ pressed }) => ({

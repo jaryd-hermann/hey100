@@ -17,6 +17,20 @@ verify_jwt = true
 enabled = true
 verify_jwt = false
 
+# Service-role or x-push-secret only. User JWTs must not drain the outbox.
+[functions.send-push]
+enabled = true
+verify_jwt = false
+
+[functions.engagement-cron]
+enabled = true
+verify_jwt = false
+
+# RevenueCat posts without a user JWT. Auth is REVENUECAT_WEBHOOK_SECRET.
+[functions.revenuecat-webhook]
+enabled = true
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.

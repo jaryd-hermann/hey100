@@ -88,7 +88,7 @@ export function ChatMenu({
 
         {isTeam ? (
           <Txt size={13} lh={1.45} muted style={{ paddingHorizontal: 4, paddingTop: 6 }}>
-            This thread goes straight to Jaryd. Announcements come from the same place.
+            This thread goes straight to Jaryd. Team posts live in Hey100 builders.
           </Txt>
         ) : (
           <>

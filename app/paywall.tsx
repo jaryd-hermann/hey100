@@ -1,29 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
-import { Label, Txt } from '@/components/ui/Txt';
+import { Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import { captureEvent } from '@/lib/analytics';
+import { getMonthlyPrice, purchaseMonthly } from '@/lib/purchases';
 import {
   FREE_DAILY_HEYS,
   FREE_MATCH_LIMIT,
   PRO_PRICE,
-  PRO_PRICE_NOTE,
   useStore,
 } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
 const PERKS: [string, string][] = [
-  ['Unlimited heys', 'Say hey to as many apps as you want each day, so matches come faster.'],
+  ['Join premium groups', 'Get into groups with the strongest group power.'],
+  ['Speed up your matches', 'Say hey to as many apps as you want each day, so matches come faster.'],
   ['Better visibility', 'Shown to more builders who fit your ideal users.'],
-  ['More analytics', 'Views, skips, hey ratio and which part of your page gets the most heys.'],
+  ['More analytics', 'View, skips, hey ratio, and other key insights'],
   ['Unlimited matches', `Keep trading past the ${FREE_MATCH_LIMIT} free matches.`],
 ];
 
@@ -42,6 +43,21 @@ export default function Paywall() {
   }>();
 
   const atMatchLimit = reason === 'match5';
+  const [price, setPrice] = useState(PRO_PRICE);
+  const [buying, setBuying] = useState(false);
+
+  useEffect(() => {
+    captureEvent('paywall_viewed', {
+      reason: reason ?? from ?? 'unknown',
+      from: from ?? null,
+    });
+  }, [reason, from]);
+
+  useEffect(() => {
+    void getMonthlyPrice().then((next) => {
+      if (next) setPrice(next);
+    });
+  }, []);
 
   const dismiss = () => {
     if (from === 'onboarding') {
@@ -58,12 +74,23 @@ export default function Paywall() {
     router.back();
   };
 
-  const purchase = () => {
-    // Apple IAP via RevenueCat replaces this once the native module is wired.
-    store.setPlan('pro');
-    captureEvent('pro_started', { plan: 'monthly', reason: reason ?? from ?? 'unknown' });
-    toast('Hey100 Pro started');
-    dismiss();
+  const purchase = async () => {
+    if (buying) return;
+    setBuying(true);
+    try {
+      const result = await purchaseMonthly();
+      if (result.status === 'cancelled') return;
+      if (result.status === 'unavailable') {
+        toast(result.message);
+        return;
+      }
+      if (result.pro) store.setPlan('pro');
+      captureEvent('pro_started', { plan: 'monthly', reason: reason ?? from ?? 'unknown' });
+      toast('Hey100 Pro started');
+      dismiss();
+    } finally {
+      setBuying(false);
+    }
   };
 
   return (
@@ -105,9 +132,14 @@ export default function Paywall() {
           </>
         ) : (
           <>
-            <Label>Hey100 Pro</Label>
-            <Txt font="mono" size={27} weight={500} lh={1.22} style={{ marginTop: 10 }}>
-              Find your first 100 users faster.
+            <Txt font="mono" size={28} weight={500} lh={1.15} style={{ marginTop: 4 }}>
+              Join the Pro Community.
+            </Txt>
+            <Txt font="mono" size={28} weight={500} lh={1.15}>
+              Find your users faster
+            </Txt>
+            <Txt font="mono" size={28} weight={500} lh={1.15}>
+              Meet the top builders
             </Txt>
           </>
         )}
@@ -128,14 +160,18 @@ export default function Paywall() {
           ))}
         </View>
 
-        <Card padding={16} radius={radii.cardLg} style={{ marginTop: 26, gap: 4 }}>
-          <Label size={10}>Hey100 Pro</Label>
-          <Txt font="mono" size={28} weight={500}>
-            {PRO_PRICE}
+        <Card padding={16} radius={radii.cardLg} style={{ marginTop: 26, gap: 6 }}>
+          <Txt size={15} weight={600}>
+            One plan only. Cancel whenever
           </Txt>
-          <Txt size={13.5} muted>
-            {PRO_PRICE_NOTE}
-          </Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+            <Txt font="mono" size={40} weight={700}>
+              {price}
+            </Txt>
+            <Txt size={16} weight={600}>
+              a month
+            </Txt>
+          </View>
         </Card>
 
         {atMatchLimit ? (
@@ -172,11 +208,12 @@ export default function Paywall() {
         }}
       >
         <Btn
-          label={`Start Pro · ${PRO_PRICE}/mo`}
+          label={buying ? 'Starting Pro…' : `Start Pro · ${price}/mo`}
           variant="accent"
           size="lg"
           full
-          onPress={purchase}
+          disabled={buying}
+          onPress={() => void purchase()}
         />
         <Btn
           label={

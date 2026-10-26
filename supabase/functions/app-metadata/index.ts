@@ -39,6 +39,22 @@ function hueOf(host: string): number {
   return sum % 360;
 }
 
+function hiResShot(url: string): string {
+  if (!url || !/mzstatic\.com/i.test(url)) return url;
+  return url
+    .replace(/\/(\d+)x(\d+)([a-z]*)(\.[a-z]+)(\?.*)?$/i, (match, w, h, flags, ext, query = '') => {
+      const width = Number(w);
+      const height = Number(h);
+      if (!width || !height || width >= 1242) return match;
+      const scale = 1242 / width;
+      return `/${Math.round(width * scale)}x${Math.round(height * scale)}${flags}${ext}${query}`;
+    })
+    .replace(/\/(\d+)x0w(\.[a-z]+)(\?.*)?$/i, (match, w, ext, query = '') => {
+      if (Number(w) >= 1242) return match;
+      return `/1242x0w${ext}${query}`;
+    });
+}
+
 function hostOf(url: string): string {
   try {
     return new URL(url).host.replace(/^www\./, '');
@@ -128,7 +144,9 @@ async function fromAppStore(appId: string, country: string): Promise<Metadata | 
       shots: [
         ...((app.screenshotUrls as string[] | undefined) ?? []),
         ...((app.ipadScreenshotUrls as string[] | undefined) ?? []),
-      ].slice(0, MAX_SHOTS),
+      ]
+        .map(hiResShot)
+        .slice(0, MAX_SHOTS),
       storeUrl,
       hue: hueOf(web || String(app.trackName ?? '')),
       rating: typeof app.averageUserRating === 'number' ? app.averageUserRating : undefined,

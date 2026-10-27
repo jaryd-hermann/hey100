@@ -37,9 +37,9 @@ export const PRICING_MODELS = [
 
 /** The default section order on an app page. */
 export const DEFAULT_LAYOUT: SectionKey[] = [
+  'pitch',
   'shots',
   'problem',
-  'pitch',
   'p0',
   'builder',
   'p1',
@@ -625,13 +625,21 @@ export const INITIAL_MATCHES: Match[] = [
   },
 ];
 
+const ago = (days: number, hours = 12, minutes = 0) => {
+  const at = new Date();
+  at.setDate(at.getDate() - days);
+  at.setHours(hours, minutes, 0, 0);
+  return at.toISOString();
+};
+
 export const INITIAL_MESSAGES: Record<string, Message[]> = {
   cad: [
-    { kind: 'system', body: 'matched oct 12 · lena said hey to your onboarding video' },
-    { kind: 'them', body: 'Hey! Your onboarding video sold me. Downloading Tidepool now.' },
+    { kind: 'system', body: 'matched oct 12 · lena said hey to your onboarding video', at: ago(3, 11, 20) },
+    { kind: 'them', body: 'Hey! Your onboarding video sold me. Downloading Tidepool now.', at: ago(3, 11, 22) },
     {
       kind: 'me',
       body: 'Thanks Lena. TestFlight link is up top, and the code gets you a free year.',
+      at: ago(3, 11, 40),
     },
     {
       kind: 'feedback',
@@ -639,42 +647,48 @@ export const INITIAL_MESSAGES: Record<string, Message[]> = {
       stars: '4/5',
       body: 'Calm and clear. I wanted to invite my partner sooner.',
       meta: 'Keep using: Yes · Fair price: $3–5/mo',
+      at: ago(1, 9, 5),
     },
     {
       kind: 'them',
       body: 'One confusing bit on the partner invite. Your turn on Cadence whenever you have a week 🙌',
+      at: ago(0, 8, 9),
     },
   ],
   lum: [
-    { kind: 'system', body: 'matched oct 14 · you said hey to their demo video' },
-    { kind: 'them', body: 'Hi! Happy to swap. Code is in the trade card.' },
-    { kind: 'me', body: 'Downloading now, will report back tonight.' },
+    { kind: 'system', body: 'matched oct 14 · you said hey to their demo video', at: ago(2, 16, 4) },
+    { kind: 'them', body: 'Hi! Happy to swap. Code is in the trade card.', at: ago(2, 16, 6) },
+    { kind: 'me', body: 'Downloading now, will report back tonight.', at: ago(2, 16, 18) },
   ],
   pt: [
-    { kind: 'system', body: 'matched oct 9' },
+    { kind: 'system', body: 'matched oct 9', at: ago(5, 14, 0) },
     {
       kind: 'me',
       body: 'Found a crash when switching subjects mid-lesson. Screenshot in my feedback.',
       media: media('Crash on subject switch', 'Demo video · repro 0:11'),
+      at: ago(5, 14, 12),
     },
-    { kind: 'them', body: 'Thanks! Fixed the crash you found.' },
+    { kind: 'them', body: 'Thanks! Fixed the crash you found.', at: ago(4, 10, 3) },
   ],
   tl: [
-    { kind: 'system', body: 'matched oct 2' },
+    { kind: 'system', body: 'matched oct 2', at: ago(8, 13, 0) },
     {
       kind: 'them',
       body: 'Sent my notes on Tidepool. Bank sync empty state confused me a bit.',
+      at: ago(8, 13, 8),
     },
-    { kind: 'me', body: 'Super helpful, thanks Marco. Fixing that this week.' },
+    { kind: 'me', body: 'Super helpful, thanks Marco. Fixing that this week.', at: ago(7, 19, 22) },
   ],
   team: [
     {
       kind: 'them',
       body: "Hey — Jaryd here. This is a 1:1 with me. Bugs, ideas, or anything that's annoying you, send it here.",
+      at: ago(6, 10, 15),
     },
     {
       kind: 'them',
       body: 'Team posts live in Hey100 builders. Reply on those if you want to chime in publicly.',
+      at: ago(0, 8, 40),
     },
   ],
 };
@@ -801,7 +815,38 @@ export const FILTER_GROUPS = {
 
 export const QUICK_CHIPS = ['For you', 'New this week', 'Verified', 'Has revenue'];
 
-export const EMOJI_TRAY = ['😀', '😂', '🙌', '🔥', '👀', '🎉', '💯', '🙏', '👍', '❤️'];
+export const EMOJI_TRAY = [
+  '😀',
+  '😂',
+  '🥹',
+  '😍',
+  '🤩',
+  '😎',
+  '🤔',
+  '🙌',
+  '🔥',
+  '👀',
+  '🎉',
+  '💯',
+  '🙏',
+  '👍',
+  '👎',
+  '❤️',
+  '💜',
+  '✨',
+  '🚀',
+  '💡',
+  '✅',
+  '❌',
+  '😭',
+  '😅',
+  '🤝',
+  '💬',
+  '🧠',
+  '⚡️',
+  '🍀',
+  '🫶',
+];
 
 export { AGES } from '@/features/onboarding/steps';
 

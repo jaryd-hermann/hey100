@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderLogo } from '@/components/brand/Logo';
 import { Btn } from '@/components/ui/Btn';
-import { Glass } from '@/components/ui/Glass';
 import { HeyPill } from '@/components/ui/HeyPill';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
@@ -14,6 +13,7 @@ import { DECK_IDS, LISTINGS, shortName } from '@/data/mock';
 import type { AppListing } from '@/data/types';
 import { AppPage, CompactAppBar, useCompactBar, type HeyTarget } from '@/features/app-page/AppPage';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
+import { setDeckSort } from '@/features/discover/deckSort';
 import {
   FilterBar,
   INITIAL_FILTERS,
@@ -25,6 +25,8 @@ import { AppCard } from '@/features/apps/AppCard';
 import { BadgesSheet } from '@/features/apps/BadgesSheet';
 import { ShareListingSheet } from '@/features/apps/ShareListingSheet';
 import { useDailyHeyLimit } from '@/features/billing/DailyHeyLimit';
+import { ProductHint } from '@/features/marketing/ProductHint';
+import { useFirstHint } from '@/features/marketing/useFirstHint';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -47,6 +49,7 @@ export default function DiscoverScreen() {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(false);
+  const discoverHint = useFirstHint('discover', !store.previewAppId);
 
   const deck = useMemo(() => {
     if (store.previewAppId) {
@@ -63,12 +66,26 @@ export default function DiscoverScreen() {
       (listing): listing is AppListing => !!listing && !store.passed.includes(listing.id),
     );
 
-    return applyFilters(listings, filters);
+    const mine = store.primaryApp;
+    return applyFilters(
+      listings,
+      filters,
+      {
+        cat: mine?.cat ?? '',
+        interests: mine?.ideal?.interests ?? '',
+        plat: mine?.plat ?? '',
+      },
+      { resort: !store.deckIds },
+    );
   }, [filters, store, store.previewAppId]);
 
   useEffect(() => {
+    setDeckSort(filters.sort);
+  }, [filters.sort]);
+
+  useEffect(() => {
     setIndex(0);
-  }, [store.previewAppId]);
+  }, [filters, store.previewAppId]);
 
   useEffect(() => {
     if (index >= deck.length) setIndex(0);
@@ -281,30 +298,28 @@ export default function DiscoverScreen() {
           justifyContent: 'space-between',
         }}
       >
-        <Glass
-          radius={29}
-          intensity={55}
-          style={{ borderWidth: 2, borderColor: c.ink, overflow: 'hidden' }}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Pass on ${shortName(listing.name)}`}
+          onPress={() => {
+            void store.passApp(listing.id);
+            captureEvent('app_passed', { app_id: listing.id });
+            advance();
+          }}
+          style={({ pressed }) => ({
+            width: 58,
+            height: 58,
+            borderRadius: 29,
+            borderWidth: 2,
+            borderColor: c.ink,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 107, 97, 0.55)',
+            opacity: pressed ? 0.8 : 1,
+          })}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Pass on ${shortName(listing.name)}`}
-            onPress={() => {
-              void store.passApp(listing.id);
-              captureEvent('app_passed', { app_id: listing.id });
-              advance();
-            }}
-            style={{
-              width: 58,
-              height: 58,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(255, 107, 97, 0.18)',
-            }}
-          >
-            <Ionicons name="close" size={28} color={c.danger} />
-          </Pressable>
-        </Glass>
+          <Ionicons name="close" size={28} color={c.danger} />
+        </Pressable>
 
         <HeyPill
           size={58}
@@ -332,6 +347,16 @@ export default function DiscoverScreen() {
           setBuilderOpen(false);
           router.push({ pathname: '/browser', params: { kind, value } });
         }}
+      />
+
+      <ProductHint
+        visible={discoverHint.visible}
+        surface="discover"
+        title="This is Discover"
+        body={
+          'This is Discover, where you find apps and their makers, and they find you! It\'s the "dating" part of the app. Once you both match you can DM and try each others apps and share feedback.\n\nPass with the X if it is not for you. Tap the green hand to say hey.'
+        }
+        onClose={discoverHint.dismiss}
       />
 
     </View>

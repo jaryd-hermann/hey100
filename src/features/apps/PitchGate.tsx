@@ -46,9 +46,11 @@ export function PitchGate(props: PitchFlowProps) {
       .catch(() => setMissing(true));
   };
 
-  if (!props.visible) return null;
-
+  // Keep the camera modal mounted while it hides so iOS can dismiss it.
+  // Returning null here left the sheet on screen after Publish.
   if (ready && Flow) return <Flow {...props} skipIntro />;
+
+  if (!props.visible) return null;
 
   return (
     <Modal visible animationType="slide" onRequestClose={props.onClose}>

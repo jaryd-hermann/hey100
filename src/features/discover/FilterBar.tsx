@@ -136,12 +136,58 @@ export function FilterBar({
   );
 }
 
-/** Applies the filter bar to a list of listings. */
-export function applyFilters<T extends { cat: string; plat: string; stage: string }>(
+type Filterable = {
+  cat: string;
+  plat: string;
+  stage: string;
+  likes?: string;
+  badges?: string[];
+  fit?: string;
+  publishedAt?: string;
+  ideal?: { interests: string; plat: string };
+};
+
+export type FilterViewer = {
+  cat: string;
+  interests: string;
+  plat: string;
+};
+
+function likesRank(value?: string): number {
+  if (!value || value === '—') return 0;
+  const nums = value.match(/\d+/g)?.map(Number) ?? [];
+  return nums.length ? Math.max(...nums) : 0;
+}
+
+function fitScore(listing: Filterable, viewer?: FilterViewer): number {
+  if (!viewer) return listing.fit ? 1 : 0;
+  const category = viewer.cat && listing.cat.toLowerCase() === viewer.cat.toLowerCase() ? 6 : 0;
+  const mine = (viewer.interests ?? '')
+    .split(/[,\s]+/)
+    .map((word) => word.trim().toLowerCase())
+    .filter((word) => word.length > 1);
+  const theirs = (listing.ideal?.interests ?? '')
+    .split(/[,\s]+/)
+    .map((word) => word.trim().toLowerCase())
+    .filter(Boolean);
+  const overlap = mine.filter((word) => theirs.includes(word)).length;
+  const viewerPlat = viewer.plat.toLowerCase().replace('iphone', 'ios');
+  const listingPlat = `${listing.plat} ${listing.ideal?.plat ?? ''}`.toLowerCase().replace('iphone', 'ios');
+  const device = viewerPlat && listingPlat.includes(viewerPlat) ? 1 : 0;
+  return category + overlap * 2 + device;
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Applies the filter bar — category, platform, stage, quick chips, and sort. */
+export function applyFilters<T extends Filterable>(
   listings: T[],
   filters: FilterState,
+  viewer?: FilterViewer,
+  options?: { resort?: boolean },
 ): T[] {
-  return listings.filter((listing) => {
+  const weekAgo = Date.now() - WEEK_MS;
+  const next = listings.filter((listing) => {
     if (filters.cat.length && !filters.cat.some((cat) => listing.cat.includes(cat))) return false;
     if (
       filters.plat.length &&
@@ -161,6 +207,28 @@ export function applyFilters<T extends { cat: string; plat: string; stage: strin
       );
       if (!matchesStage) return false;
     }
+    if (filters.quick.includes('Has revenue') && listing.stage !== 'Revenue') return false;
+    if (filters.quick.includes('Verified') && !(listing.badges ?? []).length) return false;
+    if (filters.quick.includes('New this week')) {
+      const at = listing.publishedAt ? new Date(listing.publishedAt).getTime() : 0;
+      if (!at || at < weekAgo) return false;
+    }
     return true;
   });
+
+  if (options?.resort === false) return next;
+
+  const ranked = [...next];
+  if (filters.sort === 'Most liked') {
+    ranked.sort((a, b) => likesRank(b.likes) - likesRank(a.likes));
+  } else if (filters.sort === 'Newest') {
+    ranked.sort((a, b) => {
+      const aAt = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const bAt = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return bAt - aAt;
+    });
+  } else if (filters.quick.includes('For you') || filters.sort === 'Best fit') {
+    ranked.sort((a, b) => fitScore(b, viewer) - fitScore(a, viewer));
+  }
+  return ranked;
 }

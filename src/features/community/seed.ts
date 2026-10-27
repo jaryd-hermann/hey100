@@ -81,6 +81,7 @@ function group(input: {
     membership: input.membership,
     role: input.membership === 'active' && input.owner === 'me' ? 'owner' : 'member',
     unread: input.unread,
+    lastReadAt: input.unread ? ago(input.last.hours + 8) : ago(input.last.hours),
     lastAuthor: last.name,
     lastAuthorPhoto: last.photo,
     lastPreview: input.last.body,
@@ -467,7 +468,7 @@ export function seedGroup(id: string): CommunityGroup | null {
 export function seedThreads(groupId: string): CommunityThread[] {
   return [...SEED_THREADS.filter((item) => item.groupId === groupId), ...extraThreads.filter((item) => item.groupId === groupId)]
     .slice()
-    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+    .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
 }
 
 export function seedThread(threadId: string): { thread: CommunityThread | null; replies: CommunityReply[] } {

@@ -104,6 +104,8 @@ export type AppListing = {
   /** Vertical elevator-pitch video from the builder. */
   pitchUri?: string;
   pitchSeconds?: number;
+  /** When the listing went live. Used by Discover sort and "New this week". */
+  publishedAt?: string;
 };
 
 /** One of the user's own listings. */
@@ -199,6 +201,8 @@ export type MessageReply = { id: string; body: string };
 
 export type ChatMessage = {
   id?: string;
+  /** ISO time the message was sent. Stamps and the unread line use this. */
+  at?: string;
   reply?: MessageReply;
   reactions?: MessageReaction[];
 };

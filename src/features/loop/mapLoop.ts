@@ -71,6 +71,10 @@ export function builderPhoto(builder: BuilderRow | null): string | undefined {
   return builder?.photo_url ?? undefined;
 }
 
+function heyCountLabel(count?: number): string {
+  return count && count > 0 ? String(count) : '—';
+}
+
 /** A listing card, as Discover, Heys and the trade sheet render it. */
 export function cardToListing(card: ListingCard, preferRealName = false): AppListing {
   const labels = new Map(card.prompts.map((prompt) => [prompt.prompt_id, prompt.label]));
@@ -91,6 +95,7 @@ export function cardToListing(card: ListingCard, preferRealName = false): AppLis
 
   return {
     ...listing,
+    likes: heyCountLabel(card.hey_count),
     ...(photo ? { builderPhoto: photo } : {}),
     role: listing.role || role,
     style: listing.style || words.bio || '',
@@ -203,6 +208,7 @@ export function messageToMessage(row: MessageEmbed, me: string): Message {
     : undefined;
   const extra = {
     id: row.id,
+    at: row.created_at,
     ...(reply ? { reply } : {}),
     ...(reactions.length ? { reactions } : {}),
   };

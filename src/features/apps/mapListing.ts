@@ -123,6 +123,7 @@ export function toOwnedApp(row: ListingLike, ctx: ListingContext): OwnedApp {
     ...(row.pitch_path
       ? { pitchUri: publicUrl('listing-media', row.pitch_path), pitchSeconds: row.pitch_seconds ?? 0 }
       : {}),
+    ...(row.published_at ? { publishedAt: row.published_at } : {}),
     views: 0,
     matches: 0,
     primary: row.is_primary,

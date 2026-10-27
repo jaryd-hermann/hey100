@@ -14,6 +14,7 @@ import { shortName, slugify } from '@/data/mock';
 import type { AppListing, MediaItem, Message } from '@/data/types';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import { ChatMenu } from '@/features/chat/ChatMenu';
+import { ChatStamp, shouldStamp, stampLabel, UnreadDivider, useChatAnchor } from '@/features/chat/ChatStamp';
 import { Composer } from '@/features/chat/Composer';
 import { sendAdminDm } from '@/data/repo/admin';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -25,6 +26,7 @@ import { toggleReaction } from '@/features/chat/reactions';
 import { uploadAttachments } from '@/features/chat/uploadAttachments';
 import { JarydMark } from '@/features/chat/TeamMark';
 import { OfficialMark } from '@/features/community/OfficialMark';
+import { CommunityPromoCard } from '@/features/marketing/CommunityPromoCard';
 import { TradeAppSheet } from '@/features/chat/TradeAppSheet';
 import { TradeCard } from '@/features/chat/TradeCard';
 import { useMediaPicker } from '@/features/chat/useMediaPicker';
@@ -67,7 +69,6 @@ export default function ChatThread() {
 
   const { id } = useLocalSearchParams<{ id: string; desk?: string }>();
   const loop = useDevLoop();
-  const scrollRef = useRef<ScrollView>(null);
 
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<MediaItem[]>([]);
@@ -90,12 +91,11 @@ export default function ChatThread() {
   useThreadMessages(isTeam || !match ? null : id);
   const stored = useMemo(() => loop.messages(id), [id, loop]);
 
-  // Where the unread run started when the thread was opened, before it was read.
-  const [unreadStart] = useState(() => {
-    const unread = store.matches.find((item) => item.id === id)?.unread ?? 0;
-    const count = (store.messages[id] ?? []).length;
-    return unread > 0 ? Math.max(0, count - unread) : -1;
-  });
+  const unreadAtOpen = useRef(
+    store.matches.find((item) => item.id === id)?.unread ??
+      loop.matches.find((item) => item.id === id)?.unread ??
+      0,
+  ).current;
 
   const { markChatRead } = store;
   useEffect(() => {
@@ -103,6 +103,10 @@ export default function ChatThread() {
   }, [id, markChatRead]);
 
   const messages = stored;
+  const firstJaryd = messages.findIndex((item) => item.kind === 'them');
+  const unreadStart =
+    unreadAtOpen > 0 && messages.length ? Math.max(0, messages.length - unreadAtOpen) : -1;
+  const { scrollRef, onUnreadLayout, onContentSizeChange } = useChatAnchor(unreadStart >= 0);
 
   if (!isTeam && !listing) {
     return (
@@ -142,6 +146,7 @@ export default function ChatThread() {
           kind: 'me',
           body: body || undefined,
           media: pending.length ? pending : undefined,
+          at: new Date().toISOString(),
           reply: replyTo?.body || replyTo?.id ? { id: replyTo.id ?? '', body: replyTo.body || 'Attachment' } : undefined,
         },
       ]);
@@ -163,7 +168,6 @@ export default function ChatThread() {
     setAttachments([]);
     setDraft('');
     setReplyTo(null);
-    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };
 
   const react = async (message: Message, emoji: string) => {
@@ -202,6 +206,7 @@ export default function ChatThread() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
       style={{ flex: 1, backgroundColor: c.bg }}
     >
       <View
@@ -290,7 +295,7 @@ export default function ChatThread() {
           paddingTop: insets.top + 80,
           paddingBottom: 20,
         }}
-        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+        onContentSizeChange={onContentSizeChange}
       >
         {match && listing && !isTeam ? (
           <TradeCard
@@ -314,8 +319,11 @@ export default function ChatThread() {
 
         <View style={{ gap: 12 }}>
           {messages.map((message, index) => (
-            <React.Fragment key={index}>
-              {index === unreadStart ? <UnreadDivider /> : null}
+            <React.Fragment key={message.id ?? index}>
+              {shouldStamp(messages[index - 1]?.at, message.at) && message.at ? (
+                <ChatStamp label={stampLabel(message.at)} />
+              ) : null}
+              {index === unreadStart ? <UnreadDivider onReady={onUnreadLayout} /> : null}
               <MessageBubble
                 message={message}
                 hue={listing?.hue ?? 128}
@@ -331,6 +339,14 @@ export default function ChatThread() {
                 onLongPress={() => setActionFor(message)}
                 onToggleReaction={(emoji) => void react(message, emoji)}
               />
+              {isTeam && index === firstJaryd ? (
+                <CommunityPromoCard
+                  from="team_chat"
+                  onPress={() =>
+                    router.replace({ pathname: '/(tabs)/chat', params: { desk: 'community' } })
+                  }
+                />
+              ) : null}
             </React.Fragment>
           ))}
         </View>
@@ -455,24 +471,3 @@ export default function ChatThread() {
   );
 }
 
-/** Marks where the messages the user has not seen start. */
-function UnreadDivider() {
-  const { c } = useTheme();
-
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginTop: 4,
-      }}
-    >
-      <View style={{ flex: 1, height: 1, backgroundColor: c.accent, opacity: 0.6 }} />
-      <Txt font="mono" size={10.5} weight={500} upper tracking={0.9} color={c.accentText}>
-        new
-      </Txt>
-      <View style={{ flex: 1, height: 1, backgroundColor: c.accent, opacity: 0.6 }} />
-    </View>
-  );
-}

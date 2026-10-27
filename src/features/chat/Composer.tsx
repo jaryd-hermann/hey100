@@ -5,8 +5,9 @@ import { Pressable, TextInput, View } from 'react-native';
 
 import { MediaPlaceholder } from '@/components/ui/MediaPlaceholder';
 import { Txt } from '@/components/ui/Txt';
-import { EMOJI_TRAY } from '@/data/mock';
 import type { MediaItem } from '@/data/types';
+import { EmojiTray } from '@/features/chat/EmojiTray';
+import { useKeyboardOpen } from '@/features/chat/useKeyboardOpen';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, layout } from '@/theme/tokens';
 
@@ -46,6 +47,7 @@ export function Composer({
 }: ComposerProps) {
   const { c } = useTheme();
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const keyboardOpen = useKeyboardOpen();
 
   const canSend = !!value.trim() || attachments.length > 0;
 
@@ -80,22 +82,7 @@ export function Composer({
           </Pressable>
         </View>
       ) : null}
-      {emojiOpen ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: 6,
-            paddingHorizontal: layout.gutter,
-            paddingVertical: 8,
-          }}
-        >
-          {EMOJI_TRAY.map((emoji) => (
-            <Pressable key={emoji} onPress={() => onChangeText(value + emoji)} hitSlop={4}>
-              <Txt size={23}>{emoji}</Txt>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      {emojiOpen ? <EmojiTray onPick={(emoji) => onChangeText(value + emoji)} /> : null}
 
       {attachments.length ? (
         <View
@@ -154,7 +141,7 @@ export function Composer({
         </View>
       ) : null}
 
-      <View style={{ paddingHorizontal: 14, paddingBottom: bottomInset + 12, paddingTop: 8 }}>
+      <View style={{ paddingHorizontal: 14, paddingBottom: keyboardOpen ? 4 : bottomInset + 6, paddingTop: 6 }}>
         <View
           style={{
             minHeight: 52,

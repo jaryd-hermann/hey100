@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIcon } from '@/components/ui/AppIcon';
@@ -207,7 +207,16 @@ export default function WebGroupPreview() {
               router.push('/onboarding');
             }}
           />
-          <Btn label="Get the iOS app" variant="surface" size="lg" full onPress={() => setSignupOpen(false)} />
+          <Btn
+            label="Get the iOS app"
+            variant="surface"
+            size="lg"
+            full
+            onPress={() => {
+              setSignupOpen(false);
+              void Linking.openURL('https://apps.apple.com/search?term=hey100');
+            }}
+          />
           <Btn label="Keep browsing" variant="ghost" size="md" full onPress={() => setSignupOpen(false)} />
         </View>
       </Sheet>

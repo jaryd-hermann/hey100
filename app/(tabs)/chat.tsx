@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
@@ -15,6 +15,7 @@ import { JarydMark } from '@/features/chat/TeamMark';
 import { CommunityHome } from '@/features/community/CommunityHome';
 import { OfficialMark } from '@/features/community/OfficialMark';
 import { useDevLoop } from '@/features/dev/useDevLoop';
+import { CommunityPromoCard } from '@/features/marketing/CommunityPromoCard';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -32,8 +33,15 @@ export default function ChatScreen() {
   const store = useStore();
   const loop = useDevLoop();
   const { isAdmin } = useAuth();
+  const { desk: deskParam } = useLocalSearchParams<{ desk?: string }>();
   const [desk, setDesk] = useState<ChatDesk>('dms');
   const deleted = store.deletedChats;
+
+  useEffect(() => {
+    if (deskParam === 'community' || deskParam === 'admin' || deskParam === 'dms') {
+      setDesk(deskParam);
+    }
+  }, [deskParam]);
 
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
@@ -81,13 +89,26 @@ export default function ChatScreen() {
         <CommunityHome />
       ) : (
         <View style={{ gap: 4 }}>
-          {rows.map((row) =>
-            row.kind === 'team' ? (
-              <TeamRow key={row.id} last={row.last} time={row.time} onPress={() => open(row.id)} />
-            ) : (
-              <MatchRow key={row.id} match={row.match} onPress={() => open(row.id)} />
-            ),
-          )}
+          {rows.map((row, index) => (
+            <React.Fragment key={row.id}>
+              {row.kind === 'team' ? (
+                <TeamRow last={row.last} time={row.time} onPress={() => open(row.id)} />
+              ) : (
+                <MatchRow match={row.match} onPress={() => open(row.id)} />
+              )}
+              {row.kind === 'team' || (index === 0 && !rows.some((item) => item.kind === 'team')) ? (
+                <View style={{ paddingVertical: 10 }}>
+                  <CommunityPromoCard from="dms" onPress={() => setDesk('community')} />
+                </View>
+              ) : null}
+            </React.Fragment>
+          ))}
+
+          {rows.length === 0 ? (
+            <View style={{ paddingVertical: 10 }}>
+              <CommunityPromoCard from="dms" onPress={() => setDesk('community')} />
+            </View>
+          ) : null}
 
           {loop.matches.length === 0 && deleted.includes(TEAM_ID) ? (
             <View style={{ paddingTop: 50, alignItems: 'center', gap: 10 }}>

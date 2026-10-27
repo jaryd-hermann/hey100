@@ -57,6 +57,7 @@ function attachmentPreview(media: MediaItem[]): string {
 const TRADE_STEPS: TradeStatus[] = ['Not started', 'Using', 'Feedback sent'];
 
 const STOCK_LAYOUTS = new Set([
+  'pitch,shots,problem,p0,builder,p1,looking,p2,p3,p4,stats,pricing,verified',
   'shots,problem,p0,pitch,builder,p1,looking,p2,p3,p4,stats,pricing,verified',
   'shots,problem,p0,builder,p1,looking,p2,p3,p4,stats,pricing,verified',
   'shots,problem,pricing,p0,builder,p1,looking,p2,p3,p4,stats,verified',
@@ -733,6 +734,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
               kind: 'me',
               body: trimmed || undefined,
               media: media?.length ? media : undefined,
+              at: new Date().toISOString(),
               ...(replyTo ? { reply: { id: replyTo, body: 'Reply' } } : {}),
             },
           ],

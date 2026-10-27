@@ -20,7 +20,6 @@ import {
   type SectionKey,
   type ShotLayout,
 } from '@/data/types';
-import { BANNER_RATIO } from '@/features/apps/pickBanner';
 import { builderFromUser } from '@/features/profile/builderCard';
 import { useStore, withDefaultSections } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -78,7 +77,6 @@ export function AppPage({
   onMoveSection,
   onEditSection,
   onEditListing,
-  onEditCover,
   banner,
 }: AppPageProps) {
   const { c } = useTheme();
@@ -87,7 +85,7 @@ export function AppPage({
   const isOwner = mode === 'owner';
   const layoutOrder: SectionKey[] = withDefaultSections(
     'layout' in listing ? listing.layout : undefined,
-  );
+  ).filter((section) => section !== 'pitch');
 
   // Match-app stubs arrive without media, prompts or an orientation.
   const media = listing.media ?? [];
@@ -95,7 +93,6 @@ export function AppPage({
   const prompts = listing.prompts ?? [];
   const links = (listing.links ?? []).filter(([, value]) => !!value);
 
-  const cover = listing.cover;
   const shots = media;
 
   // Content editing is the owner's alone, and never while reordering.
@@ -152,46 +149,33 @@ export function AppPage({
     <View style={{ gap: 18 }}>
       {banner}
 
-      {cover || onEditCover ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={onEditCover ? 'Edit banner' : 'View banner'}
-          onPress={() =>
-            onEditCover
-              ? onEditCover()
-              : cover
-                ? setViewer({ items: [{ label: 'Banner', uri: cover }], index: 0, layout: 'horizontal' })
-                : undefined
+      {hasContent('pitch') ? (
+        <Section
+          section="pitch"
+          listing={listing}
+          mode={mode}
+          isOwner={isOwner}
+          shots={shots}
+          shotLayout={shotLayout}
+          prompts={prompts}
+          onHey={onHey}
+          onOpenBuilder={onOpenBuilder}
+          onEdit={editSection ? () => editSection('pitch') : undefined}
+          addPrompt={false}
+          onOpenShots={(shotIndex) =>
+            setViewer({ items: shots, index: shotIndex, layout: shotLayout })
           }
-          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-        >
-          {cover ? (
-            <MediaPlaceholder
-              label="Banner"
-              hue={listing.hue}
-              uri={cover}
-              radius={radii.cardLg}
-              style={{ aspectRatio: BANNER_RATIO }}
-            />
-          ) : (
-            <View
-              style={{
-                aspectRatio: BANNER_RATIO,
-                borderRadius: radii.cardLg,
-                borderWidth: 1.5,
-                borderStyle: 'dashed',
-                borderColor: c.muted,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: c.surface,
-              }}
-            >
-              <Txt size={14} weight={500} muted>
-                Add a banner
-              </Txt>
-            </View>
-          )}
-        </Pressable>
+          onOpenPitch={
+            listing.pitchUri
+              ? () =>
+                  setViewer({
+                    items: [{ label: 'Quick pitch', uri: listing.pitchUri, video: true }],
+                    index: 0,
+                    layout: 'vertical',
+                  })
+              : undefined
+          }
+        />
       ) : null}
 
       <View style={{ gap: 12 }}>
@@ -326,7 +310,13 @@ export function AppPage({
           onHey
             ? (item, shotIndex) => {
                 setViewer(null);
-                onHey({ type: 'media', id: String(shotIndex + 1), label: item.label });
+                const pitch = /pitch/i.test(item.label);
+                onHey({
+                  type: 'media',
+                  id: pitch ? 'pitch' : String(shotIndex + 1),
+                  label: item.label,
+                  body: pitch ? item.label : undefined,
+                });
               }
             : undefined
         }
@@ -600,46 +590,63 @@ function Section({
 
     return (
       <Card padding={12} radius={radii.cardLg}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={title}
-          onPress={onOpenPitch}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            gap: 14,
-            alignItems: 'center',
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <InlineVideo
-            item={{ label: 'Quick pitch', uri: listing.pitchUri, video: true }}
-            hue={listing.hue}
-            layout="vertical"
-            radius={14}
-            style={{ width: 92, height: 164 }}
-          />
-          <View style={{ flex: 1, gap: 8 }}>
-            <Label>Quick pitch</Label>
-            <Txt size={17} weight={600} lh={1.3}>
-              {title}
-            </Txt>
-            <Txt size={13} muted>
-              {length}
-            </Txt>
-            {onEdit ? (
-              <Pressable
-                onPress={onEdit}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Retake quick pitch"
-              >
-                <Txt size={13} weight={600} color={c.accentText}>
-                  Retake
-                </Txt>
-              </Pressable>
-            ) : null}
-          </View>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={title}
+            onPress={onOpenPitch}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.85 : 1,
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 14,
+            })}
+          >
+            <InlineVideo
+              item={{ label: 'Quick pitch', uri: listing.pitchUri, video: true }}
+              hue={listing.hue}
+              layout="vertical"
+              radius={14}
+              style={{ width: 118, aspectRatio: 3 / 4 }}
+            />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Label>Quick pitch</Label>
+              <Txt size={17} weight={600} lh={1.3}>
+                {title}
+              </Txt>
+              <Txt size={13} muted>
+                {length}
+              </Txt>
+              {onEdit ? (
+                <Pressable
+                  onPress={onEdit}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retake quick pitch"
+                >
+                  <Txt size={13} weight={600} color={c.accentText}>
+                    Retake
+                  </Txt>
+                </Pressable>
+              ) : null}
+            </View>
+          </Pressable>
+          {canHey ? (
+            <HeyPill
+              size={40}
+              label="Quick pitch"
+              onPress={() =>
+                onHey?.({
+                  type: 'media',
+                  id: 'pitch',
+                  label: 'Quick pitch',
+                  body: title,
+                })
+              }
+            />
+          ) : null}
+        </View>
       </Card>
     );
   }

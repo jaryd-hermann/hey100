@@ -5,9 +5,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
+import { requestPushPermission } from '@/lib/onesignal';
 import { useMyProfile } from '@/data/repo/profile';
 import {
   DEFAULT_PREFS,
@@ -50,6 +52,7 @@ export default function Notifications() {
   const { data: profile } = useMyProfile();
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => {
     if (profile?.notification_prefs) setPrefs(prefsFrom(profile.notification_prefs));
@@ -109,6 +112,23 @@ export default function Notifications() {
           Matches, messages and group activity. Engagement stays on so you hear about new groups
           and listing tips — turn any of it off here.
         </Txt>
+
+        <Btn
+          label={asking ? 'Asking…' : 'Enable on this phone'}
+          variant="accent"
+          size="md"
+          full
+          onPress={() => {
+            if (asking) return;
+            setAsking(true);
+            void requestPushPermission(true)
+              .then((on) => {
+                toast(on ? 'This phone will get heys.' : 'Allow Hey100, then come back.');
+              })
+              .catch(() => toast('Could not ask for notifications.'))
+              .finally(() => setAsking(false));
+          }}
+        />
 
         <Card padding={4} radius={radii.cardLg}>
           {TRANSACTIONAL.map((type, index) => (

@@ -1,7 +1,9 @@
-import { AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { AppState, Linking, Platform } from 'react-native';
 
 import { config } from '@/lib/config';
 import { hasNativeModule } from '@/lib/nativeModule';
+import { getSupabase } from '@/lib/supabase';
 
 type ClickEvent = {
   notification: { additionalData?: Record<string, unknown> };
@@ -77,10 +79,50 @@ export function logoutOneSignal(): void {
   }
 }
 
-export async function requestPushPermission(): Promise<boolean> {
+export function isPushNativeAvailable(): boolean {
+  return native() !== null;
+}
+
+export async function requestPushPermission(fallbackToSettings = false): Promise<boolean> {
   try {
-    return (await native()?.OneSignal.Notifications.requestPermission(false)) ?? false;
+    const current = await Notifications.getPermissionsAsync();
+    let granted = current.granted || current.status === 'granted';
+    if (!granted && current.canAskAgain !== false) {
+      const next = await Notifications.requestPermissionsAsync();
+      granted = next.granted || next.status === 'granted';
+    }
+
+    if (!granted) {
+      if (fallbackToSettings) await Linking.openSettings();
+      return false;
+    }
+
+    const device = await Notifications.getDevicePushTokenAsync();
+    const token = typeof device.data === 'string' ? device.data : '';
+    if (token) {
+      const db = getSupabase();
+      if (db) {
+        await db.functions.invoke('register-push', {
+          body: { token, platform: Platform.OS === 'android' ? 'android' : 'ios' },
+        });
+      }
+    }
+
+    try {
+      await native()?.OneSignal.Notifications.requestPermission(false);
+    } catch {
+      // Store builds with newArch off cannot load the OneSignal TurboModule.
+    }
+
+    return true;
   } catch {
+    if (fallbackToSettings) {
+      try {
+        await Linking.openSettings();
+      } catch {
+        // Ignore.
+      }
+    }
     return false;
   }
 }

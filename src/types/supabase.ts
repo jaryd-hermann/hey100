@@ -1309,7 +1309,10 @@ export type Database = {
         Args: { p_body?: string; p_match_id: string }
         Returns: Json
       }
-      discover_deck: { Args: { p_limit?: number }; Returns: Json }
+      discover_deck: {
+        Args: { p_limit?: number; p_sort?: string }
+        Returns: Json
+      }
       ensure_official_builders_group: { Args: never; Returns: string | null }
       follow_up_hey: {
         Args: { p_hey_id: string; p_note: string }

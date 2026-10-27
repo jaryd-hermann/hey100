@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { serverDeckSort, useDeckSort } from '@/features/discover/deckSort';
 import { getSupabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
@@ -27,6 +28,7 @@ export type ListingCard = {
   media: MediaRow[];
   prompts: CardPrompt[];
   builder: BuilderRow | null;
+  hey_count?: number;
 };
 
 export type HeyRow = {
@@ -135,12 +137,17 @@ type RpcCall = (
 
 export function useDeck() {
   const { userId } = useAuth();
+  const sort = useDeckSort();
 
   return useQuery({
-    queryKey: queryKeys.deck(userId),
+    queryKey: [...queryKeys.deck(userId), sort],
     enabled: !!userId,
     staleTime: staleTimes.deck,
-    queryFn: async () => (await rpc<ListingCard[]>('discover_deck', { p_limit: 40 })) ?? [],
+    queryFn: async () =>
+      (await rpc<ListingCard[]>('discover_deck', {
+        p_limit: 40,
+        p_sort: serverDeckSort(sort),
+      })) ?? [],
   });
 }
 

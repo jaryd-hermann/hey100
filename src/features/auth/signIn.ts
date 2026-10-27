@@ -40,6 +40,67 @@ export async function signIn(provider: AuthProviderId): Promise<SignInOutcome> {
   return provider === 'Apple' ? signInWithApple() : signInWithBrowser(provider);
 }
 
+const MIN_PASSWORD = 6;
+
+export function emailLooksOk(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+export function passwordLooksOk(value: string): boolean {
+  return value.length >= MIN_PASSWORD;
+}
+
+/** Email + password. Secondary to Apple / Google / GitHub. */
+export async function signUpWithPassword(email: string, password: string): Promise<SignInOutcome> {
+  const db = getSupabase();
+  if (!db) return { status: 'unavailable' };
+
+  const { data, error } = await db.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+  if (error) throw new SignInError(friendlyAuthError(error.message));
+  if (!data.user) throw new SignInError('Sign up did not return a user');
+  if (!data.session) {
+    throw new SignInError('Check your email to confirm your account, then log in.');
+  }
+
+  return { status: 'signed-in', userId: data.user.id };
+}
+
+export async function signInWithPassword(email: string, password: string): Promise<SignInOutcome> {
+  const db = getSupabase();
+  if (!db) return { status: 'unavailable' };
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+  if (error) throw new SignInError(friendlyAuthError(error.message));
+  if (!data.user) throw new SignInError('Log in did not return a user');
+
+  return {
+    status: 'signed-in',
+    userId: data.user.id,
+    fullName:
+      typeof data.user.user_metadata?.full_name === 'string'
+        ? data.user.user_metadata.full_name
+        : undefined,
+    photo: photoFrom(data.user.user_metadata),
+  };
+}
+
+function friendlyAuthError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('already registered') || lower.includes('already exists')) {
+    return 'That email already has an account. Log in instead.';
+  }
+  if (lower.includes('invalid login') || lower.includes('invalid credentials')) {
+    return 'Email or password is wrong.';
+  }
+  return message;
+}
+
 async function signInWithApple(): Promise<SignInOutcome> {
   const db = getSupabase()!;
 

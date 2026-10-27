@@ -78,6 +78,7 @@ export type CommunityGroup = {
   lastAuthor?: string;
   lastAt?: string;
   unread?: boolean;
+  lastReadAt?: string;
   muted?: boolean;
   membership?: MemberStatus | null;
   role?: MemberRole;
@@ -186,6 +187,7 @@ function mapGroup(row: {
   last_author?: string | null;
   last_at?: string | null;
   unread?: boolean;
+  last_read_at?: string | null;
   muted?: boolean;
   membership?: MemberStatus | null;
   role?: MemberRole;
@@ -217,6 +219,7 @@ function mapGroup(row: {
     lastAuthorPhoto: row.last_author_photo ?? undefined,
     lastAt: row.last_at ?? undefined,
     unread: row.unread,
+    lastReadAt: row.last_read_at ?? undefined,
     muted: row.muted,
     membership: row.membership,
     role: row.role,
@@ -422,6 +425,7 @@ export async function fetchCommunityHome(userId: string): Promise<{
       last_author_photo: last ? people.get(last.author_id)?.photo : undefined,
       last_at: last?.created_at,
       unread,
+      last_read_at: membership?.last_read_at,
       muted: membership?.muted,
       membership: membership?.status ?? null,
       role: membership?.role,
@@ -571,7 +575,7 @@ export async function fetchThreads(groupId: string, userId?: string): Promise<Co
     .from('community_threads')
     .select('id, group_id, author_id, body, media, created_at')
     .eq('group_id', groupId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: true });
   if (error) throw error;
 
   const threads = (data ?? []) as {

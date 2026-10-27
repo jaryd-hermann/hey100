@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIcon } from '@/components/ui/AppIcon';
@@ -174,7 +174,10 @@ export default function WebListingPreview() {
             variant="surface"
             size="lg"
             full
-            onPress={() => setSignupOpen(false)}
+            onPress={() => {
+              setSignupOpen(false);
+              void Linking.openURL('https://apps.apple.com/search?term=hey100');
+            }}
           />
           <Btn
             label="Keep browsing"

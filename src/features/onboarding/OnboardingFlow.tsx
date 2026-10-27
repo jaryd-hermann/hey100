@@ -18,7 +18,7 @@ import { updateMyProfile } from '@/data/repo/profile';
 import { toListingInsert } from '@/features/apps/mapListing';
 import { uploadAsset, uploadShots } from '@/features/apps/uploadShots';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { SignInError, signIn } from '@/features/auth/signIn';
+import { SignInError, signIn, signInWithPassword, signUpWithPassword } from '@/features/auth/signIn';
 import { pickAvatar, uploadAvatar } from '@/features/profile/avatar';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
@@ -31,7 +31,7 @@ import { useOnboardingDraft } from './useOnboardingDraft';
 import { useUsernameState } from './useUsernameState';
 import { AddAppStep } from './steps/AddAppStep';
 import { ProblemStep } from './steps/ProblemStep';
-import { AuthStep, ProviderButtons, type AuthProvider } from './steps/AuthStep';
+import { AuthStep, EmailAuthForm, EmailOption, OrRule, ProviderButtons, type AuthProvider } from './steps/AuthStep';
 import { CheckStep } from './steps/CheckStep';
 import { InviteStep } from './steps/InviteStep';
 import { MediaStep, shotTally } from './steps/MediaStep';
@@ -41,6 +41,7 @@ import { SummaryStep, type SummaryRow } from './steps/SummaryStep';
 import { RoleStep, WorkStep } from './steps/WorkStep';
 import { UsernameStep } from './steps/UsernameStep';
 import { WelcomeStep } from './steps/WelcomeStep';
+import { StoryStep } from './steps/StoryStep';
 
 export type OnboardingMode = 'full' | 'addApp';
 
@@ -62,6 +63,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   // Prompt picker and answer writer are sub-screens of the prompts step.
   const [logIn, setLogIn] = useState(false);
+  const [emailLogIn, setEmailLogIn] = useState(false);
   const [checkingCode, setCheckingCode] = useState(false);
   const [authPending, setAuthPending] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -77,6 +79,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const step = STEPS[draft.step] ?? STEPS[0];
   const lastStep = addApp ? ADD_APP_RANGE.last : LAST_STEP;
   const isWelcome = step.kind === 'welcome';
+  const isStory = step.kind === 'story';
   const isCheckLike = step.kind === 'check';
   const isSummary = step.kind === 'summary';
   const welcomed = useRef(false);
@@ -95,7 +98,12 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     appliedInvite.current = code;
 
     let cancelled = false;
-    update({ inviteCode: code, inviteOk: false, invitedBy: null, step: 1 });
+    update({
+      inviteCode: code,
+      inviteOk: false,
+      invitedBy: null,
+      step: STEPS.findIndex((item) => item.kind === 'invite'),
+    });
     void (async () => {
       try {
         const status = await checkInviteCode(code);
@@ -410,29 +418,35 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     }
   };
 
+  const completeSignUp = async (
+    outcome: Awaited<ReturnType<typeof signIn>>,
+    provider: string,
+  ) => {
+    if (outcome.status === 'cancelled') return;
+
+    captureEvent('signed_up', { provider });
+
+    if (outcome.status === 'signed-in') {
+      // A failed redemption must not cost the user their account.
+      try {
+        if (draft.inviteCode) await redeemInvite(draft.inviteCode);
+      } catch {
+        toast('Signed in, but your invite code could not be applied.');
+      }
+      await saveProfile(outcome.userId, outcome.fullName, outcome.photo);
+      await finish(outcome.userId);
+      return;
+    }
+
+    await finish();
+  };
+
   const signUpWith = async (provider: AuthProvider) => {
     if (authPending) return;
     setAuthPending(true);
 
     try {
-      const outcome = await signIn(provider);
-      if (outcome.status === 'cancelled') return;
-
-      captureEvent('signed_up', { provider });
-
-      if (outcome.status === 'signed-in') {
-        // A failed redemption must not cost the user their account.
-        try {
-          if (draft.inviteCode) await redeemInvite(draft.inviteCode);
-        } catch {
-          toast('Signed in, but your invite code could not be applied.');
-        }
-        await saveProfile(outcome.userId, outcome.fullName, outcome.photo);
-        await finish(outcome.userId);
-        return;
-      }
-
-      await finish();
+      await completeSignUp(await signIn(provider), provider);
     } catch (error) {
       toast(error instanceof SignInError ? error.message : 'Could not sign in. Try again.');
     } finally {
@@ -440,7 +454,32 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     }
   };
 
+  const signUpWithEmail = async (email: string, password: string) => {
+    if (authPending) return;
+    setAuthPending(true);
+
+    try {
+      const outcome = await signUpWithPassword(email, password);
+      if (outcome.status === 'unavailable') {
+        toast('Sign-in is not available in this build.');
+        return;
+      }
+      await completeSignUp(outcome, 'Email');
+    } catch (error) {
+      toast(error instanceof SignInError ? error.message : 'Could not create that account. Try again.');
+    } finally {
+      setAuthPending(false);
+    }
+  };
+
   /** Logging back in skips the listing flow and the new-signup paywall. */
+  const finishLogIn = (provider: string) => {
+    captureEvent('logged_in', { provider });
+    setLogIn(false);
+    store.completeOnboarding({});
+    router.replace('/(tabs)/discover');
+  };
+
   const logInWith = async (provider: AuthProvider) => {
     if (authPending) return;
     setAuthPending(true);
@@ -448,11 +487,26 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     try {
       const outcome = await signIn(provider);
       if (outcome.status === 'cancelled') return;
+      finishLogIn(provider);
+    } catch (error) {
+      toast(error instanceof SignInError ? error.message : 'Could not log in. Try again.');
+    } finally {
+      setAuthPending(false);
+    }
+  };
 
-      captureEvent('logged_in', { provider });
-      setLogIn(false);
-      store.completeOnboarding({});
-      router.replace('/(tabs)/discover');
+  const logInWithEmail = async (email: string, password: string) => {
+    if (authPending) return;
+    setAuthPending(true);
+
+    try {
+      const outcome = await signInWithPassword(email, password);
+      if (outcome.status === 'cancelled') return;
+      if (outcome.status === 'unavailable') {
+        toast('Sign-in is not available in this build.');
+        return;
+      }
+      finishLogIn('Email');
     } catch (error) {
       toast(error instanceof SignInError ? error.message : 'Could not log in. Try again.');
     } finally {
@@ -521,7 +575,13 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       <View style={{ flex: 1, backgroundColor: background, paddingTop: insets.top + 8 }}>
         <WelcomeStep onContinue={() => update({ step: 1 })} onLogIn={() => setLogIn(true)} />
 
-        <Sheet visible={logIn} onClose={() => setLogIn(false)} scroll={false}>
+        <Sheet
+          visible={logIn}
+          onClose={() => {
+            setLogIn(false);
+            setEmailLogIn(false);
+          }}
+        >
           <View style={{ gap: 16 }}>
             <Txt font="mono" size={18} weight={500}>
               Welcome back
@@ -531,8 +591,29 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             </Txt>
 
             <ProviderButtons verb="Log in with" onPress={logInWith} pending={authPending} />
+            {emailLogIn ? (
+              <View style={{ gap: 12 }}>
+                <OrRule />
+                <EmailAuthForm mode="log-in" pending={authPending} onSubmit={logInWithEmail} />
+              </View>
+            ) : (
+              <EmailOption verb="Log in with" pending={authPending} onPress={() => setEmailLogIn(true)} />
+            )}
           </View>
         </Sheet>
+      </View>
+    );
+  }
+
+  if (isStory) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
+        <View style={{ paddingHorizontal: layout.gutter, height: 46, justifyContent: 'center' }}>
+          <Pressable onPress={goBack} hitSlop={12} accessibilityLabel="Back">
+            <Ionicons name="chevron-back" size={26} color={c.ink} />
+          </Pressable>
+        </View>
+        <StoryStep onContinue={() => update((prev) => ({ step: prev.step + 1 }))} />
       </View>
     );
   }
@@ -736,7 +817,9 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             invitedBy={draft.invitedBy}
             checking={checkingCode}
             onRedeem={redeemCode}
-            onWaitlist={() => toast("We'll email you when a spot opens")}
+            onWaitlist={() =>
+              router.push({ pathname: '/browser', params: { kind: 'Web', value: 'https://hey100.com' } })
+            }
           />
         );
 
@@ -929,6 +1012,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             pending={authPending || publishing}
             signedIn={!!userId}
             onSignIn={signUpWith}
+            onEmail={signUpWithEmail}
             onPublish={() => void finish()}
           />
         );

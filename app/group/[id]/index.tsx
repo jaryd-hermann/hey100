@@ -26,7 +26,16 @@ import {
   type CommunityMember,
   type CommunityThread,
 } from '@/data/repo/community';
+import {
+  ChatStamp,
+  firstUnreadIndex,
+  shouldStamp,
+  stampLabel,
+  UnreadDivider,
+  useChatAnchor,
+} from '@/features/chat/ChatStamp';
 import { Composer } from '@/features/community/Composer';
+import { captureReadCursor, readCursor } from '@/features/community/readCursor';
 import { GroupHeader } from '@/features/community/GroupHeader';
 import { GroupPower } from '@/features/community/GroupPower';
 import { MemberProfileSheet } from '@/features/community/MemberProfileSheet';
@@ -77,10 +86,19 @@ export default function GroupScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !group) return;
+    captureReadCursor(id, group.lastReadAt);
     if (seeded) seedMarkRead(id);
     else void markCommunityGroupRead(id);
-  }, [id, seeded]);
+  }, [group, id, seeded]);
+
+  const unreadStart = useMemo(() => {
+    const times = threads.map((thread) => thread.createdAt);
+    const at = id ? readCursor(id) : undefined;
+    if (at) return firstUnreadIndex(times, at);
+    return group?.unread ? Math.max(0, threads.length - 1) : -1;
+  }, [group?.unread, id, threads]);
+  const { scrollRef, onUnreadLayout, onContentSizeChange } = useChatAnchor(unreadStart >= 0);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -124,6 +142,7 @@ export default function GroupScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
       style={{ flex: 1, backgroundColor: c.bg }}
     >
       <View
@@ -155,16 +174,26 @@ export default function GroupScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        onContentSizeChange={onContentSizeChange}
         contentContainerStyle={{
           paddingTop: insets.top + 80,
           paddingHorizontal: 16,
-          paddingBottom: canPost ? 190 : 40,
+          paddingBottom: 16,
         }}
       >
-        {visible.map((thread) => (
+        {visible.map((thread, index) => (
+          <React.Fragment key={thread.id}>
+            {shouldStamp(visible[index - 1]?.createdAt, thread.createdAt) ? (
+              <ChatStamp label={stampLabel(thread.createdAt)} />
+            ) : null}
+            {index === unreadStart && !query.trim() ? (
+              <UnreadDivider onReady={onUnreadLayout} />
+            ) : null}
           <ThreadBubble
-            key={thread.id}
             author={{
               id: thread.authorId,
               name: thread.authorName,
@@ -189,6 +218,7 @@ export default function GroupScreen() {
               openAuthor(thread.authorId, thread.authorName, thread.authorPhoto, thread.authorListingId)
             }
           />
+          </React.Fragment>
         ))}
         {!visible.length ? (
           <View style={{ paddingTop: 70, alignItems: 'center', gap: 8 }}>
@@ -204,54 +234,47 @@ export default function GroupScreen() {
         ) : null}
       </ScrollView>
 
-      {canPost ? (
-      <View
-        style={{
-          position: 'absolute',
-          left: 14,
-          right: 14,
-          bottom: insets.bottom + 12,
-        }}
-      >
-        <Composer
-          placeholder={official ? 'Post to every builder…' : 'Start a new thread…'}
-          sendLabel="Post"
-          disabled={!userId}
-          onSend={async (body, media) => {
-            if (!userId) return;
-            if (seeded) {
-              seedStartThread(id, userId, body);
-              return;
-            }
-            await startThread(id, userId, body, media);
-            captureEvent('group_thread_created', {
-              group_id: id,
-              has_media: (media?.length ?? 0) > 0,
-            });
-            refresh();
-          }}
-        />
-      </View>
+      {pending > 0 ? (
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingBottom: 8 }}>
+          <Pressable
+            onPress={() => setQueue(true)}
+            style={{
+              height: 36,
+              paddingHorizontal: 14,
+              borderRadius: 18,
+              backgroundColor: c.ink,
+              justifyContent: 'center',
+            }}
+          >
+            <Txt size={13} weight={600} color={c.bg}>
+              {pending} request{pending === 1 ? '' : 's'}
+            </Txt>
+          </Pressable>
+        </View>
       ) : null}
 
-      {pending > 0 ? (
-        <Pressable
-          onPress={() => setQueue(true)}
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: insets.bottom + 76,
-            height: 36,
-            paddingHorizontal: 14,
-            borderRadius: 18,
-            backgroundColor: c.ink,
-            justifyContent: 'center',
-          }}
-        >
-          <Txt size={13} weight={600} color={c.bg}>
-            {pending} request{pending === 1 ? '' : 's'}
-          </Txt>
-        </Pressable>
+      {canPost ? (
+        <View style={{ paddingHorizontal: 14, paddingTop: 4 }}>
+          <Composer
+            placeholder={official ? 'Post to every builder…' : 'Start a new thread…'}
+            sendLabel="Post"
+            bottomInset={insets.bottom}
+            disabled={!userId}
+            onSend={async (body, media) => {
+              if (!userId) return;
+              if (seeded) {
+                seedStartThread(id, userId, body);
+                return;
+              }
+              await startThread(id, userId, body, media);
+              captureEvent('group_thread_created', {
+                group_id: id,
+                has_media: (media?.length ?? 0) > 0,
+              });
+              refresh();
+            }}
+          />
+        </View>
       ) : null}
 
       <Sheet

@@ -23,6 +23,7 @@ import {
   useSponsoredTools,
   type SponsoredTool,
 } from '@/data/repo/tools';
+import { ChatStamp, shouldStamp, stampLabel, useChatAnchor } from '@/features/chat/ChatStamp';
 import { Composer } from '@/features/community/Composer';
 import { GroupHeader } from '@/features/community/GroupHeader';
 import { MemberProfileSheet } from '@/features/community/MemberProfileSheet';
@@ -46,6 +47,7 @@ export default function ToolDiscussionScreen() {
   const [target, setTarget] = useState<CommunityThread | null>(null);
   const [profile, setProfile] = useState<CommunityMember | null>(null);
   const threads = useCommunityThreads(groupId);
+  const { scrollRef, onContentSizeChange } = useChatAnchor(false);
 
   useEffect(() => {
     if (!tool) return;
@@ -83,6 +85,7 @@ export default function ToolDiscussionScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
       style={{ flex: 1, backgroundColor: c.bg }}
     >
       <View
@@ -128,16 +131,23 @@ export default function ToolDiscussionScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        onContentSizeChange={onContentSizeChange}
         contentContainerStyle={{
           paddingTop: insets.top + 80,
           paddingHorizontal: 16,
-          paddingBottom: 190,
+          paddingBottom: 16,
         }}
       >
-        {list.map((thread) => (
+        {list.map((thread, index) => (
+          <React.Fragment key={thread.id}>
+            {shouldStamp(list[index - 1]?.createdAt, thread.createdAt) ? (
+              <ChatStamp label={stampLabel(thread.createdAt)} />
+            ) : null}
           <ThreadBubble
-            key={thread.id}
             author={{
               id: thread.authorId,
               name: thread.authorName,
@@ -171,6 +181,7 @@ export default function ToolDiscussionScreen() {
               })
             }
           />
+          </React.Fragment>
         ))}
         {!list.length ? (
           <View style={{ paddingTop: 70, alignItems: 'center', gap: 8 }}>
@@ -184,15 +195,9 @@ export default function ToolDiscussionScreen() {
         ) : null}
       </ScrollView>
 
-      <View
-        style={{
-          position: 'absolute',
-          left: 14,
-          right: 14,
-          bottom: insets.bottom + 12,
-        }}
-      >
+      <View style={{ paddingHorizontal: 14, paddingTop: 4 }}>
         <Composer
+          bottomInset={insets.bottom}
           placeholder={`Start a thread about ${tool?.name ?? 'this tool'}…`}
           sendLabel="Post"
           disabled={!userId || !groupId}

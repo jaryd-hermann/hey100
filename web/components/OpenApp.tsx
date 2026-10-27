@@ -1,20 +1,24 @@
 import { APP_STORE_URL, appLink } from '@/lib/site';
 
+export function storeUrl() {
+  return APP_STORE_URL || 'https://apps.apple.com/search?term=hey100';
+}
+
 export function OpenApp({
   path,
-  label = 'Open in hey100',
+  label = 'Get Hey100 on the App Store',
 }: {
   path: string;
   label?: string;
 }) {
-  const store = APP_STORE_URL || 'https://apps.apple.com/search?term=hey100';
+  const store = storeUrl();
   return (
     <div className="cta">
-      <a className="btn accent" href={appLink(path)}>
+      <a className="btn accent" href={store}>
         {label}
       </a>
-      <a className="btn surface" href={store}>
-        Get the app
+      <a className="btn ghost" href={appLink(path)}>
+        I already have the app
       </a>
     </div>
   );

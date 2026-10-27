@@ -5,7 +5,13 @@ import { AppState } from 'react-native';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { touchPresence } from '@/data/repo/notifications';
-import { initOneSignal, loginOneSignal, logoutOneSignal, onNotificationOpen } from '@/lib/onesignal';
+import {
+  initOneSignal,
+  loginOneSignal,
+  logoutOneSignal,
+  onNotificationOpen,
+  requestPushPermission,
+} from '@/lib/onesignal';
 
 /**
  * Registers the signed-in user with OneSignal, pings last_active so the
@@ -21,8 +27,13 @@ export function usePush(): void {
   }, []);
 
   useEffect(() => {
-    if (userId) loginOneSignal(userId);
-    else logoutOneSignal();
+    if (!userId) {
+      logoutOneSignal();
+      return;
+    }
+    loginOneSignal(userId);
+    // Existing accounts signed up before OneSignal never hit setup.
+    void requestPushPermission();
   }, [userId]);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 export type StepKind =
   | 'welcome'
+  | 'story'
   | 'invite'
   | 'check'
   | 'link'
@@ -355,6 +356,7 @@ export const IDEAL_USERS = [
  */
 export const STEPS: Step[] = [
   { kind: 'welcome' },
+  { kind: 'story' },
   { kind: 'invite', title: 'Hey100 is invite-only right now' },
   {
     kind: 'check',

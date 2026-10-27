@@ -12,7 +12,7 @@ import { layout, radii } from '@/theme/tokens';
 
 const LIMIT = 30;
 
-type Step = 'intro' | 'record' | 'preview';
+type Step = 'intro' | 'record' | 'preview' | 'saving' | 'done';
 
 export type PitchFlowProps = {
   visible: boolean;
@@ -241,6 +241,36 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
           </View>
         ) : null}
 
+        {step === 'saving' || step === 'done' ? (
+          <View
+            style={{
+              flex: 1,
+              paddingHorizontal: layout.gutter,
+              paddingBottom: insets.bottom + 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 14,
+            }}
+          >
+            <Ionicons
+              name={step === 'done' ? 'checkmark-circle' : 'cloud-upload-outline'}
+              size={48}
+              color={step === 'done' ? c.accentText : c.ink}
+            />
+            <Txt font="mono" size={20} weight={500} center>
+              {step === 'done' ? 'Published' : 'Uploading your pitch'}
+            </Txt>
+            <Txt size={15} muted center>
+              {step === 'done'
+                ? 'Taking you to the listing so you can see it at the top.'
+                : 'Saving the video to your listing. Keep this screen open.'}
+            </Txt>
+            {step === 'done' ? (
+              <DoneRedirect onDone={onClose} />
+            ) : null}
+          </View>
+        ) : null}
+
         {step === 'preview' && uri ? (
           <Preview
             uri={uri}
@@ -255,10 +285,13 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
             }}
             onPublish={async () => {
               setSaving(true);
+              setStep('saving');
               try {
                 await Promise.resolve(onPublish(uri, seconds || 1));
-              } finally {
+                setStep('done');
+              } catch {
                 setSaving(false);
+                setStep('preview');
               }
             }}
           />
@@ -295,6 +328,14 @@ function RecDot() {
   );
 }
 
+function DoneRedirect({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDone, 900);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+  return null;
+}
+
 function Preview({
   uri,
   seconds,
@@ -316,26 +357,36 @@ function Preview({
   });
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: layout.gutter, paddingBottom: bottom + 16, gap: 14 }}>
+    <View style={{ flex: 1, paddingHorizontal: layout.gutter, paddingBottom: bottom + 16 }}>
       <VideoView
         player={player}
-        style={{ flex: 1, borderRadius: radii.cardLg, overflow: 'hidden' }}
+        style={{
+          width: '100%',
+          maxHeight: '72%',
+          aspectRatio: 3 / 4,
+          alignSelf: 'center',
+          borderRadius: radii.cardLg,
+          overflow: 'hidden',
+          backgroundColor: '#111111',
+        }}
         contentFit="cover"
         nativeControls
       />
-      <Txt size={14} muted>
-        {seconds}s · look good? Publish it, or take it again.
-      </Txt>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Btn label="Retake" variant="surface" size="lg" style={{ flex: 1 }} disabled={saving} onPress={onRetake} />
-        <Btn
-          label={saving ? 'Publishing…' : 'Publish'}
-          variant="accent"
-          size="lg"
-          style={{ flex: 1.4 }}
-          disabled={saving}
-          onPress={onPublish}
-        />
+      <View style={{ marginTop: 14, gap: 12 }}>
+        <Txt size={14} muted>
+          {seconds}s · look good? Publish it, or take it again.
+        </Txt>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Btn label="Retake" variant="surface" size="lg" style={{ flex: 1 }} disabled={saving} onPress={onRetake} />
+          <Btn
+            label={saving ? 'Publishing…' : 'Publish'}
+            variant="accent"
+            size="lg"
+            style={{ flex: 1.4 }}
+            disabled={saving}
+            onPress={onPublish}
+          />
+        </View>
       </View>
     </View>
   );

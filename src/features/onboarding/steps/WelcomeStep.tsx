@@ -10,7 +10,7 @@ import { radii } from '@/theme/tokens';
 
 const STEPS = [
   ['01', 'Build a "dating profile" for your product.'],
-  ['02', "Like apps you'd use. Match when they like yours."],
+  ['02', 'Match with other devs who are also building things.'],
   ['03', 'Trade: you use theirs, they use yours.'],
 ];
 
@@ -58,7 +58,8 @@ export function WelcomeStep({
         <HeroLogo />
 
         <Txt size={22} weight={600} lh={1.25} tracking={-0.22}>
-          Find the next 100 people to try your app
+          Find 100 people to try your product.{'\n'}DM users, get feedback, & chat with other app
+          builders
         </Txt>
 
         <View style={{ gap: 12, marginTop: 8 }}>

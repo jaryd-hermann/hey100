@@ -13,6 +13,8 @@ import {
   type CommunityGroup,
 } from '@/data/repo/community';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { ProductHint } from '@/features/marketing/ProductHint';
+import { useFirstHint } from '@/features/marketing/useFirstHint';
 import { captureEvent } from '@/lib/analytics';
 import { useDevMode } from '@/lib/devMode';
 import { isServerId } from '@/lib/supabase';
@@ -39,6 +41,7 @@ export function CommunityHome() {
   const [creating, setCreating] = useState(false);
   const [preview, setPreview] = useState<CommunityGroup | null>(null);
   const [joining, setJoining] = useState(false);
+  const communityHint = useFirstHint('community');
 
   const seeded = useMemo(
     () => (isAdmin && devMode ? seedHome() : { mine: [], discover: [] }),
@@ -168,6 +171,14 @@ export function CommunityHome() {
         busy={joining}
         onClose={() => setPreview(null)}
         onJoin={(note) => void join(note)}
+      />
+
+      <ProductHint
+        visible={communityHint.visible}
+        surface="community"
+        title="This is Community"
+        body="Groups are shared rooms for builders. Join ones that match what you are shipping, or start your own and invite people in. Talk shop, share what you launched, and find people who will actually try the thing."
+        onClose={communityHint.dismiss}
       />
     </View>
   );

@@ -1,3 +1,4 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 
@@ -20,7 +21,7 @@ export async function pickAvatar(): Promise<{ uri: string } | { error: string } 
     });
 
     if (result.canceled || !result.assets[0]) return null;
-    return { uri: result.assets[0].uri };
+    return { uri: await asJpeg(result.assets[0].uri) };
   } catch {
     return { error: 'Could not open your photos. Try again.' };
   }
@@ -39,16 +40,38 @@ export async function uploadAvatar(userId: string, uri: string): Promise<string 
   const path = `${userId}/${Date.now().toString(36)}.jpg`;
 
   try {
-    const bytes = /^https?:\/\//i.test(uri)
-      ? new Uint8Array(await (await fetch(uri)).arrayBuffer())
-      : await new File(uri).bytes();
-
     const { error } = await db.storage
       .from('avatars')
-      .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+      .upload(path, await bytesOf(uri), { contentType: 'image/jpeg', upsert: true });
 
     return error ? null : publicUrl('avatars', path);
   } catch {
     return null;
+  }
+}
+
+/** iOS often hands back HEIC; the avatars bucket only accepts jpeg/png/webp. */
+async function asJpeg(uri: string): Promise<string> {
+  const result = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: 800 } }],
+    { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+  );
+  return result.uri;
+}
+
+async function bytesOf(uri: string): Promise<Uint8Array> {
+  if (/^https?:\/\//i.test(uri)) {
+    const response = await fetch(uri);
+    if (!response.ok) throw new Error(`Could not download ${uri}`);
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
+  try {
+    return await new File(uri).bytes();
+  } catch {
+    const response = await fetch(uri);
+    if (!response.ok) throw new Error(`Could not read ${uri}`);
+    return new Uint8Array(await response.arrayBuffer());
   }
 }

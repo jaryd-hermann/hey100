@@ -19,7 +19,7 @@ export function listingStrength(
 ): { items: StrengthItem[]; done: number; total: number; ratio: number } {
   const items: StrengthItem[] = [
     { key: 'icon', label: 'Icon', done: !!app.icon },
-    { key: 'banner', label: 'Banner', done: !!app.cover },
+    { key: 'pitch', label: 'Quick pitch', done: !!app.pitchUri },
     { key: 'shots', label: 'Screenshots', done: (app.media?.length ?? 0) > 0 },
     { key: 'problem', label: 'Problem', done: !!(app.problemOf && app.problemFor) },
     { key: 'pricing', label: 'Pricing', done: !!app.pricingModel },
@@ -29,7 +29,6 @@ export function listingStrength(
       label: 'Audience',
       done: !!(app.ideal?.interests && app.ideal.interests !== 'Anyone'),
     },
-    { key: 'pitch', label: 'Quick pitch', done: !!app.pitchUri },
     { key: 'verified', label: 'Verified', done: isVerifiedComplete(connections) },
   ];
 

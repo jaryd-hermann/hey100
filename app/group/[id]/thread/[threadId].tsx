@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,7 +16,16 @@ import {
   type CommunityReply,
   type CommunityThread,
 } from '@/data/repo/community';
+import {
+  ChatStamp,
+  firstUnreadIndex,
+  shouldStamp,
+  stampLabel,
+  UnreadDivider,
+  useChatAnchor,
+} from '@/features/chat/ChatStamp';
 import { Composer } from '@/features/community/Composer';
+import { readCursor } from '@/features/community/readCursor';
 import { GroupHeader } from '@/features/community/GroupHeader';
 import { MemberProfileSheet } from '@/features/community/MemberProfileSheet';
 import { MessageMenu } from '@/features/community/MessageMenu';
@@ -55,6 +64,15 @@ export default function ThreadScreen() {
   const replies = data?.replies ?? [];
   const [target, setTarget] = useState<Target | null>(null);
   const [profile, setProfile] = useState<CommunityMember | null>(null);
+  const items = useMemo(
+    () => (thread ? [{ id: thread.id, createdAt: thread.createdAt }, ...replies] : replies),
+    [replies, thread],
+  );
+  const unreadStart = firstUnreadIndex(
+    items.map((item) => item.createdAt),
+    id ? readCursor(id) : undefined,
+  );
+  const { scrollRef, onUnreadLayout, onContentSizeChange } = useChatAnchor(unreadStart >= 0);
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.communityThread(threadId) });
@@ -64,6 +82,7 @@ export default function ThreadScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
       style={{ flex: 1, backgroundColor: c.bg }}
     >
       <View
@@ -85,86 +104,97 @@ export default function ThreadScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        onContentSizeChange={onContentSizeChange}
         contentContainerStyle={{
           paddingTop: insets.top + 80,
           paddingHorizontal: 16,
-          paddingBottom: 190,
+          paddingBottom: 16,
         }}
       >
         {thread ? (
-          <ThreadBubble
-            author={{
-              id: thread.authorId,
-              name: thread.authorName,
-              photo: thread.authorPhoto,
-              listingId: thread.authorListingId,
-              owner: thread.authorId === group?.createdBy,
-            }}
-            body={thread.body}
-            media={thread.media}
-            reactions={thread.reactions}
-            onLongPress={() => setTarget({ kind: 'thread', row: thread })}
-            onReact={(emoji) => void react({ kind: 'thread', row: thread }, emoji)}
-            onAuthorPress={() =>
-              setProfile({
-                userId: thread.authorId,
+          <>
+            {shouldStamp(undefined, thread.createdAt) ? (
+              <ChatStamp label={stampLabel(thread.createdAt)} />
+            ) : null}
+            {unreadStart === 0 ? <UnreadDivider onReady={onUnreadLayout} /> : null}
+            <ThreadBubble
+              author={{
+                id: thread.authorId,
                 name: thread.authorName,
                 photo: thread.authorPhoto,
-                role: thread.authorId === group?.createdBy ? 'owner' : 'member',
-                status: 'active',
-                apps: thread.authorListingId ? 1 : 0,
-                commits: null,
-                revenue: '—',
-                appIds: thread.authorListingId ? [thread.authorListingId] : [],
-              })
-            }
-          />
+                listingId: thread.authorListingId,
+                owner: thread.authorId === group?.createdBy,
+              }}
+              body={thread.body}
+              media={thread.media}
+              reactions={thread.reactions}
+              onLongPress={() => setTarget({ kind: 'thread', row: thread })}
+              onReact={(emoji) => void react({ kind: 'thread', row: thread }, emoji)}
+              onAuthorPress={() =>
+                setProfile({
+                  userId: thread.authorId,
+                  name: thread.authorName,
+                  photo: thread.authorPhoto,
+                  role: thread.authorId === group?.createdBy ? 'owner' : 'member',
+                  status: 'active',
+                  apps: thread.authorListingId ? 1 : 0,
+                  commits: null,
+                  revenue: '—',
+                  appIds: thread.authorListingId ? [thread.authorListingId] : [],
+                })
+              }
+            />
+          </>
         ) : null}
 
-        {replies.map((reply) => (
-          <ThreadBubble
-            key={reply.id}
-            author={{
-              id: reply.authorId,
-              name: reply.authorName,
-              photo: reply.authorPhoto,
-              listingId: reply.authorListingId,
-              owner: reply.authorId === group?.createdBy,
-            }}
-            body={reply.body}
-            media={reply.media}
-            reactions={reply.reactions}
-            onLongPress={() => setTarget({ kind: 'reply', row: reply })}
-            onReact={(emoji) => void react({ kind: 'reply', row: reply }, emoji)}
-            onAuthorPress={() =>
-              setProfile({
-                userId: reply.authorId,
+        {replies.map((reply, index) => (
+          <React.Fragment key={reply.id}>
+            {shouldStamp(index === 0 ? thread?.createdAt : replies[index - 1]?.createdAt, reply.createdAt) ? (
+              <ChatStamp label={stampLabel(reply.createdAt)} />
+            ) : null}
+            {unreadStart === index + (thread ? 1 : 0) ? (
+              <UnreadDivider onReady={onUnreadLayout} />
+            ) : null}
+            <ThreadBubble
+              author={{
+                id: reply.authorId,
                 name: reply.authorName,
                 photo: reply.authorPhoto,
-                role: reply.authorId === group?.createdBy ? 'owner' : 'member',
-                status: 'active',
-                apps: reply.authorListingId ? 1 : 0,
-                commits: null,
-                revenue: '—',
-                appIds: reply.authorListingId ? [reply.authorListingId] : [],
-              })
-            }
-          />
+                listingId: reply.authorListingId,
+                owner: reply.authorId === group?.createdBy,
+              }}
+              body={reply.body}
+              media={reply.media}
+              reactions={reply.reactions}
+              onLongPress={() => setTarget({ kind: 'reply', row: reply })}
+              onReact={(emoji) => void react({ kind: 'reply', row: reply }, emoji)}
+              onAuthorPress={() =>
+                setProfile({
+                  userId: reply.authorId,
+                  name: reply.authorName,
+                  photo: reply.authorPhoto,
+                  role: reply.authorId === group?.createdBy ? 'owner' : 'member',
+                  status: 'active',
+                  apps: reply.authorListingId ? 1 : 0,
+                  commits: null,
+                  revenue: '—',
+                  appIds: reply.authorListingId ? [reply.authorListingId] : [],
+                })
+              }
+            />
+          </React.Fragment>
         ))}
       </ScrollView>
 
-      <View
-        style={{
-          position: 'absolute',
-          left: 14,
-          right: 14,
-          bottom: insets.bottom + 12,
-        }}
-      >
+      <View style={{ paddingHorizontal: 14, paddingTop: 4 }}>
         <Composer
           placeholder="Send a reply…"
           sendLabel="Reply"
+          bottomInset={insets.bottom}
           disabled={!userId}
           onSend={async (body, media) => {
             if (!userId) return;

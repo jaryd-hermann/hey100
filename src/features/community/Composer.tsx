@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
@@ -6,7 +7,9 @@ import { Glass } from '@/components/ui/Glass';
 import { Txt } from '@/components/ui/Txt';
 import { useToast } from '@/components/ui/Toast';
 import type { MediaItem } from '@/data/types';
+import { EmojiTray } from '@/features/chat/EmojiTray';
 import { useMediaPicker } from '@/features/chat/useMediaPicker';
+import { useKeyboardOpen } from '@/features/chat/useKeyboardOpen';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/tokens';
 
@@ -15,22 +18,27 @@ export function Composer({
   sendLabel,
   onSend,
   disabled,
+  bottomInset = 0,
 }: {
   placeholder: string;
   sendLabel: string;
   onSend: (text: string, media: MediaItem[]) => Promise<void> | void;
   disabled?: boolean;
+  /** Safe-area bottom. Dropped while the keyboard is open so the bar sits on it. */
+  bottomInset?: number;
 }) {
   const { c } = useTheme();
   const toast = useToast();
   const pick = useMediaPicker();
+  const keyboardOpen = useKeyboardOpen();
   const [text, setText] = useState('');
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [busy, setBusy] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const ready = (!!text.trim() || media.length > 0) && !busy && !disabled;
 
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 6, paddingBottom: keyboardOpen ? 4 : bottomInset + 6 }}>
       {media.length ? (
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 4 }}>
           {media.map((item, index) => (
@@ -61,6 +69,8 @@ export function Composer({
         </View>
       ) : null}
 
+      {emojiOpen ? <EmojiTray onPick={(emoji) => setText((prev) => prev + emoji)} /> : null}
+
       <Glass radius={26} intensity={55} style={{ minHeight: 52 }}>
         <View
           style={{
@@ -88,6 +98,14 @@ export function Composer({
               +
             </Txt>
           </Pressable>
+          <Pressable
+            onPress={() => setEmojiOpen((prev) => !prev)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Emoji"
+          >
+            <Ionicons name="happy-outline" size={22} color={emojiOpen ? c.accentText : c.ink} />
+          </Pressable>
           <TextInput
             value={text}
             onChangeText={setText}
@@ -114,6 +132,7 @@ export function Composer({
                   await onSend(next, files);
                   setText('');
                   setMedia([]);
+                  setEmojiOpen(false);
                 } finally {
                   setBusy(false);
                 }

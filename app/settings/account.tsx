@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { Session } from '@supabase/supabase-js';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -34,7 +35,7 @@ export default function Account() {
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
-  const { userId } = useAuth();
+  const { userId, email, session } = useAuth();
   const { delete: deleteParam } = useLocalSearchParams<{ delete?: string }>();
 
   const [confirmDelete, setConfirmDelete] = useState(deleteParam === '1');
@@ -140,15 +141,13 @@ export default function Account() {
           <Card padding={4} radius={radii.cardLg}>
             {(
               [
-                ['Email', 'Added when sign-in is live'],
-                ['Sign-in method', 'Apple, Google or GitHub'],
+                ['Email', email ?? 'Not on this account'],
+                ['Sign-in method', signInMethod(session)],
               ] as const
             ).map(([label, detail], index) => (
-              <Pressable
+              <View
                 key={label}
-                accessibilityRole="button"
-                onPress={() => toast('Sign-in lands with real auth')}
-                style={({ pressed }) => ({
+                style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 12,
@@ -156,8 +155,7 @@ export default function Account() {
                   paddingVertical: 16,
                   borderTopWidth: index === 0 ? 0 : 1,
                   borderColor: c.line,
-                  opacity: pressed ? 0.7 : 1,
-                })}
+                }}
               >
                 <Txt size={15} weight={500} style={{ flex: 1 }}>
                   {label}
@@ -165,7 +163,7 @@ export default function Account() {
                 <Txt size={13} muted>
                   {detail}
                 </Txt>
-              </Pressable>
+              </View>
             ))}
           </Card>
         </View>
@@ -293,6 +291,22 @@ export default function Account() {
       </Sheet>
     </View>
   );
+}
+
+function signInMethod(session: Session | null): string {
+  const providers = session?.user.identities?.map((item) => item.provider) ?? [];
+  const fallback = session?.user.app_metadata?.provider;
+  const ids = providers.length ? providers : typeof fallback === 'string' && fallback ? [fallback] : [];
+  if (!ids.length) return 'Apple, Google, GitHub or email';
+  return [...new Set(ids)]
+    .map((id) => {
+      if (id === 'email') return 'Email';
+      if (id === 'apple') return 'Apple';
+      if (id === 'google') return 'Google';
+      if (id === 'github') return 'GitHub';
+      return id;
+    })
+    .join(', ');
 }
 
 function CopyRow({

@@ -40,6 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: false,
     bundleIdentifier: BUNDLE_ID,
+    appleTeamId: process.env.APPLE_TEAM_ID || '38NFF5BY78',
     usesAppleSignIn: true,
     associatedDomains: [`applinks:${DOMAIN}`],
     privacyManifests: {
@@ -97,6 +98,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
 
   plugins: [
+    [
+      'onesignal-expo-plugin',
+      {
+        mode: IS_STORE_BUILD ? 'production' : 'development',
+        iPhoneDeploymentTarget: '15.1',
+        // NSE needs an App Group EAS could not attach last store build.
+        // Basic APNs still registers a token without it.
+        disableNSE: true,
+        disableLocation: true,
+      },
+    ],
     'expo-router',
     ...(IS_DEV_CLIENT ? (['expo-dev-client'] as const) : []),
     'expo-apple-authentication',

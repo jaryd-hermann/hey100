@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,7 +36,6 @@ export function InlineVideo({
 }: InlineVideoProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
-  const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -46,6 +45,32 @@ export function InlineVideo({
   });
 
   const playable = Boolean(item.uri);
+
+  // Decode the first frame so the card shows a thumbnail before anyone taps.
+  useEffect(() => {
+    if (!playable) return;
+    let cancelled = false;
+    try {
+      player.muted = true;
+      player.play();
+    } catch {
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      try {
+        player.pause();
+        player.currentTime = 0;
+        player.muted = false;
+      } catch {
+        // Player may have been released if the card unmounted.
+      }
+    }, 120);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [playable, player]);
   const frame: ViewStyle = {
     aspectRatio: SHOT_RATIO[layout],
     borderRadius: radius,
@@ -62,12 +87,10 @@ export function InlineVideo({
     }
     player.play();
     setPlaying(true);
-    setStarted(true);
   };
 
   const expand = () => {
     if (!playable) return;
-    setStarted(true);
     player.play();
     setPlaying(true);
     setExpanded(true);
@@ -81,7 +104,7 @@ export function InlineVideo({
         accessibilityLabel={playing ? 'Pause video' : 'Play video'}
         style={[frame, style]}
       >
-        {started && playable ? (
+        {playable ? (
           <VideoView
             player={player}
             allowsFullscreen={false}

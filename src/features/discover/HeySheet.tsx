@@ -46,7 +46,9 @@ export function HeySheet({
       ? 'app'
       : target.type === 'prompt'
         ? 'prompt'
-        : 'screenshot';
+        : target.id === 'pitch' || /pitch/i.test(target.label)
+          ? 'pitch'
+          : 'screenshot';
 
   return (
     <Sheet

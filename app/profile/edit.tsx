@@ -78,7 +78,9 @@ export default function EditProfile() {
   const nameOk = !!realName.trim();
   const usernameOk = USERNAME_PATTERN.test(username);
 
+  const photoDirty = photo !== user.photo;
   const dirty =
+    photoDirty ||
     realName.trim() !== user.realName ||
     username !== user.username ||
     bio.trim() !== user.bio ||
@@ -108,6 +110,13 @@ export default function EditProfile() {
       };
     });
 
+  const persistPhoto = async (ownerId: string, uri: string) => {
+    const url = await uploadAvatar(ownerId, uri);
+    if (!url) throw new Error('upload failed');
+    await updateMyProfile(ownerId, { photo_url: url });
+    return url;
+  };
+
   /**
    * The photo saves on its own rather than waiting for Save, because an upload
    * that only lands on a later button press is a photo the user thinks is lost.
@@ -127,15 +136,12 @@ export default function EditProfile() {
 
     setUploadingPhoto(true);
     try {
-      const url = await uploadAvatar(userId, picked.uri);
-      if (!url) throw new Error('upload failed');
-
-      await updateMyProfile(userId, { photo_url: url });
+      const url = await persistPhoto(userId, picked.uri);
       setPhoto(url);
       store.updateUser({ photo: url });
+      toast('Photo saved');
     } catch {
-      setPhoto(user.photo);
-      toast('Could not save that photo. Try again.');
+      toast('Could not save that photo. Tap Save to try again.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -159,6 +165,14 @@ export default function EditProfile() {
       return;
     }
     if (saving) return;
+    if (uploadingPhoto) {
+      toast('Still uploading your photo');
+      return;
+    }
+    if (!dirty) {
+      router.back();
+      return;
+    }
 
     const edits = {
       realName: realName.trim(),
@@ -177,12 +191,23 @@ export default function EditProfile() {
 
     setSaving(true);
     try {
+      let nextPhoto = photo;
+      if (userId && photoDirty && photo && !/^https?:\/\//i.test(photo)) {
+        nextPhoto = await persistPhoto(userId, photo);
+        setPhoto(nextPhoto);
+      }
+
       // The server first, so "Profile saved" is never shown for a write that
       // the database refused.
-      if (userId) await updateMyProfile(userId, toProfilePatch(edits));
+      if (userId) {
+        await updateMyProfile(
+          userId,
+          toProfilePatch({ ...edits, ...(photoDirty ? { photo: nextPhoto } : {}) }),
+        );
+      }
 
-      store.updateUser(edits);
-      toast(dirty ? 'Profile saved' : 'Nothing to save');
+      store.updateUser({ ...edits, ...(photoDirty ? { photo: nextPhoto } : {}) });
+      toast('Profile saved');
       router.back();
     } catch (error) {
       toast(
@@ -195,7 +220,7 @@ export default function EditProfile() {
     }
   };
 
-  const canSave = nameOk && usernameOk && !saving;
+  const canSave = nameOk && usernameOk && !saving && !uploadingPhoto;
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>

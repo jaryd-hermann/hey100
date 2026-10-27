@@ -78,7 +78,7 @@ export function InviteStep({
 
       <Pressable onPress={onWaitlist} style={{ paddingVertical: 6 }}>
         <Txt size={14.5} weight={600} style={{ textDecorationLine: 'underline' }}>
-          No code? Join the waitlist
+          No code? Ask me (Jaryd) for one
         </Txt>
       </Pressable>
     </View>

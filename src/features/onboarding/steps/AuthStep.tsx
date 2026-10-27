@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
+import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
+import { Field } from '@/components/ui/Field';
 import { Txt } from '@/components/ui/Txt';
-import type { AuthProviderId } from '@/features/auth/signIn';
+import { emailLooksOk, passwordLooksOk, type AuthProviderId } from '@/features/auth/signIn';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -17,6 +19,19 @@ const PROVIDERS: { id: AuthProvider; icon: React.ComponentProps<typeof Ionicons>
   { id: 'Google', icon: 'logo-google' },
   { id: 'GitHub', icon: 'logo-github' },
 ];
+
+export function OrRule() {
+  const { c } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+      <Txt size={12} muted>
+        or
+      </Txt>
+      <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+    </View>
+  );
+}
 
 /** Shared so signing up and logging back in can never drift apart. */
 export function ProviderButtons({
@@ -62,6 +77,148 @@ export function ProviderButtons({
   );
 }
 
+export function EmailAuthForm({
+  mode,
+  pending = false,
+  onSubmit,
+}: {
+  mode: 'sign-up' | 'log-in';
+  pending?: boolean;
+  onSubmit: (email: string, password: string) => void;
+}) {
+  const { c } = useTheme();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [hint, setHint] = useState<string | null>(null);
+  const signingUp = mode === 'sign-up';
+
+  const submit = () => {
+    if (!emailLooksOk(email)) {
+      setHint('Enter a real email address.');
+      return;
+    }
+    if (!passwordLooksOk(password)) {
+      setHint('Password needs at least 6 characters.');
+      return;
+    }
+    if (signingUp && password !== confirm) {
+      setHint('Those passwords do not match.');
+      return;
+    }
+    setHint(null);
+    onSubmit(email.trim(), password);
+  };
+
+  return (
+    <View style={{ gap: 12 }}>
+      <Field
+        label="Email"
+        value={email}
+        onChangeText={(value) => {
+          setEmail(value);
+          setHint(null);
+        }}
+        placeholder="you@yourapp.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="email"
+        textContentType="emailAddress"
+        editable={!pending}
+      />
+      <Field
+        label="Password"
+        value={password}
+        onChangeText={(value) => {
+          setPassword(value);
+          setHint(null);
+        }}
+        placeholder={signingUp ? 'At least 6 characters' : 'Your password'}
+        secureTextEntry
+        revealable
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete={signingUp ? 'new-password' : 'password'}
+        textContentType={signingUp ? 'newPassword' : 'password'}
+        editable={!pending}
+      />
+      {signingUp ? (
+        <Field
+          label="Confirm password"
+          value={confirm}
+          onChangeText={(value) => {
+            setConfirm(value);
+            setHint(null);
+          }}
+          placeholder="Type it again"
+          secureTextEntry
+          revealable
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          editable={!pending}
+        />
+      ) : null}
+      {hint ? (
+        <Txt size={13} color={c.danger}>
+          {hint}
+        </Txt>
+      ) : null}
+      <Btn
+        label={pending ? (signingUp ? 'Creating account…' : 'Logging in…') : signingUp ? 'Create account' : 'Log in'}
+        variant="surface"
+        size="lg"
+        full
+        disabled={pending}
+        onPress={submit}
+      />
+    </View>
+  );
+}
+
+/** Quieter than the SSO row. Email is available; it is not the path we push. */
+export function EmailOption({
+  verb = 'Continue with',
+  pending = false,
+  onPress,
+}: {
+  verb?: string;
+  pending?: boolean;
+  onPress: () => void;
+}) {
+  const { c } = useTheme();
+
+  return (
+    <View style={{ gap: 12 }}>
+      <OrRule />
+      <Pressable
+        accessibilityRole="button"
+        disabled={pending}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          height: 52,
+          borderRadius: radii.pill,
+          backgroundColor: c.bg,
+          borderWidth: 1.5,
+          borderColor: c.line,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          opacity: pending ? 0.5 : pressed ? 0.8 : 1,
+        })}
+      >
+        <Ionicons name="mail-outline" size={18} color={c.ink} />
+        <Txt size={15} weight={600}>
+          {verb} Email
+        </Txt>
+      </Pressable>
+    </View>
+  );
+}
+
 export type AuthStepProps = {
   appName: string;
   appSub: string;
@@ -74,6 +231,7 @@ export type AuthStepProps = {
   /** Set when a session already exists, e.g. the app was killed mid-flow. */
   signedIn?: boolean;
   onSignIn: (provider: AuthProvider) => void;
+  onEmail: (email: string, password: string) => void;
   onPublish: () => void;
 };
 
@@ -89,9 +247,11 @@ export function AuthStep({
   pending = false,
   signedIn = false,
   onSignIn,
+  onEmail,
   onPublish,
 }: AuthStepProps) {
   const { c } = useTheme();
+  const [emailOpen, setEmailOpen] = useState(false);
 
   return (
     <View style={{ gap: 18 }}>
@@ -150,7 +310,17 @@ export function AuthStep({
           </Txt>
         </Pressable>
       ) : (
-        <ProviderButtons onPress={onSignIn} pending={pending} />
+        <View style={{ gap: 14 }}>
+          <ProviderButtons onPress={onSignIn} pending={pending} />
+          {emailOpen ? (
+            <View style={{ gap: 12 }}>
+              <OrRule />
+              <EmailAuthForm mode="sign-up" pending={pending} onSubmit={onEmail} />
+            </View>
+          ) : (
+            <EmailOption pending={pending} onPress={() => setEmailOpen(true)} />
+          )}
+        </View>
       )}
 
       <Txt size={12} lh={1.5} muted center>

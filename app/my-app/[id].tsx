@@ -7,14 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
-import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { INTEGRATIONS, shortName } from '@/data/mock';
 import { queryKeys } from '@/data/repo/keys';
 import type { OwnedApp, SectionKey } from '@/data/types';
 import { AppPage } from '@/features/app-page/AppPage';
-import { BannerEditor, EditSectionSheet } from '@/features/app-page/EditSectionSheet';
+import { EditSectionSheet } from '@/features/app-page/EditSectionSheet';
 import {
   ConnectSheets,
   IntegrationRow,
@@ -63,7 +62,6 @@ export default function OwnerAppPage() {
 
   const [editLayout, setEditLayout] = useState(false);
   const [editSection, setEditSection] = useState<SectionKey | 'listing' | null>(null);
-  const [editCover, setEditCover] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
 
   const isSetup = setup === '1';
@@ -185,7 +183,6 @@ export default function OwnerAppPage() {
           }}
           onEditSection={setEditSection}
           onEditListing={() => setEditSection('listing')}
-          onEditCover={() => setEditCover(true)}
           onOpenLink={(kind, value) =>
             router.push({ pathname: '/browser', params: { kind, value } })
           }
@@ -231,7 +228,10 @@ export default function OwnerAppPage() {
       <PitchGate
         visible={editSection === 'pitch'}
         builder={app.builder || store.user.realName}
-        onClose={() => setEditSection(null)}
+        onClose={() => {
+          setEditSection(null);
+          router.replace({ pathname: '/my-app/[id]', params: { id: app.id } });
+        }}
         onPublish={async (uri, seconds) => {
           const patch = { pitchUri: uri, pitchSeconds: seconds };
           store.updateApp(app.id, patch);
@@ -241,26 +241,13 @@ export default function OwnerAppPage() {
               queryKey: queryKeys.myListings(userId),
             });
             captureEvent('listing_section_edited', { section: 'pitch' });
-            setEditSection(null);
             toast('Quick pitch published');
-          } catch {
+          } catch (error) {
             toast('The pitch did not save. Try again.');
+            throw error;
           }
         }}
       />
-
-      <Sheet visible={editCover} onClose={() => setEditCover(false)}>
-        <BannerEditor
-          app={app}
-          onClose={() => setEditCover(false)}
-          onSave={(patch) => {
-            store.updateApp(app.id, patch);
-            persist(patch);
-            setEditCover(false);
-            toast(patch.cover ? 'Banner updated' : 'Banner removed');
-          }}
-        />
-      </Sheet>
 
       <ConnectSheets
         appId={app.id}

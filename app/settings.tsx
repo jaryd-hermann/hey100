@@ -13,6 +13,7 @@ import { queryKeys } from '@/data/repo/keys';
 import { demoFeedback, demoHeyMe, demoReply, type DemoResult } from '@/data/repo/loop';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { signOut } from '@/features/auth/signIn';
+import { openLegal } from '@/lib/legal';
 import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
 import { useTheme, type ThemePref } from '@/theme/ThemeProvider';
@@ -287,6 +288,39 @@ export default function Settings() {
         ) : null}
 
         {__DEV__ ? <QaPanel /> : null}
+
+        <View style={{ gap: 11 }}>
+          <Label>Legal</Label>
+          <Card padding={4} radius={radii.cardLg}>
+            {(
+              [
+                { label: 'Terms of Use', page: 'terms' as const },
+                { label: 'Privacy Policy', page: 'privacy' as const },
+              ]
+            ).map((row, index) => (
+              <Pressable
+                key={row.label}
+                accessibilityRole="link"
+                onPress={() => openLegal(row.page)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 16,
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderColor: c.line,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Txt size={15} weight={500} style={{ flex: 1 }}>
+                  {row.label}
+                </Txt>
+                <Ionicons name="chevron-forward" size={16} color={c.muted} />
+              </Pressable>
+            ))}
+          </Card>
+        </View>
 
         <Pressable
           accessibilityRole="button"

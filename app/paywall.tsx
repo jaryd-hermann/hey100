@@ -9,8 +9,9 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
+import { LegalRow } from '@/features/legal/LegalLinks';
 import { captureEvent } from '@/lib/analytics';
-import { getMonthlyPrice, purchaseMonthly } from '@/lib/purchases';
+import { getMonthlyPrice, purchaseMonthly, restorePurchases } from '@/lib/purchases';
 import {
   FREE_DAILY_HEYS,
   FREE_MATCH_LIMIT,
@@ -45,6 +46,7 @@ export default function Paywall() {
   const atMatchLimit = reason === 'match5';
   const [price, setPrice] = useState(PRO_PRICE);
   const [buying, setBuying] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     captureEvent('paywall_viewed', {
@@ -72,6 +74,23 @@ export default function Paywall() {
       return;
     }
     router.back();
+  };
+
+  const restore = async () => {
+    if (buying || restoring) return;
+    setRestoring(true);
+    try {
+      const result = await restorePurchases();
+      if ('message' in result) {
+        toast(result.message);
+        return;
+      }
+      store.setPlan(result.pro ? 'pro' : 'free');
+      toast(result.pro ? 'Pro restored' : 'No Pro subscription on this Apple ID');
+      if (result.pro) dismiss();
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const purchase = async () => {
@@ -113,7 +132,7 @@ export default function Paywall() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingBottom: 200,
+          paddingBottom: 260,
           paddingTop: 8,
         }}
       >
@@ -225,6 +244,10 @@ export default function Paywall() {
           size="md"
           full
           onPress={dismiss}
+        />
+        <LegalRow
+          restoreLabel={restoring ? 'Restoring…' : 'Restore'}
+          onRestore={() => void restore()}
         />
       </View>
     </View>

@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Progress } from '@/components/ui/Progress';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
+import { LegalRow } from '@/features/legal/LegalLinks';
 import { manageSubscriptions, restorePurchases } from '@/lib/purchases';
 import {
   FREE_DAILY_HEYS,
@@ -226,6 +227,7 @@ export default function Subscription() {
                 disabled={busy}
                 onPress={() => void restore()}
               />
+              <LegalRow />
             </View>
 
             <Card tone="soft" padding={16} radius={radii.cardLg} style={{ gap: 10 }}>

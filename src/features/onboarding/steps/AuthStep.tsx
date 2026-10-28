@@ -9,6 +9,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Txt } from '@/components/ui/Txt';
 import { emailLooksOk, passwordLooksOk, type AuthProviderId } from '@/features/auth/signIn';
+import { LegalLink } from '@/features/legal/LegalLinks';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -345,7 +346,8 @@ export function AuthStep({
       )}
 
       <Txt size={12} lh={1.5} muted center>
-        By continuing you agree to the Terms of Use and Privacy Policy.
+        By continuing you agree to the <LegalLink page="terms" size={12} /> and{' '}
+        <LegalLink page="privacy" size={12} />.
       </Txt>
     </View>
   );

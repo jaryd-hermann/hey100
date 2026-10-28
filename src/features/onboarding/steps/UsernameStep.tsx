@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Txt } from '@/components/ui/Txt';
+import { LegalLink } from '@/features/legal/LegalLinks';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
@@ -220,36 +221,38 @@ export function UsernameStep({
         </Txt>
       </Card>
 
-      <Pressable
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: terms }}
-        onPress={onToggleTerms}
-        style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 4 }}
-      >
-        <View
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 6,
-            borderWidth: 1.5,
-            borderColor: terms ? c.ink : c.muted,
-            backgroundColor: terms ? c.ink : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: 1,
-          }}
+      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 4 }}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: terms }}
+          onPress={onToggleTerms}
+          hitSlop={8}
         >
-          {terms ? (
-            <Txt size={13} weight={700} color={c.bg}>
-              ✓
-            </Txt>
-          ) : null}
-        </View>
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              borderWidth: 1.5,
+              borderColor: terms ? c.ink : c.muted,
+              backgroundColor: terms ? c.ink : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 1,
+            }}
+          >
+            {terms ? (
+              <Txt size={13} weight={700} color={c.bg}>
+                ✓
+              </Txt>
+            ) : null}
+          </View>
+        </Pressable>
         <Txt size={13.5} lh={1.5} muted style={{ flex: 1 }}>
-          I agree to the Terms of Use, acknowledge the Privacy Policy, and confirm I&apos;m at least
-          18.
+          I agree to the <LegalLink page="terms" size={13.5} />, acknowledge the{' '}
+          <LegalLink page="privacy" size={13.5} />, and confirm I&apos;m at least 13.
         </Txt>
-      </Pressable>
+      </View>
     </View>
   );
 }

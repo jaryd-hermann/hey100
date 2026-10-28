@@ -4,12 +4,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Btn } from '@/components/ui/Btn';
 import { SearchField } from '@/components/ui/SearchField';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { queryKeys } from '@/data/repo/keys';
 import {
+  deleteCommunityGroup,
   isOfficialGroup,
   leaveCommunityGroup,
   markCommunityGroupRead,
@@ -37,6 +39,7 @@ import {
   useChatAnchor,
 } from '@/features/chat/ChatStamp';
 import { Composer } from '@/features/community/Composer';
+import { CreateGroupForm } from '@/features/community/CreateGroupSheet';
 import { captureReadCursor, readCursor } from '@/features/community/readCursor';
 import { GroupHeader } from '@/features/community/GroupHeader';
 import { GroupPower } from '@/features/community/GroupPower';
@@ -86,6 +89,10 @@ export default function GroupScreen() {
   const requests = seeded ? seedRequests(id) : (remoteRequests.data ?? []);
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState(false);
+  const [afterMenu, setAfterMenu] = useState<'edit' | 'delete' | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [target, setTarget] = useState<CommunityThread | null>(null);
   const [profile, setProfile] = useState<CommunityMember | null>(null);
   const [queue, setQueue] = useState(false);
@@ -132,6 +139,7 @@ export default function GroupScreen() {
   };
 
   const official = isOfficialGroup(group);
+  const isOwner = group?.role === 'owner' || (!!userId && group?.createdBy === userId);
   const canPost = !official || isAdmin;
   const pending = official ? 0 : (group?.pendingCount ?? requests.length);
   const membersLabel = group?.ratingAvg
@@ -315,6 +323,11 @@ export default function GroupScreen() {
           setMenu(false);
           setQuery('');
         }}
+        onClosed={() => {
+          if (afterMenu === 'edit') setEditing(true);
+          if (afterMenu === 'delete') setConfirmDelete(true);
+          setAfterMenu(null);
+        }}
       >
         <View style={{ gap: 8 }}>
           <SearchField value={query} onChangeText={setQuery} placeholder="Search this group" />
@@ -405,6 +418,15 @@ export default function GroupScreen() {
               }}
             />
           ) : null}
+          {isOwner && !official ? (
+            <MenuRow
+              label="Edit group"
+              onPress={() => {
+                setAfterMenu('edit');
+                setMenu(false);
+              }}
+            />
+          ) : null}
           <MenuRow
             label="Report group"
             onPress={() => {
@@ -426,7 +448,7 @@ export default function GroupScreen() {
               ]);
             }}
           />
-          {official ? null : (
+          {official || isOwner ? null : (
           <MenuRow
             label="Leave group"
             danger
@@ -453,11 +475,73 @@ export default function GroupScreen() {
             }}
           />
           )}
+          {isOwner && !official ? (
+            <MenuRow
+              label="Delete group"
+              danger
+              onPress={() => {
+                setAfterMenu('delete');
+                setMenu(false);
+              }}
+            />
+          ) : null}
             </>
           )}
         </View>
       </Sheet>
 
+      <Sheet visible={editing} tall onClose={() => setEditing(false)}>
+        {group ? (
+          <CreateGroupForm
+            key={group.id}
+            group={group}
+            onClose={() => setEditing(false)}
+            onCreated={() => {
+              setEditing(false);
+              refresh();
+              toast('Group updated');
+            }}
+          />
+        ) : null}
+      </Sheet>
+
+      <Sheet visible={confirmDelete} onClose={() => setConfirmDelete(false)} scroll={false}>
+        <View style={{ gap: 16 }}>
+          <Txt font="mono" size={20} weight={500} lh={1.25}>
+            Delete this group?
+          </Txt>
+          <Txt size={15.5} lh={1.5}>
+            This is permanent. The group, threads, and members will be gone. You cannot undo this.
+          </Txt>
+          <Btn
+            label={deleting ? 'Deleting…' : 'Delete group'}
+            variant="ink"
+            size="lg"
+            full
+            disabled={deleting}
+            onPress={async () => {
+              if (!id || deleting) return;
+              setDeleting(true);
+              try {
+                if (seeded) {
+                  seedLeave(id);
+                } else {
+                  await deleteCommunityGroup(id);
+                  captureEvent('group_deleted', { group_id: id });
+                  await queryClient.invalidateQueries({ queryKey: queryKeys.communityHome(userId) });
+                }
+                setConfirmDelete(false);
+                router.back();
+              } catch (error) {
+                toast(error instanceof Error ? error.message : 'Could not delete the group');
+              } finally {
+                setDeleting(false);
+              }
+            }}
+          />
+          <Btn label="Keep group" variant="surface" size="lg" full onPress={() => setConfirmDelete(false)} />
+        </View>
+      </Sheet>
 
       <MessageMenu
         visible={!!target}

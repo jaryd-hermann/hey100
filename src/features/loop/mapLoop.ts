@@ -347,8 +347,8 @@ export function feedbackEntry(row: FeedbackRow, appName: string, hue: number): F
 }
 
 /**
- * Views and skips are listing stats, which are not collected yet, so they read
- * as an em dash rather than a made up number.
+ * Views come from profile_views on the listing. Skips are rows in passes, which
+ * Discover writes when someone taps pass.
  */
 export function feedbackToInbox(
   byApp: FeedbackByApp,

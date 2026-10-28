@@ -13,7 +13,9 @@ import {
   createCommunityGroup,
   identiconCoverPath,
   JOIN_CRITERIA,
+  updateCommunityGroup,
   uploadGroupCover,
+  type CommunityGroup,
   type JoinCriterion,
   type JoinMode,
 } from '@/data/repo/community';
@@ -26,9 +28,11 @@ import { useToast } from '@/components/ui/Toast';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export function CreateGroupForm({
+  group,
   onCreated,
   onClose,
 }: {
+  group?: CommunityGroup | null;
   onCreated: (groupId: string) => void;
   onClose?: () => void;
 }) {
@@ -37,14 +41,18 @@ export function CreateGroupForm({
   const { userId } = useAuth();
   const store = useStore();
   const listings = store.ownedApps.filter((app) => isServerId(app.id));
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
-  const [audience, setAudience] = useState('');
-  const [cover, setCover] = useState<string | null>(null);
-  const [iconSeed, setIconSeed] = useState<string | null>(null);
-  const [joinMode, setJoinMode] = useState<JoinMode>('open');
-  const [criteria, setCriteria] = useState<JoinCriterion[]>([]);
-  const [listingId, setListingId] = useState<string | null>(listings[0]?.id ?? null);
+  const editing = !!group;
+  const [name, setName] = useState(group?.name ?? '');
+  const [bio, setBio] = useState(group?.bio ?? '');
+  const [audience, setAudience] = useState(group?.audience ?? '');
+  const [cover, setCover] = useState<string | null>(group?.coverUrl ?? null);
+  const [iconSeed, setIconSeed] = useState<string | null>(group?.iconSeed ?? null);
+  const [coverDirty, setCoverDirty] = useState(false);
+  const [joinMode, setJoinMode] = useState<JoinMode>(group?.joinMode ?? 'open');
+  const [criteria, setCriteria] = useState<JoinCriterion[]>(group?.criteria ?? []);
+  const [listingId, setListingId] = useState<string | null>(
+    group?.listingId ?? listings[0]?.id ?? null,
+  );
   const [busy, setBusy] = useState(false);
   const listing = listings.find((app) => app.id === listingId) ?? listings[0];
 
@@ -56,6 +64,7 @@ export function CreateGroupForm({
       return;
     }
     setCover(picked.uri);
+    setCoverDirty(true);
   };
 
   const submit = async () => {
@@ -63,13 +72,31 @@ export function CreateGroupForm({
     setBusy(true);
     try {
       const generatedSeed = iconSeed || name.trim() || 'new-group';
-      const uploaded = cover ? await uploadGroupCover(userId, cover) : null;
-      const coverPath = uploaded ?? identiconCoverPath(generatedSeed);
+      const uploaded = cover && coverDirty && !cover.startsWith('identicon:')
+        ? await uploadGroupCover(userId, cover)
+        : null;
+      const nextCover =
+        uploaded ??
+        (coverDirty || !editing ? identiconCoverPath(generatedSeed) : undefined);
+      if (editing && group) {
+        await updateCommunityGroup(group.id, {
+          name: name.trim(),
+          bio: bio.trim(),
+          audience: audience.trim(),
+          coverPath: nextCover,
+          joinMode,
+          criteria,
+          listingId: joinMode === 'match' ? listing?.id : undefined,
+        });
+        captureEvent('group_updated', { group_id: group.id, join_mode: joinMode });
+        onCreated(group.id);
+        return;
+      }
       const id = await createCommunityGroup({
         name: name.trim(),
         bio: bio.trim(),
         audience: audience.trim(),
-        coverPath,
+        coverPath: nextCover ?? identiconCoverPath(generatedSeed),
         joinMode,
         criteria,
         listingId: joinMode === 'match' ? listing?.id : undefined,
@@ -79,6 +106,7 @@ export function CreateGroupForm({
       setAudience('');
       setCover(null);
       setIconSeed(null);
+      setCoverDirty(false);
       setJoinMode('open');
       setCriteria([]);
       setListingId(listings[0]?.id ?? null);
@@ -129,16 +157,23 @@ export function CreateGroupForm({
             </Txt>
           </Pressable>
           {cover ? (
-            <Pressable onPress={() => setCover(null)} hitSlop={8}>
+            <Pressable
+              onPress={() => {
+                setCover(null);
+                setCoverDirty(true);
+              }}
+              hitSlop={8}
+            >
               <Txt size={13.5} muted>
                 Use generated
               </Txt>
             </Pressable>
           ) : (
             <Pressable
-              onPress={() =>
-                setIconSeed(`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`)
-              }
+              onPress={() => {
+                setIconSeed(`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+                setCoverDirty(true);
+              }}
               hitSlop={8}
               accessibilityLabel="Shuffle generated icon"
               style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
@@ -326,12 +361,14 @@ export function CreateGroupForm({
         </View>
       ) : null}
 
-      <Txt size={13.5} lh={1.45} muted>
-        You'll be the group admin. You approve requests and can remove posts.
-      </Txt>
+      {editing ? null : (
+        <Txt size={13.5} lh={1.45} muted>
+          You'll be the group admin. You approve requests and can remove posts.
+        </Txt>
+      )}
 
       <Btn
-        label={busy ? 'Creating…' : 'Create group'}
+        label={busy ? (editing ? 'Saving…' : 'Creating…') : editing ? 'Save changes' : 'Create group'}
         variant="accent"
         size="lg"
         full

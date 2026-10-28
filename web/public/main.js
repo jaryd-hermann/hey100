@@ -165,11 +165,11 @@
   // Scroll reveal: each line brightens as it climbs the viewport, so the problem
   // unfolds a beat at a time. Lines stay fully lit in CSS until this takes over.
   (function scrollReveal() {
-    const sec = document.querySelector('.reveal');
-    if (!sec) return;
-    const lines = Array.from(sec.querySelectorAll('.line'));
+    const secs = Array.from(document.querySelectorAll('.reveal'));
+    if (!secs.length) return;
+    const lines = secs.flatMap((sec) => Array.from(sec.querySelectorAll('.line')));
     if (!lines.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    sec.classList.add('on');
+    secs.forEach((sec) => sec.classList.add('on'));
     let pending = false;
     const update = () => {
       pending = false;

@@ -6,6 +6,7 @@ import { Animated, Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Btn } from '@/components/ui/Btn';
+import { rewindOnEnd } from '@/components/ui/InlineVideo';
 import { Txt } from '@/components/ui/Txt';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
@@ -352,9 +353,11 @@ function Preview({
   onPublish: () => void;
 }) {
   const player = useVideoPlayer(uri, (instance) => {
-    instance.loop = true;
+    instance.loop = false;
     instance.play();
   });
+
+  useEffect(() => rewindOnEnd(player), [player]);
 
   return (
     <View style={{ flex: 1, paddingHorizontal: layout.gutter, paddingBottom: bottom + 16 }}>

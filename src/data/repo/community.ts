@@ -73,6 +73,8 @@ export type CommunityGroup = {
   audience: string;
   kind?: GroupKind;
   coverUrl?: string;
+  /** Storage path or `identicon:` seed, so an edit can keep the current cover. */
+  coverPath?: string;
   /** Persisted identicon seed when the group has no uploaded cover. */
   iconSeed?: string;
   joinMode: JoinMode;
@@ -248,6 +250,7 @@ function mapGroup(row: {
     bio: row.bio ?? '',
     audience: row.audience ?? '',
     coverUrl: cover.coverUrl,
+    coverPath: row.cover_path ?? undefined,
     iconSeed: cover.iconSeed,
     joinMode: row.join_mode,
     kind: row.kind === 'official' ? 'official' : 'community',
@@ -583,6 +586,42 @@ export async function createCommunityGroup(input: {
   });
   if (error || typeof data !== 'string') throw new Error(error?.message ?? 'Could not create the group');
   return data;
+}
+
+export async function updateCommunityGroup(
+  groupId: string,
+  input: {
+    name: string;
+    bio: string;
+    audience: string;
+    coverPath?: string | null;
+    joinMode: JoinMode;
+    criteria?: JoinCriterion[];
+    listingId?: string;
+  },
+): Promise<void> {
+  const db = getSupabase();
+  if (!db) throw new Error('Not signed in');
+  assertClean([input.name, input.bio, input.audience].join(' '));
+  const patch: Record<string, unknown> = {
+    name: input.name,
+    bio: input.bio,
+    audience: input.audience,
+    join_mode: input.joinMode,
+    join_criteria: input.joinMode === 'criteria' ? (input.criteria ?? []) : [],
+    listing_id: input.joinMode === 'match' ? (input.listingId ?? null) : null,
+  };
+  if (input.coverPath !== undefined) patch.cover_path = input.coverPath;
+  const { error } = await db.from('community_groups').update(patch).eq('id', groupId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteCommunityGroup(groupId: string): Promise<void> {
+  if (groupId === OFFICIAL_GROUP_ID) throw new Error('The official group stays');
+  const db = getSupabase();
+  if (!db) throw new Error('Not signed in');
+  const { error } = await db.from('community_groups').delete().eq('id', groupId);
+  if (error) throw new Error(error.message);
 }
 
 export async function checkCommunityJoin(groupId: string): Promise<{

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,31 @@ import { Txt } from './Txt';
 /** Deliberate sticker tones: controls sit over media, not over a themed surface. */
 const OVER_MEDIA = '#FFFFFF';
 const SCRIM = 'rgba(0, 0, 0, 0.45)';
+
+/** Seek to the first frame and pause so the play button comes back. */
+export function rewindOnEnd(player: VideoPlayer, onEnd?: () => void) {
+  const finish = () => {
+    try {
+      player.currentTime = 0;
+      player.pause();
+    } catch {
+      // Released while the last frame was still settling.
+    }
+    onEnd?.();
+  };
+
+  const ended = player.addListener('playToEnd', finish);
+  const playing = player.addListener('playingChange', ({ isPlaying }: { isPlaying: boolean }) => {
+    if (isPlaying) return;
+    const duration = player.duration;
+    if (duration > 0 && player.currentTime >= duration - 0.15) finish();
+  });
+
+  return () => {
+    ended.remove();
+    playing.remove();
+  };
+}
 
 export type InlineVideoProps = {
   item: MediaItem;
@@ -73,6 +98,11 @@ export function InlineVideo({
       cancelled = true;
       clearTimeout(timer);
     };
+  }, [playable, player]);
+
+  useEffect(() => {
+    if (!playable) return;
+    return rewindOnEnd(player, () => setPlaying(false));
   }, [playable, player]);
   const frame: ViewStyle = {
     borderRadius: radius,

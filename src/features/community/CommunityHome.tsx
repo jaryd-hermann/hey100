@@ -13,6 +13,7 @@ import {
   type CommunityGroup,
 } from '@/data/repo/community';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { CreateGroupPromo } from '@/features/marketing/CreateGroupPromo';
 import { ProductHint } from '@/features/marketing/ProductHint';
 import { useFirstHint } from '@/features/marketing/useFirstHint';
 import { captureEvent } from '@/lib/analytics';
@@ -158,6 +159,7 @@ export function CommunityHome() {
             No other groups yet. Yours will show up here for everyone else.
           </Txt>
         )}
+        <CreateGroupPromo onPress={() => setCreating(true)} />
       </View>
 
       <Sheet visible={creating} tall onClose={() => setCreating(false)}>

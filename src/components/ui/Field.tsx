@@ -16,6 +16,8 @@ export type FieldProps = Omit<TextInputProps, 'style'> & {
   minHeight?: number;
   /** Eye toggle that reveals a `secureTextEntry` value, as on API keys. */
   revealable?: boolean;
+  /** Lime outline, as when the field is the thing to fill. */
+  accent?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -26,6 +28,7 @@ export function Field({
   mono,
   minHeight = 52,
   revealable,
+  accent,
   style,
   value,
   secureTextEntry,
@@ -50,8 +53,8 @@ export function Field({
             minHeight,
             backgroundColor: c.surface,
             borderRadius: radii.input,
-            borderWidth: 1.5,
-            borderColor: c.line,
+            borderWidth: accent ? 2 : 1.5,
+            borderColor: accent ? c.accentText : c.line,
             paddingHorizontal: 15,
             paddingRight: revealable ? 46 : 15,
             paddingTop: rest.multiline ? 14 : 0,

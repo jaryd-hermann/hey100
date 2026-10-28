@@ -25,6 +25,7 @@ import { AppCard } from '@/features/apps/AppCard';
 import { BadgesSheet } from '@/features/apps/BadgesSheet';
 import { ShareListingSheet } from '@/features/apps/ShareListingSheet';
 import { useDailyHeyLimit } from '@/features/billing/DailyHeyLimit';
+import { CommunityPromoCard } from '@/features/marketing/CommunityPromoCard';
 import { ProductHint } from '@/features/marketing/ProductHint';
 import { useFirstHint } from '@/features/marketing/useFirstHint';
 import { captureEvent } from '@/lib/analytics';
@@ -175,15 +176,19 @@ export default function DiscoverScreen() {
         <DiscoverHeader filters={filters} onChange={setFilters} inset={false} />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: layout.tabBarSpacer + 24, gap: 16, paddingTop: 12 }}
+          contentContainerStyle={{
+            paddingBottom: layout.tabBarSpacer + 24,
+            gap: 16,
+            paddingTop: 12,
+          }}
         >
-          <Txt font="mono" size={19} weight={500}>
+          <Txt font="mono" size={28} weight={500} lh={1.15}>
             That&apos;s everyone for now.
           </Txt>
           <Txt size={15} lh={1.5} muted>
             {filtered
               ? 'New apps are listed every day. Clear your filters, or work on your listing.'
-              : 'New apps are listed every day. Here is your listing in the meantime.'}
+              : 'New apps are listed every day.'}
           </Txt>
           {filtered ? (
             <Btn
@@ -215,6 +220,11 @@ export default function DiscoverScreen() {
                 message: 'Find your first 100 users on Hey100: https://hey100.com',
               }).catch(() => {});
             }}
+          />
+
+          <CommunityPromoCard
+            from="discover"
+            onPress={() => router.push({ pathname: '/(tabs)/chat', params: { desk: 'community' } })}
           />
         </ScrollView>
 
@@ -287,45 +297,45 @@ export default function DiscoverScreen() {
       <CompactAppBar listing={listing} visible={compact} top={insets.top} />
 
       {store.previewAppId ? null : (
-      <View
-        style={{
-          position: 'absolute',
-          left: layout.gutter,
-          right: layout.gutter,
-          bottom: layout.tabBarSpacer - 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Pass on ${shortName(listing.name)}`}
-          onPress={() => {
-            void store.passApp(listing.id);
-            captureEvent('app_passed', { app_id: listing.id });
-            advance();
-          }}
-          style={({ pressed }) => ({
-            width: 58,
-            height: 58,
-            borderRadius: 29,
-            borderWidth: 2,
-            borderColor: c.ink,
+        <View
+          style={{
+            position: 'absolute',
+            left: layout.gutter,
+            right: layout.gutter,
+            bottom: layout.tabBarSpacer - 12,
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(255, 107, 97, 0.55)',
-            opacity: pressed ? 0.8 : 1,
-          })}
+            justifyContent: 'space-between',
+          }}
         >
-          <Ionicons name="close" size={28} color={c.danger} />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Pass on ${shortName(listing.name)}`}
+            onPress={() => {
+              void store.passApp(listing.id);
+              captureEvent('app_passed', { app_id: listing.id });
+              advance();
+            }}
+            style={({ pressed }) => ({
+              width: 58,
+              height: 58,
+              borderRadius: 29,
+              borderWidth: 2,
+              borderColor: c.ink,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: c.raised,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <Ionicons name="close" size={28} color={c.danger} />
+          </Pressable>
 
-        <HeyPill
-          size={58}
-          onPress={() => setHeyTarget({ type: 'app', id: listing.id, label: listing.name })}
-        />
-      </View>
+          <HeyPill
+            size={58}
+            onPress={() => setHeyTarget({ type: 'app', id: listing.id, label: listing.name })}
+          />
+        </View>
       )}
 
       <HeySheet
@@ -358,7 +368,6 @@ export default function DiscoverScreen() {
         }
         onClose={discoverHint.dismiss}
       />
-
     </View>
   );
 }

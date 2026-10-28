@@ -53,6 +53,7 @@ export function useLoopSync(): void {
     for (const card of deck.data ?? []) remember(card);
     for (const hey of heys.data?.received ?? []) remember(hey.card);
     for (const hey of heys.data?.sent ?? []) remember(hey.card);
+    for (const hey of heys.data?.matched ?? []) remember(hey.card);
 
     // A match is what makes a real name readable, so those cards are built
     // with it; the same listing in the deck keeps the handle.
@@ -63,6 +64,7 @@ export function useLoopSync(): void {
       deckIds: (deck.data ?? []).map((card) => card.app.id),
       heys: (heys.data?.received ?? []).map(heyToIncoming),
       sentHeys: (heys.data?.sent ?? []).map(heyToSent),
+      matchedHeys: (heys.data?.matched ?? []).map(heyToIncoming),
       matches: (threads.data ?? []).filter((thread) => !thread.hidden).map(threadToMatch),
       inbox: inbox.data
         ? feedbackToInbox(

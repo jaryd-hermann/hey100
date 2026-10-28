@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -18,6 +18,8 @@ import { layout, radii } from '@/theme/tokens';
 export type SheetProps = {
   visible: boolean;
   onClose: () => void;
+  /** Fires after the dismiss animation, when the modal is gone. */
+  onClosed?: () => void;
   children: React.ReactNode;
   /** Falls back to a scroll view when content can overflow. */
   scroll?: boolean;
@@ -26,15 +28,36 @@ export type SheetProps = {
 };
 
 /** Slides up over a scrim with a grab handle. Tapping the scrim dismisses. */
-export function Sheet({ visible, onClose, children, scroll = true, tall }: SheetProps) {
+export function Sheet({ visible, onClose, onClosed, children, scroll = true, tall }: SheetProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const anim = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+  const wasOpen = useRef(visible);
   const [mounted, setMounted] = useState(visible);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => setKeyboardHeight(event.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (visible) {
+      wasOpen.current = true;
       setMounted(true);
       Animated.timing(anim, {
         toValue: 1,
@@ -44,17 +67,33 @@ export function Sheet({ visible, onClose, children, scroll = true, tall }: Sheet
       }).start();
       return;
     }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
     Animated.timing(anim, {
       toValue: 0,
       duration: 180,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) setMounted(false);
+    }).start(() => {
+      setMounted(false);
+      onClosedRef.current?.();
     });
   }, [anim, visible]);
 
+  useEffect(() => {
+    if (!visible) setKeyboardHeight(0);
+  }, [visible]);
+
+  useEffect(() => {
+    if (keyboardHeight === 0) return;
+    const id = requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [keyboardHeight]);
+
   const Content = scroll ? ScrollView : View;
+  const sheetMax = keyboardHeight > 0 ? Math.max(240, height - keyboardHeight - 12) : height * 0.92;
 
   if (!mounted) return null;
 
@@ -64,10 +103,7 @@ export function Sheet({ visible, onClose, children, scroll = true, tall }: Sheet
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Dismiss" />
       </Animated.View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
-      >
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: keyboardHeight }}>
         <Animated.View
           style={{
             backgroundColor: c.surface,
@@ -77,8 +113,8 @@ export function Sheet({ visible, onClose, children, scroll = true, tall }: Sheet
             borderColor: c.line,
             // A percentage has no definite parent height to resolve against
             // here, since the wrapper is positioned absolutely.
-            maxHeight: height * 0.92,
-            minHeight: tall ? height * 0.78 : undefined,
+            maxHeight: sheetMax,
+            minHeight: tall && keyboardHeight === 0 ? height * 0.78 : undefined,
             transform: [
               { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] }) },
             ],
@@ -88,13 +124,14 @@ export function Sheet({ visible, onClose, children, scroll = true, tall }: Sheet
             <View style={{ width: 38, height: 4, borderRadius: 2, backgroundColor: c.muted, opacity: 0.5 }} />
           </View>
           <Content
-            style={{ flexGrow: 0 }}
+            ref={scroll ? scrollRef : undefined}
+            style={{ flexGrow: 0, maxHeight: sheetMax - 16 }}
             contentContainerStyle={
               scroll
                 ? {
                     paddingHorizontal: layout.gutter,
                     paddingTop: 10,
-                    paddingBottom: insets.bottom + 20,
+                    paddingBottom: keyboardHeight > 0 ? 16 : insets.bottom + 20,
                   }
                 : undefined
             }
@@ -107,7 +144,7 @@ export function Sheet({ visible, onClose, children, scroll = true, tall }: Sheet
                 style={{
                   paddingHorizontal: layout.gutter,
                   paddingTop: 10,
-                  paddingBottom: insets.bottom + 20,
+                  paddingBottom: keyboardHeight > 0 ? 16 : insets.bottom + 20,
                 }}
               >
                 {children}
@@ -115,7 +152,7 @@ export function Sheet({ visible, onClose, children, scroll = true, tall }: Sheet
             )}
           </Content>
         </Animated.View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

@@ -264,7 +264,7 @@ export default function EditProfile() {
             onPress={() => void changePhoto()}
             style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
           >
-            <Avatar name={realName || user.realName} uri={photo} size={76} />
+            <Avatar name={realName || user.realName} seed={username} uri={photo} size={76} />
           </Pressable>
           <Txt size={13} weight={500} color={c.accentText}>
             {uploadingPhoto ? 'Uploading…' : photo ? 'Change photo' : 'Add a photo'}

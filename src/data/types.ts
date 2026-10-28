@@ -17,6 +17,14 @@ export type IdealUsers = {
   wants: string;
 };
 
+export type ShippedApp = {
+  id: string;
+  name: string;
+  slug?: string;
+  hue: number;
+  icon?: string;
+};
+
 export type MediaItem = {
   /** Stand-in for the real asset until listings are fetched from the store. */
   label: string;
@@ -53,6 +61,8 @@ export type AppListing = {
   id: string;
   /** Server-allocated, and what the share link and web page use. */
   slug?: string;
+  /** Listing owner, used to load their other shipped apps. */
+  ownerId?: string;
   name: string;
   sub: string;
   cat: string;
@@ -69,6 +79,10 @@ export type AppListing = {
   style: string;
   /** Skills shown as tags under the bio. */
   skills?: string[];
+  /** Apps they said they would try, shown like skills on the builder card. */
+  interests?: string[];
+  /** Other published listings by this builder. */
+  shippedApps?: ShippedApp[];
   /** Public socials from the builder's profile, not the listing links. */
   builderSocials?: [string, string][];
   /** Horizontal banner, separate from the screenshot carousel. */
@@ -155,6 +169,9 @@ export type IncomingHey = {
   note: string;
   /** A second note from the sender, shown under the first as "Very interested". */
   followUp?: { note: string; when: string };
+  /** Set once this received hey became a match. */
+  matchId?: string;
+  createdAt?: string;
 };
 
 export type SentHeyStatus = 'Pending' | 'Passed' | 'Matched';
@@ -193,6 +210,14 @@ export type Match = {
   why?: string;
   /** Unread messages waiting in this thread. */
   unread?: number;
+  /** Link they set for you; falls back to their listing URL. */
+  shareUrl?: string;
+  /** Access code they set for you. */
+  shareCode?: string;
+  /** Link you set for them. */
+  myShareUrl?: string;
+  /** Access code you set for them. */
+  myShareCode?: string;
 };
 
 export type MessageReaction = { emoji: string; count: number; mine: boolean };
@@ -208,7 +233,7 @@ export type ChatMessage = {
 };
 
 export type Message =
-  | ({ kind: 'system'; body: string } & ChatMessage)
+  | ({ kind: 'system'; body: string; senderId?: string } & ChatMessage)
   /** `body` is absent on a media-only message. */
   | ({ kind: 'them'; body?: string; media?: MediaItem[] } & ChatMessage)
   | ({ kind: 'me'; body?: string; media?: MediaItem[] } & ChatMessage)

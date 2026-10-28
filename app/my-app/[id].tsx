@@ -46,6 +46,11 @@ export default function OwnerAppPage() {
    * server disagree; refetching is what settles it.
    */
   const persist = (patch: Partial<OwnedApp>) => {
+    const uploadingVideo = patch.media?.some(
+      (item) => item.video && item.uri && !/^https?:\/\//i.test(item.uri),
+    );
+    if (uploadingVideo) toast('Uploading demo video…');
+
     persistListing(userId, app.id, patch)
       .then(() =>
         queryClient.invalidateQueries({
@@ -92,11 +97,7 @@ export default function OwnerAppPage() {
             {pending ? ' · pending' : ''}
           </Txt>
         </View>
-        <Ionicons
-          name={verifyOpen ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={c.muted}
-        />
+        <Ionicons name={verifyOpen ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
       </Pressable>
 
       {!verifyOpen && pending ? (
@@ -228,10 +229,7 @@ export default function OwnerAppPage() {
       <PitchGate
         visible={editSection === 'pitch'}
         builder={app.builder || store.user.realName}
-        onClose={() => {
-          setEditSection(null);
-          router.replace({ pathname: '/my-app/[id]', params: { id: app.id } });
-        }}
+        onClose={() => setEditSection(null)}
         onPublish={async (uri, seconds) => {
           const patch = { pitchUri: uri, pitchSeconds: seconds };
           store.updateApp(app.id, patch);

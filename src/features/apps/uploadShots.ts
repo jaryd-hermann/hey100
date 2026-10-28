@@ -1,4 +1,5 @@
 import { File } from 'expo-file-system';
+import { FileSystemUploadType, uploadAsync } from 'expo-file-system/legacy';
 
 import type { NewListing } from '@/data/repo/listings';
 import type { PickedShot } from '@/data/types';
@@ -42,6 +43,32 @@ async function bytesOf(uri: string): Promise<Uint8Array> {
 }
 
 /**
+ * Large screen recordings cannot be loaded into a Uint8Array on device, so
+ * videos go out as a streamed PUT to a signed URL instead of `bytesOf`.
+ */
+async function uploadVideo(uri: string, path: string, contentType: string): Promise<string> {
+  const db = getSupabase();
+  if (!db) throw new Error('Could not upload the demo video');
+
+  const { data, error } = await db.storage
+    .from('listing-media')
+    .createSignedUploadUrl(path, { upsert: true });
+  if (error || !data) throw new Error(error?.message ?? 'Could not upload the demo video');
+
+  const result = await uploadAsync(data.signedUrl, uri, {
+    httpMethod: 'PUT',
+    headers: { 'Content-Type': contentType },
+    uploadType: FileSystemUploadType.BINARY_CONTENT,
+  });
+
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`Could not upload the demo video (${result.status})`);
+  }
+
+  return path;
+}
+
+/**
  * Paths start with the owner's id because that first segment is what the
  * storage policy checks, and carry a random segment so a deleted asset's URL
  * cannot be reused to serve a different image.
@@ -58,13 +85,17 @@ export async function uploadAsset(
   try {
     const extension = extensionOf(uri, kind);
     const path = `${ownerId}/${Date.now().toString(36)}/${name}.${extension}`;
+    const contentType = MIME[extension];
+
+    if (kind === 'video') return await uploadVideo(uri, path, contentType);
 
     const { error } = await db.storage
       .from('listing-media')
-      .upload(path, await bytesOf(uri), { contentType: MIME[extension], upsert: true });
+      .upload(path, await bytesOf(uri), { contentType, upsert: true });
 
     return error ? null : path;
-  } catch {
+  } catch (error) {
+    if (kind === 'video') throw error;
     return null;
   }
 }
@@ -89,6 +120,7 @@ export async function uploadShots(
   return Promise.all(
     shots.map(async (shot, index): Promise<Row | null> => {
       const path = await uploadAsset(ownerId, shot.uri, shot.kind, `shot-${index}`);
+      if (!path && shot.kind === 'video') throw new Error('Could not upload the demo video');
       return path ? { label: shot.label, kind: shot.kind, storagePath: path } : null;
     }),
   );

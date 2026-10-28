@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
@@ -14,11 +14,20 @@ import { shortName, slugify } from '@/data/mock';
 import type { AppListing, MediaItem, Message } from '@/data/types';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import { ChatMenu } from '@/features/chat/ChatMenu';
-import { ChatStamp, shouldStamp, stampLabel, UnreadDivider, useChatAnchor } from '@/features/chat/ChatStamp';
+import {
+  ChatStamp,
+  shouldStamp,
+  stampLabel,
+  UnreadDivider,
+  useChatAnchor,
+} from '@/features/chat/ChatStamp';
 import { Composer } from '@/features/chat/Composer';
 import { sendAdminDm } from '@/data/repo/admin';
+import { listingBySlug } from '@/data/repo/listings';
+import { cardToListing } from '@/features/loop/mapLoop';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { avatarName, TEAM_ID } from '@/features/chat/chatMeta';
+import { avatarName, firstName, TEAM_ID } from '@/features/chat/chatMeta';
+import { JoinChip } from '@/features/community/JoinChip';
 import { useDevLoop } from '@/features/dev/useDevLoop';
 import { MessageActions } from '@/features/chat/MessageActions';
 import { MessageBubble } from '@/features/chat/MessageBubble';
@@ -26,7 +35,6 @@ import { toggleReaction } from '@/features/chat/reactions';
 import { uploadAttachments } from '@/features/chat/uploadAttachments';
 import { JarydMark } from '@/features/chat/TeamMark';
 import { OfficialMark } from '@/features/community/OfficialMark';
-import { CommunityPromoCard } from '@/features/marketing/CommunityPromoCard';
 import { TradeAppSheet } from '@/features/chat/TradeAppSheet';
 import { TradeCard } from '@/features/chat/TradeCard';
 import { useMediaPicker } from '@/features/chat/useMediaPicker';
@@ -35,6 +43,8 @@ import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout } from '@/theme/tokens';
+
+const JARYD_APP_SLUG = 'good-times-one-group-question-2';
 
 /** A bubble carries at most four attachments. */
 const ATTACHMENT_LIMIT = 4;
@@ -75,6 +85,7 @@ export default function ChatThread() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [appOpen, setAppOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const afterMenu = useRef<null | 'builder' | 'app' | 'feedback'>(null);
   const [viewer, setViewer] = useState<{
     items: MediaItem[];
     index: number;
@@ -83,10 +94,29 @@ export default function ChatThread() {
   const [actionFor, setActionFor] = useState<Message | null>(null);
 
   const isTeam = id === TEAM_ID;
-  const match = store.matches.find((item) => item.id === id) ?? loop.matches.find((item) => item.id === id);
+  const match =
+    store.matches.find((item) => item.id === id) ?? loop.matches.find((item) => item.id === id);
   // A thread is keyed by the match, so the listing is the one it is about.
   const listing = store.listing(match?.appId ?? id);
   const viaApp = match ? store.apps[match.viaAppId] : undefined;
+  const jarydCard = useQuery({
+    queryKey: ['listing-by-slug', JARYD_APP_SLUG],
+    enabled: isTeam,
+    queryFn: () => listingBySlug(JARYD_APP_SLUG),
+    staleTime: 60_000,
+  });
+  const teamListing = jarydCard.data
+    ? cardToListing(jarydCard.data, true)
+    : {
+        ...LISTING_FALLBACK,
+        id: 'jaryd-profile',
+        name: 'Good Times: One Group Question',
+        sub: 'Answer and chat with friends',
+        hue: 280,
+        builder: 'Jaryd Hermann',
+        slug: JARYD_APP_SLUG,
+      };
+  const profileListing = isTeam ? teamListing : listing;
 
   useThreadMessages(isTeam || !match ? null : id);
   const stored = useMemo(() => loop.messages(id), [id, loop]);
@@ -103,7 +133,6 @@ export default function ChatThread() {
   }, [id, markChatRead]);
 
   const messages = stored;
-  const firstJaryd = messages.findIndex((item) => item.kind === 'them');
   const unreadStart =
     unreadAtOpen > 0 && messages.length ? Math.max(0, messages.length - unreadAtOpen) : -1;
   const { scrollRef, onUnreadLayout, onContentSizeChange } = useChatAnchor(unreadStart >= 0);
@@ -124,11 +153,8 @@ export default function ChatThread() {
   }
 
   const builder = avatarName(listing?.builder ?? 'Jaryd');
-  // Whatever gets the tester into the app fastest: the store page, the build,
-  // then the site.
-  const tradeLink = ['App Store', 'TestFlight', 'Web']
-    .map((kind) => listing?.links?.find(([label]) => label === kind))
-    .find(Boolean);
+  const tradeLink = listingHref(listing, match?.shareUrl);
+  const myDefaultUrl = listingHref(viaApp ?? store.primaryApp)[1];
   const link: [string, string] = isTeam
     ? ['Web', 'hey100.com']
     : (tradeLink ?? ['Web', `${slugify(listing?.name ?? 'app')}.app`]);
@@ -147,7 +173,10 @@ export default function ChatThread() {
           body: body || undefined,
           media: pending.length ? pending : undefined,
           at: new Date().toISOString(),
-          reply: replyTo?.body || replyTo?.id ? { id: replyTo.id ?? '', body: replyTo.body || 'Attachment' } : undefined,
+          reply:
+            replyTo?.body || replyTo?.id
+              ? { id: replyTo.id ?? '', body: replyTo.body || 'Attachment' }
+              : undefined,
         },
       ]);
       void uploadAttachments(userId, pending)
@@ -229,7 +258,10 @@ export default function ChatThread() {
           </Glass>
         </Pressable>
 
-        <Pressable onPress={() => (isTeam ? setMenuOpen(true) : setBuilderOpen(true))} style={{ flex: 1, minWidth: 0 }}>
+        <Pressable
+          onPress={() => (isTeam ? setMenuOpen(true) : setBuilderOpen(true))}
+          style={{ flex: 1, minWidth: 0 }}
+        >
           <Glass radius={26} intensity={55} style={{ height: 52, flex: 1 }}>
             <View
               style={{
@@ -302,11 +334,17 @@ export default function ChatThread() {
             match={match}
             theirAppName={listing.name}
             myAppName={viaApp?.name ?? store.primaryApp.name}
-            code={listing.code ?? ''}
+            theirFirstName={firstName(listing.builder)}
+            theirCode={match.shareCode ?? listing.code ?? ''}
+            myCode={match.myShareCode ?? viaApp?.code ?? ''}
+            myDefaultUrl={myDefaultUrl}
             onCopyCode={() => toast('Code copied')}
-            onOpenLink={() => {
-              void store.setTradeStatus(match.id, 'mine', 'Using');
-              openBrowser(link[0], link[1]);
+            onOpenLink={() => openBrowser(link[0], link[1])}
+            onTryingChange={(trying) => {
+              void store.setTradeStatus(match.id, 'mine', trying ? 'Using' : 'Not started');
+            }}
+            onSaveShare={(url, code) => {
+              void store.setMatchShare(match.id, url, code).then(() => toast('Saved'));
             }}
             onSendFeedback={() =>
               router.push({
@@ -324,40 +362,40 @@ export default function ChatThread() {
                 <ChatStamp label={stampLabel(message.at)} />
               ) : null}
               {index === unreadStart ? <UnreadDivider onReady={onUnreadLayout} /> : null}
-              <MessageBubble
-                message={message}
-                hue={listing?.hue ?? 128}
-                unread={unreadStart >= 0 && index >= unreadStart}
-                avatar={
-                  isTeam ? (
-                    <JarydMark size={26} />
-                  ) : (
-                    <Avatar name={builder} uri={listing?.builderPhoto} size={26} />
-                  )
-                }
-                onOpenMedia={(items, at) => setViewer({ items, index: at })}
-                onLongPress={() => setActionFor(message)}
-                onToggleReaction={(emoji) => void react(message, emoji)}
-              />
-              {isTeam && index === firstJaryd ? (
-                <CommunityPromoCard
-                  from="team_chat"
-                  onPress={() =>
-                    router.replace({ pathname: '/(tabs)/chat', params: { desk: 'community' } })
+              {isActionChip(message) ? (
+                <JoinChip
+                  name={
+                    message.senderId && message.senderId === userId
+                      ? store.user.realName
+                      : (listing?.builder ?? builder)
                   }
+                  photo={
+                    message.senderId && message.senderId === userId
+                      ? store.user.photo
+                      : listing?.builderPhoto
+                  }
+                  label={actionChipLabel(message, userId, store.user.realName)}
                 />
-              ) : null}
+              ) : (
+                <MessageBubble
+                  message={message}
+                  hue={listing?.hue ?? 128}
+                  unread={unreadStart >= 0 && index >= unreadStart}
+                  avatar={
+                    isTeam ? (
+                      <JarydMark size={26} />
+                    ) : (
+                      <Avatar name={builder} uri={listing?.builderPhoto} size={26} />
+                    )
+                  }
+                  onOpenMedia={(items, at) => setViewer({ items, index: at })}
+                  onLongPress={() => setActionFor(message)}
+                  onToggleReaction={(emoji) => void react(message, emoji)}
+                />
+              )}
             </React.Fragment>
           ))}
         </View>
-
-        {match?.turn && !isTeam ? (
-          <View style={{ alignItems: 'center', marginTop: 18 }}>
-            <Txt font="mono" size={11.5} muted upper tracking={0.9}>
-              your turn
-            </Txt>
-          </View>
-        ) : null}
       </ScrollView>
 
       <Composer
@@ -371,7 +409,7 @@ export default function ChatThread() {
         onSend={send}
         hue={listing?.hue ?? 128}
         bottomInset={insets.bottom}
-        placeholder={isTeam ? 'Message Jaryd' : 'Message'}
+        placeholder={`Message ${firstName(builder)}`}
         replyTo={replyTo?.body || (replyTo ? 'Attachment' : null)}
         onCancelReply={() => setReplyTo(null)}
       />
@@ -392,22 +430,51 @@ export default function ChatThread() {
       <ChatMenu
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
+        onClosed={() => {
+          const next = afterMenu.current;
+          afterMenu.current = null;
+          if (next === 'builder') setBuilderOpen(true);
+          if (next === 'app') {
+            if (isTeam) {
+              router.push({
+                pathname: '/l/[slug]',
+                params: { slug: JARYD_APP_SLUG },
+              });
+              return;
+            }
+            setAppOpen(true);
+          }
+          if (next === 'feedback' && match) {
+            router.push({
+              pathname: '/feedback-form',
+              params: { matchId: match.id },
+            });
+          }
+        }}
         appName={isTeam || !listing ? 'Jaryd' : shortName(listing.name)}
         builder={isTeam || !listing ? 'Jaryd' : listing.builder}
         isTeam={isTeam}
         link={link}
         onViewApp={() => {
+          afterMenu.current = 'app';
           setMenuOpen(false);
-          setTimeout(() => setAppOpen(true), 240);
         }}
         onViewProfile={() => {
+          afterMenu.current = 'builder';
           setMenuOpen(false);
-          setTimeout(() => setBuilderOpen(true), 240);
         }}
         onOpenLink={() => {
           setMenuOpen(false);
           openBrowser(link[0], link[1]);
         }}
+        onSendFeedback={
+          isTeam || !match
+            ? undefined
+            : () => {
+                afterMenu.current = 'feedback';
+                setMenuOpen(false);
+              }
+        }
         onDelete={() => {
           setMenuOpen(false);
           void store.deleteChat(id);
@@ -447,10 +514,10 @@ export default function ChatThread() {
         />
       ) : null}
 
-      {listing ? (
+      {profileListing ? (
         <BuilderSheet
           visible={builderOpen}
-          listing={{ ...LISTING_FALLBACK, ...listing }}
+          listing={{ ...LISTING_FALLBACK, ...profileListing }}
           onClose={() => setBuilderOpen(false)}
           onOpenLink={(kind, value) => {
             setBuilderOpen(false);
@@ -471,3 +538,37 @@ export default function ChatThread() {
   );
 }
 
+function listingHref(
+  listing?: { links?: [string, string][] } | null,
+  override?: string,
+): [string, string] | undefined {
+  if (override?.trim()) return ['Web', override.trim()];
+  return ['App Store', 'TestFlight', 'Web']
+    .map((kind) => listing?.links?.find(([label]) => label === kind))
+    .find(Boolean);
+}
+
+function isActionChip(message: Message): message is Extract<Message, { kind: 'system' }> {
+  return (
+    message.kind === 'system' &&
+    /started testing|hasn't tried|added a code|updated the code|removed the code|added a link|updated the link|removed the link/i.test(
+      message.body,
+    )
+  );
+}
+
+function actionChipLabel(
+  message: Extract<Message, { kind: 'system' }>,
+  userId: string | null,
+  myName: string,
+): string {
+  const fromMe = !!message.senderId && message.senderId === userId;
+  if (!fromMe) return message.body;
+  const who = firstName(myName);
+  const rest =
+    who && message.body.toLowerCase().startsWith(who.toLowerCase() + ' ')
+      ? message.body.slice(who.length + 1)
+      : message.body;
+  if (/hasn't tried/i.test(rest)) return "You haven't tried it";
+  return `You ${rest}`;
+}

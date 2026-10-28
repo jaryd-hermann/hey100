@@ -739,6 +739,10 @@ export type Database = {
           id: string
           last_message_at: string
           reason: string | null
+          share_code_a: string | null
+          share_code_b: string | null
+          share_url_a: string | null
+          share_url_b: string | null
           trade_a: string
           trade_b: string
           updated_at: string
@@ -755,6 +759,10 @@ export type Database = {
           id?: string
           last_message_at?: string
           reason?: string | null
+          share_code_a?: string | null
+          share_code_b?: string | null
+          share_url_a?: string | null
+          share_url_b?: string | null
           trade_a?: string
           trade_b?: string
           updated_at?: string
@@ -771,6 +779,10 @@ export type Database = {
           id?: string
           last_message_at?: string
           reason?: string | null
+          share_code_a?: string | null
+          share_code_b?: string | null
+          share_url_a?: string | null
+          share_url_b?: string | null
           trade_a?: string
           trade_b?: string
           updated_at?: string
@@ -1005,6 +1017,7 @@ export type Database = {
           updated_at: string
           username: string | null
           visibility: Json
+          welcome_dm_at: string | null
           workplace: string | null
           years_experience: string | null
         }
@@ -1043,6 +1056,7 @@ export type Database = {
           updated_at?: string
           username?: string | null
           visibility?: Json
+          welcome_dm_at?: string | null
           workplace?: string | null
           years_experience?: string | null
         }
@@ -1081,6 +1095,7 @@ export type Database = {
           updated_at?: string
           username?: string | null
           visibility?: Json
+          welcome_dm_at?: string | null
           workplace?: string | null
           years_experience?: string | null
         }
@@ -1375,11 +1390,21 @@ export type Database = {
             }
             Returns: Json
           }
+      community_home_payload: { Args: never; Returns: Json }
+      match_messages: { Args: { p_match_id: string }; Returns: Json }
+      set_match_share: {
+        Args: { p_code?: string | null; p_match_id: string; p_url?: string | null }
+        Returns: Json
+      }
       set_trade_status: {
         Args: { p_match_id: string; p_status: string }
         Returns: Json
       }
       username_available: { Args: { p_username: string }; Returns: boolean }
+      sponsored_tool_vote_tallies: {
+        Args: never
+        Returns: { down: number; tool_id: string; up: number }[]
+      }
       vote_sponsored_tool: {
         Args: { p_tool_id: string; p_vote: number }
         Returns: undefined

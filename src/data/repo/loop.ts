@@ -43,6 +43,7 @@ export type HeyRow = {
   app_id: string;
   via_app_id: string;
   card: ListingCard | null;
+  match_id?: string | null;
 };
 
 export type ThreadRow = {
@@ -67,6 +68,10 @@ export type ThreadRow = {
   } | null;
   unread: number;
   my_feedback_id: string | null;
+  share_mine_url: string | null;
+  share_mine_code: string | null;
+  share_theirs_url: string | null;
+  share_theirs_code: string | null;
 };
 
 export type FeedbackRow = {
@@ -87,7 +92,10 @@ export type FeedbackRow = {
 };
 
 /** Feedback on the owner's apps, keyed by app id. */
-export type FeedbackByApp = Record<string, { heys: number; entries: FeedbackRow[] }>;
+export type FeedbackByApp = Record<
+  string,
+  { heys: number; views: number; skips: number; entries: FeedbackRow[] }
+>;
 
 export type Counters = {
   plan: 'free' | 'pro';
@@ -159,9 +167,10 @@ export function useHeys() {
     enabled: !!userId,
     staleTime: staleTimes.heys,
     queryFn: async () =>
-      (await rpc<{ received: HeyRow[]; sent: HeyRow[] }>('my_heys')) ?? {
+      (await rpc<{ received: HeyRow[]; sent: HeyRow[]; matched?: HeyRow[] }>('my_heys')) ?? {
         received: [],
         sent: [],
+        matched: [],
       },
   });
 }
@@ -201,17 +210,7 @@ export function useCounters() {
 
 /** Messages in one thread, oldest first, which is the order they render in. */
 export async function fetchMessages(matchId: string): Promise<MessageRow[]> {
-  const db = getSupabase();
-  if (!db) return [];
-
-  const { data, error } = await db
-    .from('messages')
-    .select('*, chat_reactions!message_id(emoji, user_id), reply:reply_to(id, body)')
-    .eq('match_id', matchId)
-    .order('created_at', { ascending: true });
-
-  if (error) throw error;
-  return data ?? [];
+  return (await rpc<MessageRow[]>('match_messages', { p_match_id: matchId })) ?? [];
 }
 
 export function useMessages(matchId: string | null) {
@@ -276,6 +275,14 @@ export function setTradeStatus(matchId: string, status: string) {
   return rpc<ActionResult>('set_trade_status', {
     p_match_id: matchId,
     p_status: status,
+  });
+}
+
+export function setMatchShare(matchId: string, url: string, code: string) {
+  return rpc<ActionResult>('set_match_share', {
+    p_match_id: matchId,
+    p_url: url || null,
+    p_code: code || null,
   });
 }
 

@@ -11,7 +11,7 @@ export function CommunityPromoCard({
   from,
   onPress,
 }: {
-  from: 'dms' | 'team_chat';
+  from: 'dms' | 'team_chat' | 'discover';
   onPress: () => void;
 }) {
   const { c } = useTheme();

@@ -74,7 +74,8 @@ export function PickStep({
   const { c } = useTheme();
   const [query, setQuery] = useState('');
 
-  const typed = query.trim().toLowerCase();
+  // Ignore leftover search text when this step has no search field.
+  const typed = search ? query.trim().toLowerCase() : '';
   // Picks stay on screen while searching, including ones typed in rather than
   // chosen from the list, so a skill added a moment ago cannot vanish.
   const found = typed ? matches(opts, typed) : opts;

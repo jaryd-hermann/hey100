@@ -28,6 +28,7 @@ export function useDevLoop() {
   return {
     on,
     heys: on ? mergeById(INCOMING_HEYS, store.heys, (hey: IncomingHey) => hey.id) : store.heys,
+    matchedHeys: store.matchedHeys ?? [],
     sentHeys: on ? mergeById(SENT_HEYS, store.sentHeys, (hey: SentHey) => hey.id) : store.sentHeys,
     matches: on ? mergeById(INITIAL_MATCHES, store.matches, (match: Match) => match.id) : store.matches,
     messages: (id: string): Message[] => {
@@ -38,7 +39,7 @@ export function useDevLoop() {
     },
     inbox: (appId: string): InboxData | undefined => {
       const live = store.inbox[appId];
-      if (live && (live.list?.length || live.responses)) return live;
+      if (live) return live;
       if (!on) return live;
       return INBOX[appId] ?? INBOX.tide;
     },

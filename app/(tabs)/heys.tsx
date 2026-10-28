@@ -11,6 +11,7 @@ import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import { FollowUpSheet } from '@/features/heys/FollowUpSheet';
 import { HeysSwitcher, type HeysTab } from '@/features/heys/HeysSwitcher';
 import { PassReasonSheet } from '@/features/heys/PassReasonSheet';
+import { MatchChip } from '@/features/heys/MatchChip';
 import { ReceivedHeyCard } from '@/features/heys/ReceivedHeyCard';
 import { SentHeyCard } from '@/features/heys/SentHeyCard';
 import { useTick } from '@/features/heys/time';
@@ -85,14 +86,15 @@ export default function HeysScreen() {
   return (
     <Screen title="Heys" headerRight={<HeysSwitcher value={tab} onChange={setTab} />}>
       {tab === 'received' ? (
-        loop.heys.length === 0 ? (
-          <EmptyState
-            title="No heys waiting."
-            body="Say hey to a few apps in Discover. A note doubles your reply rate."
-          />
-        ) : (
-          <View style={{ gap: 14 }}>
-            {loop.heys.map((hey) => {
+        <View style={{ gap: 14 }}>
+          {loop.heys.length === 0 ? (
+            <EmptyState
+              title="No heys waiting."
+              body="Say hey to a few apps in Discover. A note doubles your reply rate."
+              compact={(loop.matchedHeys?.length ?? 0) > 0}
+            />
+          ) : (
+            loop.heys.map((hey) => {
               const listing = store.listing(hey.appId);
               if (!listing) return null;
 
@@ -112,9 +114,24 @@ export default function HeysScreen() {
                   onHeyBack={() => void heyBack(hey.id)}
                 />
               );
-            })}
-          </View>
-        )
+            })
+          )}
+          {(loop.matchedHeys ?? []).map((hey) => {
+            const listing = store.listing(hey.appId);
+            if (!listing) return null;
+            return (
+              <MatchChip
+                key={hey.id}
+                hey={hey}
+                listing={listing}
+                onPress={() => {
+                  if (!hey.matchId) return;
+                  router.push({ pathname: '/chat/[id]', params: { id: hey.matchId } });
+                }}
+              />
+            );
+          })}
+        </View>
       ) : loop.sentHeys.length === 0 ? (
         <EmptyState
           title="No heys sent yet."
@@ -191,9 +208,9 @@ export default function HeysScreen() {
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
+function EmptyState({ title, body, compact }: { title: string; body: string; compact?: boolean }) {
   return (
-    <View style={{ paddingTop: 80, alignItems: 'center', gap: 12 }}>
+    <View style={{ paddingTop: compact ? 28 : 80, alignItems: 'center', gap: 12 }}>
       <Txt font="mono" size={18} weight={500} center>
         {title}
       </Txt>

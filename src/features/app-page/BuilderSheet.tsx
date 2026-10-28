@@ -4,13 +4,20 @@ import { Pressable, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
 import { Sheet } from '@/components/ui/Sheet';
-import { Label, Txt } from '@/components/ui/Txt';
+import { Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
-import type { AppConnection, AppListing, OwnedApp } from '@/data/types';
+import type { AppListing, OwnedApp } from '@/data/types';
 import { recordProfileView } from '@/data/repo/notifications';
-import { builderFromUser } from '@/features/profile/builderCard';
+import {
+  ChipRow,
+  ShippedProductsTray,
+  VerifiedStatsRow,
+  useBuilderProducts,
+  useOpenShippedApp,
+  verifiedMoney,
+} from '@/features/profile/BuilderBits';
+import { builderFromUser, publicRole } from '@/features/profile/builderCard';
 import { isServerId } from '@/lib/supabase';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -44,6 +51,8 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
   const { c } = useTheme();
   const store = useStore();
   const mine = !!listing && store.ownedApps.some((app) => app.id === listing.id);
+  const products = useBuilderProducts(listing, mine);
+  const openApp = useOpenShippedApp();
 
   useEffect(() => {
     if (!visible || !listing || mine || !isServerId(listing.id)) return;
@@ -52,22 +61,18 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
 
   if (!listing) return <Sheet visible={false} onClose={onClose} children={null} />;
   const card = mine ? { ...listing, ...builderFromUser(store.user) } : listing;
+  const role = publicRole(card.role);
   const socials: SocialRow[] = (mine ? store.user.socials : (listing.builderSocials ?? []))
     .filter(([, value]) => !!value)
     .map(([kind, value]) => [kind, value, SOCIAL_ICONS[kind] ?? 'globe-outline']);
 
   const commits = mine ? store.user.githubCommits : listing.githubCommits;
-  const verified = verifiedStats(
+  const verified = verifiedMoney(
     listing,
     mine
       ? store.ownedApps.flatMap((app) => Object.values(store.connections[app.id] ?? {}))
       : [],
   );
-  const stats: [string, string][] = [
-    [verified.revenue, 'Verified revenue'],
-    [verified.customers, 'Verified customers'],
-    [commits != null ? commits.toLocaleString() : '—', 'GitHub'],
-  ];
 
   return (
     <Sheet visible={visible} onClose={onClose}>
@@ -78,9 +83,9 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
             <Txt size={19} weight={700}>
               {card.builder}
             </Txt>
-            {card.role ? (
+            {role ? (
               <Txt size={13.5} muted>
-                {card.role}
+                {role}
               </Txt>
             ) : null}
             <Txt size={13.5} muted style={{ marginTop: 2 }}>
@@ -88,19 +93,6 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
             </Txt>
           </View>
         </View>
-
-        <Card padding={16}>
-          <View style={{ flexDirection: 'row' }}>
-            {stats.map(([value, label]) => (
-              <View key={label} style={{ flex: 1, gap: 3 }}>
-                <Txt font="mono" size={19} weight={500}>
-                  {value}
-                </Txt>
-                <Label size={10}>{label}</Label>
-              </View>
-            ))}
-          </View>
-        </Card>
 
         {card.style ? (
           <Card tone="soft" padding={14}>
@@ -110,13 +102,26 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
           </Card>
         ) : null}
 
-        {(card.skills ?? []).length ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {card.skills!.slice(0, 8).map((skill) => (
-              <Chip key={skill} label={skill} size="sm" />
-            ))}
-          </View>
+        <ShippedProductsTray
+          apps={products}
+          onOpen={(app) => {
+            onClose();
+            setTimeout(() => openApp(app), 240);
+          }}
+        />
+
+        {verified.revenue || verified.customers || commits != null ? (
+          <Card padding={16}>
+            <VerifiedStatsRow
+              revenue={verified.revenue}
+              customers={verified.customers}
+              commits={commits}
+            />
+          </Card>
         ) : null}
+
+        <ChipRow label="Skills" items={card.skills ?? []} />
+        <ChipRow label="Apps I'd try" items={card.interests ?? []} />
 
         <View style={{ gap: 8 }}>
           {socials.map(([kind, value, icon]) => (
@@ -151,40 +156,4 @@ export function BuilderSheet({ visible, listing, onClose, onOpenLink }: BuilderS
       </View>
     </Sheet>
   );
-}
-
-function connectionLines(row?: AppConnection): string[] {
-  if (!row) return [];
-  return [row.badge, row.on, row.detail, ...(row.badges ?? [])].filter(
-    (line): line is string => !!line,
-  );
-}
-
-function bandFrom(lines: string[], pattern: RegExp): string | null {
-  for (const line of lines) {
-    const match = line.match(pattern);
-    if (match?.[1]) return match[1].replace(/\s+/g, '');
-  }
-  return null;
-}
-
-function verifiedStats(
-  listing: AppListing | OwnedApp,
-  extra: (AppConnection | undefined)[],
-): { revenue: string; customers: string } {
-  const lines = [
-    ...(listing.badges ?? []),
-    ...extra.flatMap((row) => connectionLines(row)),
-  ];
-  const revenueBand = bandFrom(lines, /(\$[\d.,]+(?:\s*[–-]\s*\$?[\d.,]+)?[kKmM]?)/i);
-  const customerBand = bandFrom(
-    lines,
-    /([\d.,]+(?:\s*[–-]\s*[\d.,]+)?[kKmM]?)\s+(?:customers|subscribers)/i,
-  );
-  const hasRevenue = lines.some((line) => /stripe|revenuecat|\bmrr\b|revenue/i.test(line));
-  const hasCustomers = lines.some((line) => /customer|subscriber|revenuecat/i.test(line));
-  return {
-    revenue: revenueBand ?? (hasRevenue ? 'Verified' : '—'),
-    customers: customerBand ?? (hasCustomers ? 'Verified' : '—'),
-  };
 }

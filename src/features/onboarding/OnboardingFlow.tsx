@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Progress } from '@/components/ui/Progress';
@@ -42,6 +42,8 @@ import { RoleStep, WorkStep } from './steps/WorkStep';
 import { UsernameStep } from './steps/UsernameStep';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { StoryStep } from './steps/StoryStep';
+import { WhyStep } from './steps/WhyStep';
+import { JoiningStep } from './steps/JoiningStep';
 
 export type OnboardingMode = 'full' | 'addApp';
 
@@ -50,7 +52,7 @@ const DRAFT_KEY = 'hey100.onboarding-draft';
 export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { c, isDark } = useTheme();
+  const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
   const { userId } = useAuth();
@@ -73,17 +75,47 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const [answerDraft, setAnswerDraft] = useState('');
   // Orientation for every screenshot in this listing, picked on the media step.
   const [shotLayout, setShotLayout] = useState<ShotLayout>('vertical');
+  const [joining, setJoining] = useState<string | null>(null);
 
   const usernameState = useUsernameState(draft.username);
 
   const step = STEPS[draft.step] ?? STEPS[0];
+  const realName = [draft.firstName, draft.lastName]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(' ');
   const lastStep = addApp ? ADD_APP_RANGE.last : LAST_STEP;
   const isWelcome = step.kind === 'welcome';
   const isStory = step.kind === 'story';
+  const isWhy = step.kind === 'why';
+  const inviteStep = STEPS.findIndex((item) => item.kind === 'invite');
   const isCheckLike = step.kind === 'check';
   const isSummary = step.kind === 'summary';
   const welcomed = useRef(false);
   const appliedInvite = useRef<string | null>(null);
+  const triedCode = useRef('');
+  const scrollRef = useRef<ScrollView>(null);
+
+  const acceptInvite = useCallback(
+    (invitedBy: string) => {
+      captureEvent('invite_redeemed', { invited_by: invitedBy });
+      toast('You got 3 extra free matches');
+      update((prev) => ({
+        inviteOk: true,
+        invitedBy,
+        ...(prev.step === inviteStep ? { step: prev.step + 1 } : {}),
+      }));
+    },
+    [inviteStep, toast, update],
+  );
+
+  useEffect(() => {
+    if (step.kind !== 'auth') return;
+    const show = Keyboard.addListener('keyboardDidShow', () => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => show.remove();
+  }, [step.kind]);
 
   useEffect(() => {
     if (!ready || addApp || !isWelcome || welcomed.current) return;
@@ -112,9 +144,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           toast("That code isn't valid");
           return;
         }
-        const invitedBy = status.inviter ?? 'a builder';
-        update({ inviteOk: true, invitedBy });
-        captureEvent('invite_redeemed', { invited_by: invitedBy });
+        acceptInvite(status.inviter ?? 'a builder');
       } catch {
         if (!cancelled) toast('Could not check that code. Try again.');
       }
@@ -123,7 +153,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     return () => {
       cancelled = true;
     };
-  }, [ready, addApp, invite, toast, update]);
+  }, [acceptInvite, ready, addApp, invite, toast, update]);
 
   const valid = useMemo(() => {
     switch (step.kind) {
@@ -132,13 +162,29 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'link':
         return draft.fetched;
       case 'username':
-        return draft.terms && usernameState !== 'taken' && usernameState !== 'invalid';
+        return (
+          !!draft.firstName.trim() &&
+          !!draft.lastName.trim() &&
+          draft.terms &&
+          usernameState !== 'taken' &&
+          usernameState !== 'invalid'
+        );
       case 'pick':
         return picked(step.group!).length > 0 || !!draft.own[step.group!];
       default:
         return true;
     }
-  }, [draft.fetched, draft.inviteOk, draft.own, draft.terms, picked, step, usernameState]);
+  }, [
+    draft.fetched,
+    draft.firstName,
+    draft.inviteOk,
+    draft.lastName,
+    draft.own,
+    draft.terms,
+    picked,
+    step,
+    usernameState,
+  ]);
 
   const invalidMessage = () => {
     switch (step.kind) {
@@ -147,6 +193,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'link':
         return 'Fetch your app first';
       case 'username':
+        if (!draft.firstName.trim() || !draft.lastName.trim()) return 'Add your first and last name';
         if (usernameState === 'taken') return 'That username is taken';
         if (usernameState === 'invalid') return 'Pick a valid username';
         return 'Agree to the terms to continue';
@@ -211,7 +258,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     stage: app.stage ?? 'Idea',
     hue: app.hue ?? 220,
     icon: app.icon,
-    builder: store.user.realName,
+    builder: realName || store.user.realName,
     role: '',
     style: '',
     likes: '—',
@@ -286,6 +333,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           router.replace('/paywall?from=listing_limit');
           return;
         }
+        console.warn('listing publish failed', error);
         toast('Could not publish your listing. Try again.');
         return;
       } finally {
@@ -303,6 +351,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
     store.completeOnboarding({
       user: {
+        realName: realName || store.user.realName,
         username: draft.username,
         showAs: draft.showAs,
         job: draft.job,
@@ -333,7 +382,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       invited_by: draft.invitedBy,
     });
 
-    router.replace('/paywall?from=onboarding');
+    setJoining(app.name || draft.appName || 'your app');
   };
 
   /**
@@ -361,6 +410,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const redeemCode = async () => {
     const code = draft.inviteCode.trim();
     if (!code || checkingCode) return;
+    triedCode.current = code;
 
     setCheckingCode(true);
     try {
@@ -370,15 +420,24 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         return;
       }
 
-      const invitedBy = status.inviter ?? 'a builder';
-      update({ inviteOk: true, invitedBy });
-      captureEvent('invite_redeemed', { invited_by: invitedBy });
+      acceptInvite(status.inviter ?? 'a builder');
     } catch {
       toast('Could not check that code. Try again.');
     } finally {
       setCheckingCode(false);
     }
   };
+
+  useEffect(() => {
+    if (step.kind !== 'invite' || draft.inviteOk || checkingCode) return;
+    const code = draft.inviteCode.trim();
+    if (code.length < 6 || triedCode.current === code) return;
+    const timer = setTimeout(() => {
+      triedCode.current = code;
+      void redeemCode();
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [checkingCode, draft.inviteCode, draft.inviteOk, step.kind]);
 
   /**
    * Saves what the profile steps collected. The listing itself still lives in
@@ -390,7 +449,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     const stored = draft.photo || photo ? await uploadAvatar(userId, draft.photo || photo!) : null;
 
     const fields = {
-      ...(fullName ? { real_name: fullName } : {}),
+      ...((realName || fullName) ? { real_name: realName || fullName } : {}),
       ...(stored ? { photo_url: stored } : {}),
       display_pref: draft.showAs === 'username' ? ('username' as const) : ('real_name' as const),
       job: draft.job || null,
@@ -561,8 +620,18 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     ];
   };
 
-  // The splash is the one screen that breaks the palette, in light mode only.
-  const background = isWelcome && !isDark ? SPLASH_BG.light : c.bg;
+  const background = isWelcome ? SPLASH_BG.light : c.bg;
+
+  if (joining) {
+    return (
+      <JoiningStep
+        appName={joining}
+        onDone={() => {
+          router.replace('/paywall?from=onboarding');
+        }}
+      />
+    );
+  }
 
   if (!addApp && store.onboarded) {
     return <Redirect href="/(tabs)/discover" />;
@@ -605,7 +674,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     );
   }
 
-  if (isStory) {
+  if (isStory || isWhy) {
     return (
       <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
         <View style={{ paddingHorizontal: layout.gutter, height: 46, justifyContent: 'center' }}>
@@ -613,7 +682,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             <Ionicons name="chevron-back" size={26} color={c.ink} />
           </Pressable>
         </View>
-        <StoryStep onContinue={() => update((prev) => ({ step: prev.step + 1 }))} />
+        {isStory ? (
+          <StoryStep onContinue={() => update((prev) => ({ step: prev.step + 1 }))} />
+        ) : (
+          <WhyStep onContinue={() => update((prev) => ({ step: prev.step + 1 }))} />
+        )}
       </View>
     );
   }
@@ -685,9 +758,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
           paddingTop: isCheckLike ? 0 : isSummary ? 14 : 24,
@@ -695,7 +770,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           flexGrow: isCheckLike ? 1 : undefined,
         }}
       >
-        {!isCheckLike && title ? (
+        {!isCheckLike && title && step.kind !== 'username' ? (
           <Txt font="mono" size={27} weight={500} lh={1.22} style={{ marginBottom: 18 }}>
             {title}
           </Txt>
@@ -894,6 +969,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'pick':
         return (
           <PickStep
+            key={step.group ?? draft.step}
             opts={step.opts ?? []}
             selected={picked(step.group!)}
             single={step.single}
@@ -986,7 +1062,10 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       case 'username':
         return (
           <UsernameStep
-            realName={store.user.realName}
+            firstName={draft.firstName}
+            lastName={draft.lastName}
+            onChangeFirstName={(firstName) => update({ firstName })}
+            onChangeLastName={(lastName) => update({ lastName })}
             photo={draft.photo || store.user.photo}
             onPickPhoto={() => void choosePhoto()}
             username={draft.username}
@@ -1003,11 +1082,12 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         return (
           <AuthStep
             appName={draft.appName}
-            appSub={draft.appSub}
             appHue={draft.appHue}
             appIcon={draft.appIcon || undefined}
+            mediaCount={draft.shots.length}
+            promptCount={draft.answered.length}
             username={draft.username}
-            realName={store.user.realName}
+            realName={realName || store.user.realName}
             photo={draft.photo || store.user.photo}
             pending={authPending || publishing}
             signedIn={!!userId}

@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Txt } from '@/components/ui/Txt';
 import { emailLooksOk, passwordLooksOk, type AuthProviderId } from '@/features/auth/signIn';
@@ -221,9 +222,10 @@ export function EmailOption({
 
 export type AuthStepProps = {
   appName: string;
-  appSub: string;
   appHue: number;
   appIcon?: string;
+  mediaCount: number;
+  promptCount: number;
   username: string;
   realName?: string;
   photo?: string;
@@ -235,12 +237,24 @@ export type AuthStepProps = {
   onPublish: () => void;
 };
 
+function ReadyTag({ label }: { label: string }) {
+  const { c } = useTheme();
+  return (
+    <Chip
+      size="sm"
+      label={label}
+      right={<Ionicons name="checkmark-circle" size={14} color={c.accentText} />}
+    />
+  );
+}
+
 /** Sign-in comes last, once the user has put the work in. */
 export function AuthStep({
   appName,
-  appSub,
   appHue,
   appIcon,
+  mediaCount,
+  promptCount,
   username,
   realName,
   photo,
@@ -262,15 +276,17 @@ export function AuthStep({
       </Txt>
 
       <Card padding={16} style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <AppIcon hue={appHue} name={appName || 'A'} uri={appIcon} size={52} />
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, gap: 8, paddingTop: 2 }}>
             <Txt font="mono" size={15} weight={500} numberOfLines={1}>
               {appName || 'Your app'}
             </Txt>
-            <Txt size={13.5} muted numberOfLines={1}>
-              {appSub || 'Ready to publish'}
-            </Txt>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <ReadyTag label={`${mediaCount} pic${mediaCount === 1 ? '' : 's'}`} />
+              <ReadyTag label={`${promptCount} prompt${promptCount === 1 ? '' : 's'}`} />
+              <ReadyTag label="Info" />
+            </View>
           </View>
         </View>
 
@@ -278,16 +294,21 @@ export function AuthStep({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 10,
+            gap: 12,
             borderTopWidth: 1,
             borderColor: c.line,
             paddingTop: 13,
           }}
         >
-          <Avatar name={realName || username || 'Y'} uri={photo} size={28} />
-          <Txt font="mono" size={14} weight={500} numberOfLines={1} style={{ flex: 1 }}>
-            @{username || 'you'}
-          </Txt>
+          <Avatar name={realName || username || 'Y'} seed={username} uri={photo} size={52} />
+          <View style={{ flex: 1 }}>
+            <Txt size={15} weight={600} numberOfLines={1}>
+              {realName || 'You'}
+            </Txt>
+            <Txt font="mono" size={12.5} muted numberOfLines={1} style={{ marginTop: 2 }}>
+              AKA @{username || 'you'}
+            </Txt>
+          </View>
         </View>
       </Card>
 

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -43,30 +42,12 @@ export default function ToolsScreen() {
     captureEvent('tool_viewed');
   }, []);
 
-  useEffect(() => {
-    if (!userId) return;
-    void AsyncStorage.getItem(`hey100.votes.${userId}`).then((raw) => {
-      if (raw) setMine(JSON.parse(raw) as Record<string, -1 | 1 | 0>);
-    });
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId || !Object.keys(mine).length) return;
-    void AsyncStorage.setItem(`hey100.votes.${userId}`, JSON.stringify(mine));
-  }, [mine, userId]);
-
   const tools = useMemo(
     () =>
       remote
         .map((tool) => {
           const myVote = mine[tool.id] ?? mine[tool.name] ?? tool.myVote;
-          if (myVote === tool.myVote) return tool;
-          let score = tool.score;
-          if (tool.myVote === 1) score -= 1;
-          if (tool.myVote === -1) score += 1;
-          if (myVote === 1) score += 1;
-          if (myVote === -1) score -= 1;
-          return { ...tool, myVote, score };
+          return myVote === tool.myVote ? tool : { ...tool, myVote };
         })
         .filter((tool) => !category || tool.category === category)
         .sort((a, b) =>
@@ -78,7 +59,12 @@ export default function ToolsScreen() {
   );
 
   const cast = (tool: (typeof tools)[number], direction: -1 | 1) => {
-    const next: -1 | 1 | 0 = (mine[tool.id] ?? mine[tool.name] ?? tool.myVote) === direction ? 0 : direction;
+    if (!userId) {
+      toast('Sign in to vote');
+      return;
+    }
+    const previous = mine[tool.id] ?? mine[tool.name] ?? tool.myVote;
+    const next: -1 | 1 | 0 = previous === direction ? 0 : direction;
     setMine((prev) => ({ ...prev, [tool.id]: next, [tool.name]: next }));
     if (next !== 0) {
       captureEvent('tool_engaged', {
@@ -87,13 +73,14 @@ export default function ToolsScreen() {
         action: 'voted',
       });
     }
-    if (!userId) {
-      toast('Sign in to vote');
-      return;
-    }
     vote.mutate(
       { toolId: tool.id, vote: direction, name: tool.name },
-      { onError: (error) => toast(error instanceof Error ? error.message : 'Vote did not save') },
+      {
+        onError: (error) => {
+          setMine((prev) => ({ ...prev, [tool.id]: previous, [tool.name]: previous }));
+          toast(error instanceof Error ? error.message : 'Vote did not save');
+        },
+      },
     );
   };
 

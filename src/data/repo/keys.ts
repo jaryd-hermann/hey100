@@ -20,6 +20,7 @@ export const queryKeys = {
   communityGroup: (groupId: string | null) => ['community', 'group', groupId] as const,
   communityThread: (threadId: string | null) => ['community', 'thread', threadId] as const,
   communityMembers: (groupId: string | null) => ['community', 'members', groupId] as const,
+  communityJoins: (groupId: string | null) => ['community', 'joins', groupId] as const,
   communityRequests: (groupId: string | null) => ['community', 'requests', groupId] as const,
   toolDiscussion: (toolId: string | null) => ['tools', 'discussion', toolId] as const,
 };

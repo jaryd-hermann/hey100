@@ -1,6 +1,7 @@
 export type StepKind =
   | 'welcome'
   | 'story'
+  | 'why'
   | 'invite'
   | 'check'
   | 'link'
@@ -357,6 +358,7 @@ export const IDEAL_USERS = [
 export const STEPS: Step[] = [
   { kind: 'welcome' },
   { kind: 'story' },
+  { kind: 'why' },
   { kind: 'invite', title: 'Hey100 is invite-only right now' },
   {
     kind: 'check',
@@ -461,7 +463,7 @@ export const STEPS: Step[] = [
     title: 'Which devices can you test on?',
     opts: [...DEVICES, 'Apple Watch'],
   },
-  { kind: 'username', title: 'Claim your username\nto get started' },
+  { kind: 'username', title: 'Claim your @username to get started' },
   { kind: 'auth', title: 'Launch your app on Hey100' },
 ];
 

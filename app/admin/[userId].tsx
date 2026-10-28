@@ -65,6 +65,7 @@ export default function AdminDm() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [appsOpen, setAppsOpen] = useState(false);
+  const afterMenu = useRef<null | 'builder' | 'apps'>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [actionFor, setActionFor] = useState<Message | null>(null);
   const [viewer, setViewer] = useState<{ items: MediaItem[]; index: number } | null>(null);
@@ -203,16 +204,22 @@ export default function AdminDm() {
       <ChatMenu
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
+        onClosed={() => {
+          const next = afterMenu.current;
+          afterMenu.current = null;
+          if (next === 'builder') setBuilderOpen(true);
+          if (next === 'apps') setAppsOpen(true);
+        }}
         appName="apps"
         builder={person?.name ?? 'Builder'}
         isTeam={false}
         onViewApp={() => {
+          afterMenu.current = 'apps';
           setMenuOpen(false);
-          setAppsOpen(true);
         }}
         onViewProfile={() => {
+          afterMenu.current = 'builder';
           setMenuOpen(false);
-          setBuilderOpen(true);
         }}
         onOpenLink={() => setMenuOpen(false)}
         onDelete={() => setMenuOpen(false)}

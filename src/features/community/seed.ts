@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import { LISTINGS, MATCH_APPS, slugify } from '@/data/mock';
 import type {
   CommunityGroup,
+  CommunityJoin,
   CommunityMember,
   CommunityReply,
   CommunityThread,
@@ -632,6 +633,59 @@ export function seedMembers(groupId: string): CommunityMember[] {
       bio: who.listingId
         ? (LISTINGS[who.listingId] ?? MATCH_APPS[who.listingId])?.role
         : undefined,
+    };
+  });
+}
+
+const SEED_JOINS: Record<string, { id: string; hours: number }[]> = {
+  'seed-growth': [
+    { id: 'tom', hours: 240 },
+    { id: 'ari', hours: 195 },
+    { id: 'priya', hours: 175 },
+    { id: 'omar', hours: 100 },
+    { id: 'nina', hours: 85 },
+    { id: 'lena', hours: 22 },
+    { id: 'sam', hours: 8 },
+  ],
+  'seed-ship': [
+    { id: 'omar', hours: 90 },
+    { id: 'nina', hours: 64 },
+    { id: 'sam', hours: 12 },
+    { id: 'lena', hours: 3 },
+  ],
+  'seed-ios': [
+    { id: 'nina', hours: 28 },
+    { id: 'omar', hours: 10 },
+    { id: 'ari', hours: 1 },
+  ],
+  'seed-ai': [
+    { id: 'ari', hours: 30 },
+    { id: 'sam', hours: 18 },
+    { id: 'lena', hours: 6 },
+    { id: 'omar', hours: 1 },
+  ],
+  'seed-pricing': [
+    { id: 'lena', hours: 40 },
+    { id: 'ari', hours: 20 },
+    { id: 'priya', hours: 4 },
+  ],
+  'seed-couples': [
+    { id: 'priya', hours: 60 },
+    { id: 'lena', hours: 36 },
+  ],
+};
+
+export function seedJoins(groupId: string): CommunityJoin[] {
+  return (SEED_JOINS[groupId] ?? []).map((row) => {
+    const who = person(row.id);
+    const listing = who.listingId ? (LISTINGS[who.listingId] ?? MATCH_APPS[who.listingId]) : undefined;
+    return {
+      userId: who.id,
+      name: who.name,
+      photo: who.photo,
+      listingId: who.listingId,
+      appName: listing?.name,
+      joinedAt: ago(row.hours),
     };
   });
 }

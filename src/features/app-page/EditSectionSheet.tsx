@@ -19,7 +19,7 @@ import { PROMPT_LIBRARY, promptLabel } from '@/data/prompts';
 import type { IdealUsers, MediaItem, OwnedApp, SectionKey, ShotLayout } from '@/data/types';
 import { BannerCrop } from '@/features/apps/BannerCrop';
 import { BANNER_RATIO, pickBanner } from '@/features/apps/pickBanner';
-import { MAX_SHOTS, pickShots } from '@/features/apps/pickShots';
+import { MAX_SHOTS, pickDemoVideo, pickShots } from '@/features/apps/pickShots';
 import { ShotGrid } from '@/features/apps/ShotGrid';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { pickAvatar } from '@/features/profile/avatar';
@@ -165,7 +165,10 @@ function ListingEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
 
   return (
     <View style={{ gap: 14 }}>
-      <Header title="Listing" hint="Name, icon and subtitle — the same fields builders see first." />
+      <Header
+        title="Listing"
+        hint="Name, icon and subtitle — the same fields builders see first."
+      />
       <Pressable
         onPress={() => void pick()}
         style={({ pressed }) => ({ alignSelf: 'center', opacity: pressed ? 0.8 : 1 })}
@@ -174,7 +177,13 @@ function ListingEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
       >
         <AppIcon hue={app.hue} name={name || app.name} uri={icon || undefined} size={72} />
       </Pressable>
-      <Field label="Name" value={name} onChangeText={setName} max={NAME_MAX} autoCapitalize="words" />
+      <Field
+        label="Name"
+        value={name}
+        onChangeText={setName}
+        max={NAME_MAX}
+        autoCapitalize="words"
+      />
       <Field
         label="Subtitle"
         value={sub}
@@ -270,6 +279,9 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
   const [shotLayout, setShotLayout] = useState<ShotLayout>(app.shotLayout ?? 'vertical');
   const [picking, setPicking] = useState(false);
 
+  const filled = items.filter((item) => !!item.uri).length;
+  const firstIsVideo = !!items[0]?.video;
+
   const addShots = async () => {
     if (picking) return;
     setPicking(true);
@@ -288,11 +300,40 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
     ]);
   };
 
+  const addDemo = async () => {
+    if (picking) return;
+    if (filled >= MAX_SHOTS && !firstIsVideo) {
+      toast('Remove a screenshot first to add a demo video');
+      return;
+    }
+
+    setPicking(true);
+    const result = await pickDemoVideo();
+    setPicking(false);
+
+    if ('error' in result) {
+      toast(result.error);
+      return;
+    }
+    if (!result.shot) return;
+
+    const next = {
+      label: result.shot.label ?? 'Demo video',
+      video: true,
+      uri: result.shot.uri,
+    };
+
+    setItems((prev) => {
+      if (!prev.length || prev[0]?.video || !prev[0]?.uri) return [next, ...prev.slice(1)];
+      return [next, ...prev].slice(0, MAX_SHOTS);
+    });
+  };
+
   return (
     <View style={{ gap: 14 }}>
       <Header
         title="Screenshots"
-        hint="Hold a shot to drag it into a new place. The listing banner is separate."
+        hint="The first slot can be a demo video — a screen recording from Photos, up to 500 MB. Hold a shot to reorder."
       />
 
       <View style={{ gap: 9 }}>
@@ -314,10 +355,21 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
         </View>
       </View>
 
+      {filled && (firstIsVideo || filled >= MAX_SHOTS) ? (
+        <Chip
+          label={firstIsVideo ? 'Replace demo video' : 'Add demo video'}
+          onPress={() => void addDemo()}
+          left={<Ionicons name="videocam-outline" size={16} color={c.ink} />}
+        />
+      ) : null}
+
       <ShotGrid
         shots={items
           .filter((item) => !!item.uri)
-          .map((item) => ({ uri: item.uri!, kind: item.video ? ('video' as const) : ('image' as const) }))}
+          .map((item) => ({
+            uri: item.uri!,
+            kind: item.video ? ('video' as const) : ('image' as const),
+          }))}
         layout={shotLayout}
         max={MAX_SHOTS}
         busy={picking}
@@ -331,6 +383,7 @@ function ShotsEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
         }
         onRemove={(index) => setItems((prev) => prev.filter((_, at) => at !== index))}
         onAdd={() => void addShots()}
+        onAddVideo={() => void addDemo()}
       />
 
       <Actions onClose={onClose} onSave={() => onSave({ media: items, shotLayout })} />
@@ -599,11 +652,19 @@ export function BannerEditor({
         hint="1584 × 528, or any 3:1 crop. This sits above your app icon — screenshots stay in the carousel."
       />
 
-      <Pressable onPress={() => void pick()} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+      <Pressable
+        onPress={() => void pick()}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      >
         {cover ? (
           <Image
             source={{ uri: cover }}
-            style={{ width: '100%', aspectRatio: BANNER_RATIO, borderRadius: radii.cardLg, backgroundColor: '#111' }}
+            style={{
+              width: '100%',
+              aspectRatio: BANNER_RATIO,
+              borderRadius: radii.cardLg,
+              backgroundColor: '#111',
+            }}
             contentFit="cover"
           />
         ) : (
@@ -629,9 +690,7 @@ export function BannerEditor({
         onClose={onClose}
         onSave={() => onSave({ cover })}
         destructive={
-          cover
-            ? { label: 'Remove banner', onPress: () => onSave({ cover: '' }) }
-            : undefined
+          cover ? { label: 'Remove banner', onPress: () => onSave({ cover: '' }) } : undefined
         }
       />
 

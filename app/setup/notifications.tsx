@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -34,20 +33,33 @@ export default function SetupNotifications() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 20, paddingHorizontal: layout.gutter, justifyContent: 'space-between' }}>
-      <View style={{ gap: 16, paddingTop: 24 }}>
-        <Ionicons name="notifications-outline" size={36} color={c.accentText} />
-        <Txt font="mono" size={27} weight={500} lh={1.22}>
-          Know when someone says hey
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: c.bg,
+        paddingTop: insets.top + 24,
+        paddingBottom: insets.bottom + 20,
+        paddingHorizontal: layout.gutter,
+        justifyContent: 'space-between',
+      }}
+    >
+      <View style={{ gap: 18, paddingTop: 24 }}>
+        <Txt font="mono" size={34} weight={500} lh={1.15} tracking={-0.4}>
+          Turn on notifications
         </Txt>
-        <Txt size={15.5} lh={1.5} muted>
-          A match, a reply, feedback, or a group you would actually join. You can turn any of it
-          off later in Settings.
+        <Txt size={20} lh={1.4} weight={400}>
+          You'll know when someone says hey, a match opens, or a builder actually replies.
         </Txt>
       </View>
 
       <View style={{ gap: 10 }}>
-        <Btn label={asking ? 'Asking…' : 'Turn on notifications'} variant="accent" size="lg" full onPress={() => void enable()} />
+        <Btn
+          label={asking ? 'Asking…' : 'Turn on notifications'}
+          variant="accent"
+          size="lg"
+          full
+          onPress={() => void enable()}
+        />
         <Btn label="Not now" variant="ghost" size="md" full onPress={next} />
       </View>
     </View>

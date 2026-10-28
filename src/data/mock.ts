@@ -477,7 +477,7 @@ export const INTEGRATIONS: Integration[] = [
     key: 'github',
     name: 'GitHub',
     letter: 'G',
-    desc: 'Sign in and pick a repo',
+    desc: 'Verify commit counts',
     on: '148 commits in 30 days',
     detail: 'last 2h ago · fix: partner invite deep link',
     badge: 'GitHub · 148 commits in 30 days · last 2h ago',
@@ -486,7 +486,7 @@ export const INTEGRATIONS: Integration[] = [
     key: 'revenuecat',
     name: 'RevenueCat',
     letter: 'R',
-    desc: 'Subscriptions, MRR, revenue and customers',
+    desc: 'Verify customers & revenue bands',
     on: '100–500 subscriptions · $1k–5k MRR',
     detail: '$1k–5k / 28d · 500–1k customers',
     badge: 'RevenueCat · 100–500 subscriptions',
@@ -495,7 +495,7 @@ export const INTEGRATIONS: Integration[] = [
     key: 'stripe',
     name: 'Stripe',
     letter: 'S',
-    desc: 'Paste a read-only key to verify MRR',
+    desc: 'Verify MRR & sales',
     on: '$100–1k MRR',
     badge: 'Stripe · $100–1k MRR',
   },
@@ -634,8 +634,19 @@ const ago = (days: number, hours = 12, minutes = 0) => {
 
 export const INITIAL_MESSAGES: Record<string, Message[]> = {
   cad: [
-    { kind: 'system', body: 'matched oct 12 · lena said hey to your onboarding video', at: ago(3, 11, 20) },
-    { kind: 'them', body: 'Hey! Your onboarding video sold me. Downloading Tidepool now.', at: ago(3, 11, 22) },
+    { kind: 'system', body: 'matched oct 12', at: ago(3, 11, 20) },
+    {
+      kind: 'them',
+      body: 'Hey! Your onboarding video sold me.\n\nSaid hey to your onboarding video',
+      at: ago(3, 11, 21),
+    },
+    {
+      kind: 'me',
+      body: 'I break every streak by day nine. I can tell you if the recovery flow saves me.\n\nSaid hey to streak recovery screenshot',
+      at: ago(3, 11, 22),
+    },
+    { kind: 'system', body: 'Lena started testing', at: ago(3, 11, 28) },
+    { kind: 'them', body: 'Downloading Tidepool now.', at: ago(3, 11, 32) },
     {
       kind: 'me',
       body: 'Thanks Lena. TestFlight link is up top, and the code gets you a free year.',
@@ -656,7 +667,12 @@ export const INITIAL_MESSAGES: Record<string, Message[]> = {
     },
   ],
   lum: [
-    { kind: 'system', body: 'matched oct 14 · you said hey to their demo video', at: ago(2, 16, 4) },
+    { kind: 'system', body: 'matched oct 14', at: ago(2, 16, 4) },
+    {
+      kind: 'me',
+      body: 'Your demo sold me. Happy to swap.\n\nSaid hey to their demo video',
+      at: ago(2, 16, 5),
+    },
     { kind: 'them', body: 'Hi! Happy to swap. Code is in the trade card.', at: ago(2, 16, 6) },
     { kind: 'me', body: 'Downloading now, will report back tonight.', at: ago(2, 16, 18) },
   ],

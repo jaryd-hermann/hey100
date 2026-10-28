@@ -12,6 +12,8 @@ import { firstName } from './chatMeta';
 export type ChatMenuProps = {
   visible: boolean;
   onClose: () => void;
+  /** After the menu sheet is fully gone, so another sheet can open. */
+  onClosed?: () => void;
   /** Short app name, or the thread name for the Team thread. */
   appName: string;
   /** Their real name, since chat is always post-match. */
@@ -22,6 +24,7 @@ export type ChatMenuProps = {
   onViewApp: () => void;
   onViewProfile: () => void;
   onOpenLink: () => void;
+  onSendFeedback?: () => void;
   onDelete: () => void;
   onReport: () => void;
 };
@@ -30,6 +33,7 @@ export type ChatMenuProps = {
 export function ChatMenu({
   visible,
   onClose,
+  onClosed,
   appName,
   builder,
   isTeam,
@@ -37,6 +41,7 @@ export function ChatMenu({
   onViewApp,
   onViewProfile,
   onOpenLink,
+  onSendFeedback,
   onDelete,
   onReport,
 }: ChatMenuProps) {
@@ -63,19 +68,20 @@ export function ChatMenu({
     );
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} onClosed={onClosed}>
       <View style={{ gap: 8 }}>
-        {isTeam ? null : (
-          <MenuRow icon="apps-outline" label={`View ${appName}`} onPress={onViewApp} />
-        )}
+        <MenuRow
+          icon="apps-outline"
+          label={isTeam ? "Jaryd's apps" : `View ${appName}`}
+          detail={isTeam ? 'Good Times' : undefined}
+          onPress={onViewApp}
+        />
 
-        {isTeam ? null : (
-          <MenuRow
-            icon="person-circle-outline"
-            label={`${name}'s profile`}
-            onPress={onViewProfile}
-          />
-        )}
+        <MenuRow
+          icon="person-circle-outline"
+          label={isTeam ? "Jaryd's profile" : `${name}'s profile`}
+          onPress={onViewProfile}
+        />
 
         {link ? (
           <MenuRow
@@ -92,6 +98,9 @@ export function ChatMenu({
           </Txt>
         ) : (
           <>
+            {onSendFeedback ? (
+              <MenuRow icon="chatbubble-ellipses-outline" label="Send feedback" onPress={onSendFeedback} />
+            ) : null}
             <MenuRow icon="trash-outline" label="Delete chat" danger onPress={confirmDelete} />
             <MenuRow icon="flag-outline" label={`Report ${name}`} danger onPress={confirmReport} />
             <Txt size={12.5} lh={1.45} muted style={{ paddingHorizontal: 4, paddingTop: 2 }}>

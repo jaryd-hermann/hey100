@@ -76,7 +76,7 @@ export function verifiedListingStats(
     phraseFrom(customerLines, new RegExp(`${COUNT.source}\\s+customers`, 'i')) ??
     phraseFrom(customerLines, new RegExp(`${COUNT.source}\\s+(?:subscribers|subscriptions)`, 'i'));
   return {
-    revenue: revenue ?? undefined,
-    customers: customers ?? undefined,
+    ...(revenue ? { revenue } : {}),
+    ...(customers ? { customers } : {}),
   };
 }

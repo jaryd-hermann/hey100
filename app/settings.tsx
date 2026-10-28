@@ -193,6 +193,58 @@ export default function Settings() {
           ))}
         </Card>
 
+        <View style={{ gap: 11 }}>
+          <Label>Jaryd from Hey100</Label>
+          <Card padding={4} radius={radii.cardLg}>
+            {(
+              [
+                {
+                  label: "Jaryd's profile",
+                  detail: 'hey100.com/jarydhermann',
+                  onPress: () =>
+                    router.push({
+                      pathname: '/browser',
+                      params: { kind: 'Web', value: 'hey100.com/jarydhermann' },
+                    }),
+                },
+                {
+                  label: "Jaryd's apps",
+                  detail: 'Good Times',
+                  onPress: () =>
+                    router.push({
+                      pathname: '/l/[slug]',
+                      params: { slug: 'good-times-one-group-question-2' },
+                    }),
+                },
+              ] as const
+            ).map((row, index) => (
+              <Pressable
+                key={row.label}
+                accessibilityRole="button"
+                onPress={row.onPress}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 16,
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderColor: c.line,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Txt size={15} weight={500} style={{ flex: 1 }}>
+                  {row.label}
+                </Txt>
+                <Txt size={13} muted>
+                  {row.detail}
+                </Txt>
+                <Ionicons name="chevron-forward" size={16} color={c.muted} />
+              </Pressable>
+            ))}
+          </Card>
+        </View>
+
         {isAdmin ? (
         <Pressable
           accessibilityRole="switch"

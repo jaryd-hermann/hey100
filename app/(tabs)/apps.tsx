@@ -39,7 +39,7 @@ export default function AppsScreen() {
             <Ionicons name="settings-outline" size={22} color={c.ink} />
           </Pressable>
           <Pressable onPress={() => router.push('/profile')} hitSlop={8} accessibilityLabel="Profile">
-            <Avatar name={store.user.realName} uri={store.user.photo} size={30} />
+            <Avatar name={store.user.realName} seed={store.user.username} uri={store.user.photo} size={30} />
           </Pressable>
         </View>
       }
@@ -55,27 +55,14 @@ export default function AppsScreen() {
           />
         ))}
 
-        <Pressable
-          accessibilityRole="button"
+        <Btn
+          label="List another app"
+          variant="accent"
+          size="lg"
+          full
+          left={<Ionicons name="add" size={20} color={c.accentInk} />}
           onPress={() => router.push('/add-app')}
-          style={({ pressed }) => ({
-            height: 58,
-            borderRadius: radii.cardLg,
-            borderWidth: 1.5,
-            borderStyle: 'dashed',
-            borderColor: c.muted,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 9,
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Ionicons name="add" size={19} color={c.muted} />
-          <Txt size={15} weight={600} muted>
-            List another app
-          </Txt>
-        </Pressable>
+        />
 
         <Pressable
           accessibilityRole="button"

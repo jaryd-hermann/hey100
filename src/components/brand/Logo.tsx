@@ -77,21 +77,31 @@ export type WordmarkProps = {
   size?: number;
   /** Blinks the 00 eyes and draws the smile, once on mount. */
   animated?: boolean;
+  /** Use the dark-ink mark, for a light background. */
+  onLight?: boolean;
+  /** Stretch to the parent width, keeping the mark's ratio. */
+  fill?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /** The real wordmark assets, not a type-drawn stand-in. */
-export function Wordmark({ size = 62, style }: WordmarkProps) {
+export function Wordmark({ size = 62, onLight, fill, style }: WordmarkProps) {
   const { isDark } = useTheme();
   const height = size;
   const width = size * LOGO_RATIO;
+  const darkMark = onLight ? false : isDark;
 
   return (
-    <View style={style}>
+    <View
+      style={[
+        fill ? { width: '100%', aspectRatio: LOGO_RATIO } : { width, height },
+        style,
+      ]}
+    >
       <Image
-        source={isDark ? LOGO_DARK : LOGO_LIGHT}
+        source={darkMark ? LOGO_DARK : LOGO_LIGHT}
         contentFit="contain"
-        style={{ width, height }}
+        style={{ width: '100%', height: '100%' }}
         accessibilityLabel="Hey100"
       />
     </View>
@@ -99,10 +109,10 @@ export function Wordmark({ size = 62, style }: WordmarkProps) {
 }
 
 /** The splash and welcome lockup. The asset already includes the hand. */
-export function HeroLogo({ size = 58 }: { size?: number }) {
+export function HeroLogo({ size = 58, onLight }: { size?: number; onLight?: boolean }) {
   return (
-    <View style={{ paddingLeft: 8, paddingTop: 4, paddingBottom: 16 }}>
-      <Wordmark size={size} />
+    <View style={{ paddingTop: 4, paddingBottom: 16, width: '100%' }}>
+      <Wordmark size={size} onLight={onLight} fill />
     </View>
   );
 }

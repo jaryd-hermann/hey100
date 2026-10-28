@@ -34,6 +34,27 @@ import { IntegrationMark } from './IntegrationMark';
 const RC_NEW_KEY = 'https://app.revenuecat.com/settings/api-keys/new';
 const STRIPE_KEYS = 'https://dashboard.stripe.com/apikeys';
 
+function ReadOnlyKeyBanner() {
+  const { c } = useTheme();
+  return (
+    <View
+      style={{
+        backgroundColor: c.soft,
+        borderRadius: radii.card,
+        borderWidth: 1.5,
+        borderColor: c.accentText,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+      }}
+    >
+      <Txt size={13.5} lh={1.4} weight={600} color={c.accentText}>
+        This is your read-only key. It just allows you to verify sales and revenue. We can&apos;t do
+        anything with it
+      </Txt>
+    </View>
+  );
+}
+
 const REDIRECT = 'hey100://connect';
 
 export function useIntegrationActions(appId: string) {
@@ -271,6 +292,7 @@ export function RevenueCatSheet({
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View style={{ gap: 14 }}>
+        <ReadOnlyKeyBanner />
         {help ? (
           <Image
             source={require('../../../../assets/images/revenuecat-api-key.png')}
@@ -394,6 +416,7 @@ export function StripeSheet({
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View style={{ gap: 14 }}>
+        <ReadOnlyKeyBanner />
         <Txt font="mono" size={18} weight={500}>
           Stripe
         </Txt>

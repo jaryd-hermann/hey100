@@ -21,7 +21,7 @@ import type {
 } from '@/data/types';
 import { toOwnedApp } from '@/features/apps/mapListing';
 import { groupReactions, type ReactionRow } from '@/features/chat/reactions';
-import { socialsFromLinks } from '@/features/profile/builderCard';
+import { builderRole, publicRole, socialsFromLinks } from '@/features/profile/builderCard';
 import { publicUrl } from '@/lib/supabase';
 
 /**
@@ -88,18 +88,20 @@ export function cardToListing(card: ListingCard, preferRealName = false): AppLis
   );
 
   const photo = builderPhoto(card.builder);
-  const role = [card.builder?.job, card.builder?.workplace].filter(Boolean).join(' · ');
+  const role = builderRole(card.builder?.job, card.builder?.workplace);
   const words = (card.builder?.own_words ?? {}) as Record<string, string>;
   const skills = card.builder?.skills ?? [];
+  const interests = card.builder?.app_interests ?? [];
   const socials = socialsFromLinks((card.builder?.links ?? {}) as Record<string, string>);
 
   return {
     ...listing,
     likes: heyCountLabel(card.hey_count),
     ...(photo ? { builderPhoto: photo } : {}),
-    role: listing.role || role,
+    role: role || publicRole(listing.role),
     style: listing.style || words.bio || '',
     ...(skills.length ? { skills } : {}),
+    ...(interests.length ? { interests } : {}),
     ...(socials.length ? { builderSocials: socials } : {}),
     ...((card.builder as { github_commits?: number | null } | null)?.github_commits != null
       ? { githubCommits: (card.builder as { github_commits?: number }).github_commits }
@@ -122,6 +124,8 @@ export function heyToIncoming(row: HeyRow): IncomingHey {
           },
         }
       : {}),
+    ...(row.match_id ? { matchId: row.match_id } : {}),
+    ...(row.created_at ? { createdAt: row.created_at } : {}),
   };
 }
 
@@ -178,6 +182,10 @@ export function threadToMatch(row: ThreadRow): Match {
     expiresInDays: daysLeft(row.expires_at),
     ...(row.reason ? { why: row.reason } : {}),
     unread: row.unread,
+    ...(row.share_theirs_url ? { shareUrl: row.share_theirs_url } : {}),
+    ...(row.share_theirs_code ? { shareCode: row.share_theirs_code } : {}),
+    ...(row.share_mine_url ? { myShareUrl: row.share_mine_url } : {}),
+    ...(row.share_mine_code ? { myShareCode: row.share_mine_code } : {}),
   };
 }
 
@@ -213,7 +221,14 @@ export function messageToMessage(row: MessageEmbed, me: string): Message {
     ...(reactions.length ? { reactions } : {}),
   };
 
-  if (row.kind === 'system') return { kind: 'system', body: row.body ?? '', ...extra };
+  if (row.kind === 'system') {
+    return {
+      kind: 'system',
+      body: row.body ?? '',
+      ...(row.sender_id ? { senderId: row.sender_id } : {}),
+      ...extra,
+    };
+  }
 
   if (row.kind === 'announcement') {
     const media = mediaFromJson(row.media);
@@ -282,6 +297,11 @@ function share(entries: FeedbackRow[], answer: 'Yes' | 'Maybe' | 'No'): number {
   );
 }
 
+function heyRatio(heys: number, views: number): string {
+  if (views <= 0) return '0%';
+  return `${Math.round((heys / views) * 100)}%`;
+}
+
 export function feedbackEntry(row: FeedbackRow, appName: string, hue: number): FeedbackEntry {
   return {
     id: row.id,
@@ -311,23 +331,24 @@ export function feedbackToInbox(
   appHue: (appId: string) => number,
 ): Record<string, InboxData> {
   return Object.fromEntries(
-    Object.entries(byApp)
-      // An app with no reviews gets the screen's empty state rather than a
-      // summary of nothing.
-      .filter(([, { entries }]) => entries.length > 0)
-      .map(([appId, { heys, entries }]) => [
-        appId,
-        {
-          funnel: { views: '—', skips: '—', heys: String(heys), ratio: '—' },
-          responses: entries.length,
-          impression: stars(entries),
-          price: commonPrice(entries),
-          yes: share(entries, 'Yes'),
-          maybe: share(entries, 'Maybe'),
-          no: share(entries, 'No'),
-          list: entries.map((entry) => feedbackEntry(entry, appName(appId), appHue(appId))),
-        } satisfies InboxData,
-      ]),
+    Object.entries(byApp).map(([appId, { heys, views = 0, skips = 0, entries }]) => [
+      appId,
+      {
+        funnel: {
+          views: String(views),
+          skips: String(skips),
+          heys: String(heys),
+          ratio: heyRatio(heys, views),
+        },
+        responses: entries.length,
+        impression: stars(entries),
+        price: commonPrice(entries),
+        yes: share(entries, 'Yes'),
+        maybe: share(entries, 'Maybe'),
+        no: share(entries, 'No'),
+        list: entries.map((entry) => feedbackEntry(entry, appName(appId), appHue(appId))),
+      } satisfies InboxData,
+    ]),
   );
 }
 

@@ -153,6 +153,15 @@ export type CommunityMember = {
   listings?: MemberApp[];
 };
 
+export type CommunityJoin = {
+  userId: string;
+  name: string;
+  photo?: string;
+  listingId?: string;
+  appName?: string;
+  joinedAt: string;
+};
+
 type AnyClient = {
   from: (table: string) => {
     select: (cols: string) => any;
@@ -293,28 +302,26 @@ export async function fetchCommunityHome(userId: string): Promise<{
   const db = client();
   if (!db) return { mine: [], discover: [] };
 
-  await (db as unknown as AnyClient).rpc('ensure_official_builders_group');
+  const payload = await (db as unknown as AnyClient).rpc('community_home_payload');
+  if (payload.error) throw payload.error;
 
-  const { data: groups, error } = await db
-    .from('community_groups')
-    .select('id, name, bio, audience, cover_path, join_mode, join_criteria, created_by, created_at, tool_id, kind')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-
-  const { data: members } = await db
-    .from('community_group_members')
-    .select('group_id, user_id, role, status, muted, last_read_at');
+  const packed = (payload.data ?? {}) as {
+    groups?: Record<string, unknown>[];
+    memberships?: {
+      group_id: string;
+      user_id: string;
+      role: MemberRole;
+      status: MemberStatus;
+      muted: boolean;
+      last_read_at?: string | null;
+    }[];
+  };
+  const groups = packed.groups ?? [];
+  const members = packed.memberships ?? [];
 
   const { data: countRows } = await db.rpc('community_group_counts');
 
-  const memberRows = (members ?? []) as {
-    group_id: string;
-    user_id: string;
-    role: MemberRole;
-    status: MemberStatus;
-    muted: boolean;
-    last_read_at?: string | null;
-  }[];
+  const memberRows = members;
 
   const counts = new Map<string, number>();
   for (const row of (countRows ?? []) as { group_id: string; member_count: number }[]) {
@@ -646,6 +653,43 @@ export function useCommunityThreads(groupId: string | null) {
   });
 }
 
+export async function fetchJoins(groupId: string): Promise<CommunityJoin[]> {
+  const db = client();
+  if (!db) return [];
+
+  const { data, error } = await db
+    .from('community_group_members')
+    .select('user_id, joined_at, status')
+    .eq('group_id', groupId)
+    .eq('status', 'active')
+    .order('joined_at', { ascending: false })
+    .limit(60);
+  if (error) throw error;
+
+  const rows = ([...(data ?? [])] as { user_id: string; joined_at: string }[]).reverse();
+  const people = await loadPeople(rows.map((row) => row.user_id));
+
+  return rows.map((row) => {
+    const who = people.get(row.user_id);
+    return {
+      userId: row.user_id,
+      name: who?.name ?? 'A builder',
+      photo: who?.photo,
+      listingId: who?.listingId,
+      appName: who?.appName,
+      joinedAt: row.joined_at,
+    };
+  });
+}
+
+export function useCommunityJoins(groupId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.communityJoins(groupId),
+    enabled: !!groupId,
+    queryFn: () => fetchJoins(groupId!),
+  });
+}
+
 export async function startThread(
   groupId: string,
   authorId: string,
@@ -929,7 +973,7 @@ export async function uploadGroupCover(userId: string, uri: string): Promise<str
   return uploadAsset(userId, uri, 'image', 'group-cover');
 }
 
-type Person = { name: string; photo?: string; listingId?: string };
+type Person = { name: string; photo?: string; listingId?: string; appName?: string };
 
 async function loadBuilders(ids: string[]): Promise<Map<string, Person>> {
   return loadPeople(ids);
@@ -955,11 +999,18 @@ async function loadPeople(ids: string[]): Promise<Map<string, Person>> {
     });
   }
 
-  const { data: apps } = await db.from('apps').select('id, owner_id').in('owner_id', unique);
+  const { data: apps } = await db
+    .from('apps')
+    .select('id, owner_id, name, is_primary')
+    .in('owner_id', unique);
 
   for (const row of apps ?? []) {
     const person = map.get(row.owner_id ?? '');
-    if (person && !person.listingId) person.listingId = row.id;
+    if (!person) continue;
+    if (!person.listingId || row.is_primary) {
+      person.listingId = row.id;
+      person.appName = row.name ?? person.appName;
+    }
   }
 
   return map;

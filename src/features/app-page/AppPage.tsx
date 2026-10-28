@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
@@ -20,7 +20,11 @@ import {
   type SectionKey,
   type ShotLayout,
 } from '@/data/types';
-import { builderFromUser } from '@/features/profile/builderCard';
+import { recordProfileView } from '@/data/repo/notifications';
+import { MAX_SHOTS } from '@/features/apps/pickShots';
+import { ChipRow, VerifiedStatsRow, verifiedMoney } from '@/features/profile/BuilderBits';
+import { builderFromUser, publicRole } from '@/features/profile/builderCard';
+import { isServerId } from '@/lib/supabase';
 import { useStore, withDefaultSections } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
@@ -63,7 +67,6 @@ const SHOT_WIDTH: Record<ShotLayout, number> = { vertical: 168, horizontal: 272 
 
 const PROMPT_SLOTS: SectionKey[] = ['p0', 'p1', 'p2', 'p3', 'p4'];
 
-
 /** What the full-screen viewer is showing, if anything. */
 type Viewer = { items: MediaItem[]; index: number; layout: ShotLayout };
 
@@ -81,6 +84,12 @@ export function AppPage({
 }: AppPageProps) {
   const { c } = useTheme();
   const [viewer, setViewer] = useState<Viewer | null>(null);
+
+  useEffect(() => {
+    if ((mode === 'discover' || mode === 'liker') && isServerId(listing.id)) {
+      void recordProfileView(listing.id);
+    }
+  }, [listing.id, mode]);
 
   const isOwner = mode === 'owner';
   const layoutOrder: SectionKey[] = withDefaultSections(
@@ -186,22 +195,42 @@ export function AppPage({
           accessibilityLabel={onEditListing && !editLayout ? 'Edit listing' : undefined}
           style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}
         >
-          <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={62} />
+          <View style={{ width: 62, height: 62 }}>
+            <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={62} />
+            <View
+              style={{
+                position: 'absolute',
+                right: -5,
+                bottom: -5,
+                borderRadius: 13,
+                borderWidth: 2,
+                borderColor: c.bg,
+                backgroundColor: c.bg,
+              }}
+            >
+              <Avatar name={listing.builder} uri={listing.builderPhoto} size={22} />
+            </View>
+          </View>
           <View style={{ flex: 1 }}>
             {/* The full name always fits on one line, shrinking rather than clipping. */}
             <Txt
               font="mono"
               size={18}
-              weight={500}
+              weight={700}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.7}
             >
               {listing.name}
             </Txt>
-            <Txt size={14.5} muted numberOfLines={1}>
+            <Txt size={14.5} numberOfLines={1}>
               {listing.sub}
             </Txt>
+            {listing.builder && mode !== 'owner' ? (
+              <Txt size={13} muted numberOfLines={1} style={{ marginTop: 2 }}>
+                made by {listing.builder.replace(/^@/, '')}
+              </Txt>
+            ) : null}
           </View>
           {onEditListing && !editLayout ? (
             <Ionicons name="create-outline" size={18} color={c.muted} />
@@ -331,9 +360,7 @@ function builderFirstName(listing: AppListing | OwnedApp): string {
 }
 
 function listingRevenue(listing: AppListing | OwnedApp): string {
-  const badge = (listing.badges ?? []).find((row) =>
-    /mrr|revenue|stripe|revenuecat/i.test(row),
-  );
+  const badge = (listing.badges ?? []).find((row) => /mrr|revenue|stripe|revenuecat/i.test(row));
   if (!badge) return '—';
   const money = badge.match(/\$[\d.,]+(?:\s*[–-]\s*\$?[\d.,]+)?[kKmM]?/);
   return money?.[0].replace(/\s+/g, '') ?? '—';
@@ -355,6 +382,80 @@ export function sectionName(section: SectionKey): string {
         verified: 'Verified',
       } as Record<string, string>
     )[section] ?? section
+  );
+}
+
+function BuilderPreview({
+  listing,
+  card,
+  isOwner,
+  onEdit,
+  onOpenBuilder,
+}: {
+  listing: AppListing | OwnedApp;
+  card: AppListing | OwnedApp;
+  isOwner: boolean;
+  onEdit?: () => void;
+  onOpenBuilder?: () => void;
+}) {
+  const { c } = useTheme();
+  const store = useStore();
+  const mine = isOwner || store.ownedApps.some((app) => app.id === listing.id);
+  const verified = verifiedMoney(
+    listing,
+    mine ? store.ownedApps.flatMap((app) => Object.values(store.connections[app.id] ?? {})) : [],
+  );
+  const role = publicRole(card.role);
+  const commits = card.githubCommits;
+
+  return (
+    <Card padding={18} radius={radii.cardLg} style={{ gap: 12 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={onEdit ? 'Edit builder card' : `About ${card.builder}`}
+        onPress={onEdit ?? onOpenBuilder}
+        style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}>
+          <Avatar name={card.builder} uri={card.builderPhoto} size={64} />
+          <View style={{ flex: 1, gap: 5, paddingTop: 2 }}>
+            <Txt size={18} weight={700} numberOfLines={2}>
+              {card.builder}
+            </Txt>
+            {role ? (
+              <Txt size={14} muted>
+                {role}
+              </Txt>
+            ) : null}
+          </View>
+          <Ionicons
+            name={onEdit ? 'create-outline' : 'chevron-forward'}
+            size={18}
+            color={c.muted}
+            style={{ marginTop: 6 }}
+          />
+        </View>
+      </Pressable>
+
+      {card.style ? (
+        <Txt size={14.5} lh={1.45}>
+          {card.style}
+        </Txt>
+      ) : isOwner ? (
+        <Txt size={14} color={c.accentText}>
+          Add a bio
+        </Txt>
+      ) : null}
+
+      <VerifiedStatsRow
+        revenue={verified.revenue}
+        customers={verified.customers}
+        commits={commits}
+      />
+
+      <ChipRow items={card.skills ?? []} />
+      <ChipRow label="Apps I'd try" items={card.interests ?? []} />
+    </Card>
   );
 }
 
@@ -394,16 +495,18 @@ function Section({
 }: SectionProps) {
   const { c } = useTheme();
   const store = useStore();
-  const card = isOwner ? { ...listing, ...builderFromUser(store.user) } : listing;
+  const mine = isOwner || store.ownedApps.some((app) => app.id === listing.id);
+  const card = mine ? { ...listing, ...builderFromUser(store.user) } : listing;
   const canHey = mode === 'discover' || mode === 'liker' || mode === 'web';
 
   if (section === 'shots') {
-    if (!shots.length) {
-      return onEdit ? <AddTile label="+ Add screenshots" onPress={onEdit} /> : null;
-    }
+    if (!shots.length && !onEdit) return null;
 
     const width = SHOT_WIDTH[shotLayout];
     const height = Math.round(width / SHOT_RATIO[shotLayout]);
+    const firstIsVideo = !!shots[0]?.video;
+    const showDemo = !!onEdit && !firstIsVideo && shots.length < MAX_SHOTS;
+    const emptyCount = onEdit ? Math.max(0, MAX_SHOTS - shots.length - (showDemo ? 1 : 0)) : 0;
 
     return (
       <ScrollView
@@ -414,6 +517,15 @@ function Section({
         contentContainerStyle={{ gap: 10, paddingRight: layout.gutter }}
         style={{ marginHorizontal: -layout.gutter, paddingHorizontal: layout.gutter }}
       >
+        {showDemo ? (
+          <CarouselSlot
+            width={width}
+            height={height}
+            icon="videocam-outline"
+            label="Add demo"
+            onPress={onEdit}
+          />
+        ) : null}
         {shots.map((item, index) => (
           <View
             key={`${item.label}-${index}`}
@@ -457,6 +569,15 @@ function Section({
             ) : null}
           </View>
         ))}
+        {Array.from({ length: emptyCount }, (_, at) => (
+          <CarouselSlot
+            key={`empty-${at}`}
+            width={width}
+            height={height}
+            icon="add"
+            onPress={onEdit!}
+          />
+        ))}
       </ScrollView>
     );
   }
@@ -469,9 +590,7 @@ function Section({
     }
     if (!of && !forWho) return null;
 
-    const problemLabel = of
-      ? `This solves the problem of ${of}`
-      : 'This solves the problem of';
+    const problemLabel = of ? `This solves the problem of ${of}` : 'This solves the problem of';
 
     return (
       <View>
@@ -517,9 +636,7 @@ function Section({
     if (!listing.pricingModel) return null;
 
     const from =
-      listing.pricingModel !== 'Free' && listing.priceFrom
-        ? `From ${listing.priceFrom}`
-        : null;
+      listing.pricingModel !== 'Free' && listing.priceFrom ? `From ${listing.priceFrom}` : null;
 
     return (
       <EditTarget label="Edit pricing" onPress={onEdit}>
@@ -585,7 +702,8 @@ function Section({
 
     const seconds = listing.pitchSeconds ?? 0;
     const length = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-    const who = (card.builder || 'this builder').replace(/^@/, '').split(/[\s·]/)[0] || 'this builder';
+    const who =
+      (card.builder || 'this builder').replace(/^@/, '').split(/[\s·]/)[0] || 'this builder';
     const title = `Watch ${who}'s quick pitch`;
 
     return (
@@ -653,67 +771,13 @@ function Section({
 
   if (section === 'builder') {
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={onEdit ? 'Edit builder card' : `About ${card.builder}`}
-        onPress={onEdit ?? onOpenBuilder}
-        style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-      >
-        <Card padding={18} radius={radii.cardLg} style={{ gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}>
-            <Avatar name={card.builder} uri={card.builderPhoto} size={64} />
-            <View style={{ flex: 1, gap: 5, paddingTop: 2 }}>
-              <Txt size={18} weight={700} numberOfLines={2}>
-                {card.builder}
-              </Txt>
-              {card.role ? (
-                <Txt size={14} muted>
-                  {card.role}
-                </Txt>
-              ) : null}
-              {card.githubCommits != null || listing.reply ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 }}>
-                  {card.githubCommits != null ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Ionicons name="logo-github" size={14} color={c.ink} />
-                      <Txt size={13} weight={600}>
-                        {card.githubCommits.toLocaleString()} commits
-                      </Txt>
-                    </View>
-                  ) : null}
-                  {listing.reply ? (
-                    <Txt size={13} muted>
-                      {listing.reply} reply rate
-                    </Txt>
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
-            <Ionicons
-              name={onEdit ? 'create-outline' : 'chevron-forward'}
-              size={18}
-              color={c.muted}
-              style={{ marginTop: 6 }}
-            />
-          </View>
-          {card.style ? (
-            <Txt size={14.5} lh={1.45}>
-              {card.style}
-            </Txt>
-          ) : isOwner ? (
-            <Txt size={14} color={c.accentText}>
-              Add a bio
-            </Txt>
-          ) : null}
-          {(card.skills ?? []).length ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              {card.skills!.slice(0, 8).map((skill) => (
-                <Chip key={skill} label={skill} size="sm" />
-              ))}
-            </View>
-          ) : null}
-        </Card>
-      </Pressable>
+      <BuilderPreview
+        listing={listing}
+        card={card}
+        isOwner={isOwner}
+        onEdit={onEdit}
+        onOpenBuilder={onOpenBuilder}
+      />
     );
   }
 
@@ -752,10 +816,13 @@ function Section({
     const owned = 'views' in listing ? (listing as OwnedApp) : null;
 
     // Owners see exact numbers; everyone else sees bands.
+    const revenue = listingRevenue(listing);
     const stats: [string, string][] = [
       ['Heys', isOwner && owned ? String(owned.views) : listing.likes],
-      ['Revenue', listingRevenue(listing)],
-      ['Commits', listing.githubCommits != null ? listing.githubCommits.toLocaleString() : '—'],
+      ...(revenue !== '—' ? ([['Revenue', revenue]] as [string, string][]) : []),
+      ...(listing.githubCommits != null
+        ? ([['Commits', listing.githubCommits.toLocaleString()]] as [string, string][])
+        : []),
       ['Trades', String(listing.trades)],
     ];
 
@@ -827,6 +894,50 @@ function EditTarget({
       style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
     >
       {children}
+    </Pressable>
+  );
+}
+
+/** Empty screenshot / demo cells in the owner's carousel. */
+function CarouselSlot({
+  width,
+  height,
+  icon,
+  label,
+  onPress,
+}: {
+  width: number;
+  height: number;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label?: string;
+  onPress: () => void;
+}) {
+  const { c } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label ?? 'Add screenshots'}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width,
+        height,
+        borderRadius: radii.cardLg,
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: c.muted,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        opacity: pressed ? 0.7 : 1,
+        paddingHorizontal: 10,
+      })}
+    >
+      <Ionicons name={icon} size={22} color={c.muted} />
+      {label ? (
+        <Txt font="mono" size={11} weight={600} color={c.muted} center>
+          {label}
+        </Txt>
+      ) : null}
     </Pressable>
   );
 }
@@ -903,10 +1014,10 @@ export function CompactAppBar({
     >
       <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={36} />
       <View style={{ flex: 1 }}>
-        <Txt font="mono" size={14} weight={500} numberOfLines={1}>
+        <Txt font="mono" size={14} weight={700} numberOfLines={1}>
           {shortName(listing.name)}
         </Txt>
-        <Txt size={12} muted numberOfLines={1}>
+        <Txt size={12} numberOfLines={1}>
           {listing.sub}
         </Txt>
       </View>

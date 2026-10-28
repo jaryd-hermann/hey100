@@ -79,6 +79,7 @@ export function toOwnedApp(row: ListingLike, ctx: ListingContext): OwnedApp {
 
   return {
     id: row.id,
+    ...(row.owner_id ? { ownerId: row.owner_id } : {}),
     ...(row.slug ? { slug: row.slug } : {}),
     name: row.name,
     sub: row.subtitle,

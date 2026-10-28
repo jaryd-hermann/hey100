@@ -25,6 +25,10 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
   const connections = store.connections[app.id] ?? {};
   const strength = listingStrength(app, connections);
   const verified = verifiedListingStats(app, connections);
+  const inbox = store.inbox[app.id];
+  const views = inbox?.funnel.views ?? (app.views ? String(app.views) : '0');
+  const heys = inbox?.funnel.heys ?? (app.likes !== '—' ? app.likes : '0');
+  const matches = store.matches.filter((match) => match.viaAppId === app.id).length;
   const status = app.listedUntilDays
     ? `listed · ${app.listedUntilDays} days left`
     : store.isPro
@@ -50,9 +54,9 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderColor: c.line, paddingTop: 13 }}>
             {(
               [
-                ['Views', String(app.views)],
-                ['Heys', app.likes],
-                ['Matches', String(app.matches)],
+                ['Views', views],
+                ['Heys', heys],
+                ['Matches', String(matches)],
               ] as const
             ).map(([label, value]) => (
               <View key={label} style={{ flex: 1, gap: 2 }}>

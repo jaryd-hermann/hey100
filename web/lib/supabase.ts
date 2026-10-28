@@ -67,6 +67,58 @@ export function listingBySlug(slug: string) {
   return rpc<ListingCard>('listing_by_slug', { p_slug: slug });
 }
 
+export type PublicBuilder = {
+  id: string;
+  username: string | null;
+  photo_url: string | null;
+  job: string | null;
+  workplace: string | null;
+  own_words: Record<string, string> | null;
+  app_interests: string[] | null;
+};
+
+export type PublicApp = {
+  name: string;
+  slug: string | null;
+  hue: number;
+  icon_path: string | null;
+  subtitle: string | null;
+};
+
+async function rest<T>(path: string): Promise<T | null> {
+  if (!URL || !KEY) return null;
+  try {
+    const res = await fetch(`${URL}/rest/v1/${path}`, {
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+      },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function builderByUsername(username: string): Promise<{
+  builder: PublicBuilder;
+  apps: PublicApp[];
+} | null> {
+  const handle = username.trim().toLowerCase();
+  if (!handle) return null;
+  const people = await rest<PublicBuilder[]>(
+    `builders?username=eq.${encodeURIComponent(handle)}&select=id,username,photo_url,job,workplace,own_words,app_interests`,
+  );
+  const builder = people?.[0];
+  if (!builder?.id) return null;
+  const apps = await rest<PublicApp[]>(
+    `apps?owner_id=eq.${builder.id}&published_at=not.is.null&select=name,slug,hue,icon_path,subtitle&order=created_at.asc`,
+  );
+  return { builder, apps: apps ?? [] };
+}
+
 export function inviteStatus(code: string) {
   return rpc<InviteStatus>('invite_code_status', { p_code: code });
 }

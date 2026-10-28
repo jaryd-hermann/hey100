@@ -89,26 +89,13 @@ export default function ChatScreen() {
         <CommunityHome />
       ) : (
         <View style={{ gap: 4 }}>
-          {rows.map((row, index) => (
-            <React.Fragment key={row.id}>
-              {row.kind === 'team' ? (
-                <TeamRow last={row.last} time={row.time} onPress={() => open(row.id)} />
-              ) : (
-                <MatchRow match={row.match} onPress={() => open(row.id)} />
-              )}
-              {row.kind === 'team' || (index === 0 && !rows.some((item) => item.kind === 'team')) ? (
-                <View style={{ paddingVertical: 10 }}>
-                  <CommunityPromoCard from="dms" onPress={() => setDesk('community')} />
-                </View>
-              ) : null}
-            </React.Fragment>
-          ))}
-
-          {rows.length === 0 ? (
-            <View style={{ paddingVertical: 10 }}>
-              <CommunityPromoCard from="dms" onPress={() => setDesk('community')} />
-            </View>
-          ) : null}
+          {rows.map((row) =>
+            row.kind === 'team' ? (
+              <TeamRow key={row.id} last={row.last} time={row.time} onPress={() => open(row.id)} />
+            ) : (
+              <MatchRow key={row.id} match={row.match} onPress={() => open(row.id)} />
+            ),
+          )}
 
           {loop.matches.length === 0 && deleted.includes(TEAM_ID) ? (
             <View style={{ paddingTop: 50, alignItems: 'center', gap: 10 }}>
@@ -117,6 +104,10 @@ export default function ChatScreen() {
               </Txt>
             </View>
           ) : null}
+
+          <View style={{ paddingVertical: 10 }}>
+            <CommunityPromoCard from="dms" onPress={() => setDesk('community')} />
+          </View>
         </View>
       )}
     </Screen>

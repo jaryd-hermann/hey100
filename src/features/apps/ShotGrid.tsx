@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import React, { useRef, useState } from 'react';
-import { Animated, LayoutAnimation, PanResponder, View } from 'react-native';
+import { Animated, LayoutAnimation, PanResponder, Pressable, View } from 'react-native';
 
 import { Txt } from '@/components/ui/Txt';
 import { SHOT_RATIO, type PickedShot, type ShotLayout } from '@/data/types';
@@ -30,6 +30,8 @@ export type ShotGridProps = {
   onReorder: (shots: PickedShot[]) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
+  /** Editor-only: empty first slot offers a demo video from Photos. */
+  onAddVideo?: () => void;
 };
 
 type Drag = { order: PickedShot[]; from: number; at: number };
@@ -44,7 +46,16 @@ const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max);
  * Reordering runs on a preview copy of the array and only tells the owner once
  * the finger lifts, so a drag across the grid is one edit rather than ten.
  */
-export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd }: ShotGridProps) {
+export function ShotGrid({
+  shots,
+  layout,
+  max,
+  busy,
+  onReorder,
+  onRemove,
+  onAdd,
+  onAddVideo,
+}: ShotGridProps) {
   const { c } = useTheme();
   const [width, setWidth] = useState(0);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -65,8 +76,15 @@ export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd 
   });
 
   const order = drag?.order ?? shots;
-  const canAdd = shots.length < max;
-  const rows = Math.max(1, Math.ceil((order.length + (canAdd ? 1 : 0)) / cols));
+  const editor = !!onAddVideo;
+  const demoSlot = editor && shots[0]?.kind !== 'video' && shots.length < max;
+  const shotOffset = demoSlot ? 1 : 0;
+  const emptyCount = editor
+    ? Math.max(0, max - order.length - shotOffset)
+    : shots.length < max
+      ? 1
+      : 0;
+  const rows = Math.max(1, Math.ceil((shotOffset + order.length + emptyCount) / cols));
 
   const stopHold = () => {
     if (hold.current) clearTimeout(hold.current);
@@ -76,8 +94,8 @@ export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd 
   /** Springs the lifted shot into its slot, then hands it back to the grid. */
   const land = (drop: Drag) => {
     live.current = null;
-    const from = slot(drop.from);
-    const to = slot(drop.at);
+    const from = slot(shotOffset + drop.from);
+    const to = slot(shotOffset + drop.at);
     Animated.spring(pan, {
       toValue: { x: to.x - from.x, y: to.y - from.y },
       useNativeDriver: false,
@@ -122,10 +140,10 @@ export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd 
 
         // The slot under the middle of the lifted shot, which is steadier than
         // the finger when a shot straddles two columns.
-        const start = slot(dragging.from);
+        const start = slot(shotOffset + dragging.from);
         const col = clamp(Math.floor((start.x + g.dx + cellW / 2) / (cellW + GAP)), cols - 1);
         const row = Math.max(0, Math.floor((start.y + g.dy + cellH / 2) / (cellH + GAP)));
-        const target = clamp(row * cols + col, dragging.order.length - 1);
+        const target = clamp(row * cols + col - shotOffset, dragging.order.length - 1);
         if (target === dragging.at) return;
 
         const next = [...dragging.order];
@@ -187,7 +205,7 @@ export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd 
       {width
         ? order.map((shot, index) => {
             const lifted = drag?.at === index;
-            const base = slot(lifted ? drag.from : index);
+            const base = slot(shotOffset + (lifted ? drag.from : index));
 
             return (
               <Animated.View
@@ -246,7 +264,7 @@ export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd 
                       }}
                     >
                       <Txt font="mono" size={8.5} weight={700} color={c.accentInk} upper>
-                        Cover
+                        {shot.kind === 'video' ? 'Demo' : 'Cover'}
                       </Txt>
                     </View>
                   ) : null}
@@ -256,32 +274,92 @@ export function ShotGrid({ shots, layout, max, busy, onReorder, onRemove, onAdd 
           })
         : null}
 
-      {width && canAdd ? (
-        <View
-          {...gesture(order.length).panHandlers}
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel="Add screenshots"
-          onAccessibilityTap={onAdd}
-          style={{
-            position: 'absolute',
-            left: slot(order.length).x,
-            top: slot(order.length).y,
-            width: cellW,
-            height: cellH,
-            borderRadius: radii.card,
-            backgroundColor: c.surface,
-            borderWidth: 1.5,
-            borderStyle: 'dashed',
-            borderColor: c.muted,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: held === order.length ? 0.7 : 1,
-          }}
-        >
-          <Ionicons name={busy ? 'hourglass-outline' : 'add'} size={24} color={c.muted} />
-        </View>
+      {width && demoSlot && onAddVideo ? (
+        <EmptySlot
+          left={slot(0).x}
+          top={slot(0).y}
+          width={cellW}
+          height={cellH}
+          busy={busy}
+          icon="videocam-outline"
+          label="Add demo"
+          accessibilityLabel="Add demo video"
+          onPress={onAddVideo}
+        />
       ) : null}
+
+      {width
+        ? Array.from({ length: emptyCount }, (_, at) => (
+            <EmptySlot
+              key={`empty-${at}`}
+              left={slot(shotOffset + order.length + at).x}
+              top={slot(shotOffset + order.length + at).y}
+              width={cellW}
+              height={cellH}
+              busy={busy}
+              icon="add"
+              accessibilityLabel="Add screenshots"
+              onPress={onAdd}
+            />
+          ))
+        : null}
     </View>
+  );
+}
+
+function EmptySlot({
+  left,
+  top,
+  width,
+  height,
+  busy,
+  icon,
+  label,
+  accessibilityLabel,
+  onPress,
+}: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  busy?: boolean;
+  icon: 'add' | 'videocam-outline';
+  label?: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const { c } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={busy}
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => ({
+        position: 'absolute',
+        left,
+        top,
+        width,
+        height,
+        borderRadius: radii.card,
+        backgroundColor: c.surface,
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: c.muted,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        opacity: pressed || busy ? 0.7 : 1,
+        paddingHorizontal: 8,
+      })}
+    >
+      <Ionicons name={busy ? 'hourglass-outline' : icon} size={24} color={c.muted} />
+      {label ? (
+        <Txt font="mono" size={9} weight={600} color={c.muted} center>
+          {label}
+        </Txt>
+      ) : null}
+    </Pressable>
   );
 }

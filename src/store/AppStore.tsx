@@ -53,9 +53,6 @@ function attachmentPreview(media: MediaItem[]): string {
   return media[0]?.video ? 'sent a video' : 'sent a photo';
 }
 
-/** A trade only ever moves forward, so opening a link can't undo feedback. */
-const TRADE_STEPS: TradeStatus[] = ['Not started', 'Using', 'Feedback sent'];
-
 const STOCK_LAYOUTS = new Set([
   'pitch,shots,problem,p0,builder,p1,looking,p2,p3,p4,stats,pricing,verified',
   'shots,problem,p0,pitch,builder,p1,looking,p2,p3,p4,stats,pricing,verified',
@@ -213,6 +210,8 @@ type State = {
   heysLeftToday: number;
   /** Incoming heys awaiting a pass or a hey back. */
   heys: IncomingHey[];
+  /** Received heys that already became a match, newest first. */
+  matchedHeys: IncomingHey[];
   /** Heys the user sent, newest first. */
   sentHeys: SentHey[];
   passed: string[];
@@ -296,6 +295,7 @@ function initialState(): State {
     deckIds: null,
     heysLeftToday: 6,
     heys: [...INCOMING_HEYS],
+    matchedHeys: [],
     sentHeys: [...SENT_HEYS],
     passed: [],
     passReasons: {},
@@ -340,6 +340,7 @@ export type LoopData = {
   listings: Record<string, AppListing>;
   deckIds: string[];
   heys: IncomingHey[];
+  matchedHeys?: IncomingHey[];
   sentHeys: SentHey[];
   matches: Match[];
   inbox: Record<string, InboxData>;
@@ -376,11 +377,18 @@ type Store = State & {
   /** Settings can turn the pass-reason prompt back on after it was dismissed. */
   setPassFeedback: (enabled: boolean) => void;
 
-  sendMessage: (matchId: string, body: string, media?: MediaItem[], replyTo?: string) => Promise<void>;
+  sendMessage: (
+    matchId: string,
+    body: string,
+    media?: MediaItem[],
+    replyTo?: string,
+  ) => Promise<void>;
   markChatRead: (matchId: string) => void;
   /** Hides the thread but keeps the match, which is the only record of a trade. */
   deleteChat: (matchId: string) => Promise<void>;
   setTradeStatus: (matchId: string, side: 'mine' | 'theirs', status: TradeStatus) => Promise<void>;
+  /** Per-match URL and code the other person sees. */
+  setMatchShare: (matchId: string, url: string, code: string) => Promise<void>;
   submitFeedback: (matchId: string, feedback: FeedbackDraft) => Promise<void>;
   rateFeedback: (appId: string, feedbackId: string, helpful: 'yes' | 'no') => Promise<void>;
   /** Replaces the loop with what the server returned. */
@@ -793,17 +801,41 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const setTradeStatus = useCallback<Store['setTradeStatus']>(
     async (matchId, side, status) => {
       patch((prev) => ({
-        matches: prev.matches.map((m) =>
-          m.id === matchId && TRADE_STEPS.indexOf(status) > TRADE_STEPS.indexOf(m[side])
-            ? { ...m, [side]: status }
-            : m,
-        ),
+        matches: prev.matches.map((m) => {
+          if (m.id !== matchId || m[side] === status) return m;
+          if (m[side] === 'Feedback sent') return m;
+          return { ...m, [side]: status };
+        }),
       }));
 
       // Only my own side is mine to move; theirs arrives from the server.
       if (!remote || side !== 'mine') return;
 
       await loop.setTradeStatus(matchId, status);
+      await refresh([queryKeys.threads(userId), queryKeys.messages(matchId)]);
+    },
+    [patch, refresh, remote, userId],
+  );
+
+  const setMatchShare = useCallback<Store['setMatchShare']>(
+    async (matchId, url, code) => {
+      const nextUrl = url.trim();
+      const nextCode = code.trim();
+      patch((prev) => ({
+        matches: prev.matches.map((m) =>
+          m.id === matchId
+            ? {
+                ...m,
+                myShareUrl: nextUrl || undefined,
+                myShareCode: nextCode || undefined,
+              }
+            : m,
+        ),
+      }));
+
+      if (!remote) return;
+
+      await loop.setMatchShare(matchId, nextUrl, nextCode);
       await refresh([queryKeys.threads(userId), queryKeys.messages(matchId)]);
     },
     [patch, refresh, remote, userId],
@@ -886,6 +918,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           listings: data.listings,
           deckIds: data.deckIds,
           heys: data.heys,
+          matchedHeys: data.matchedHeys ?? [],
           sentHeys: pending.length ? [...pending, ...data.sentHeys] : data.sentHeys,
           matches: data.matches,
           inbox: data.inbox,
@@ -918,7 +951,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         const app = prev.apps[appId];
         return {
           connections: { ...prev.connections, [appId]: current },
-          ...(app ? { apps: { ...prev.apps, [appId]: { ...app, badges: badgesFrom(current) } } } : {}),
+          ...(app
+            ? { apps: { ...prev.apps, [appId]: { ...app, badges: badgesFrom(current) } } }
+            : {}),
         };
       }),
     [patch],
@@ -1003,6 +1038,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
             appOrder: [app.id],
             connections: { [app.id]: {} },
             heys: [],
+            matchedHeys: [],
             sentHeys: [],
             matches: [],
             messages: { team: [] },
@@ -1108,6 +1144,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       markChatRead,
       deleteChat,
       setTradeStatus,
+      setMatchShare,
       submitFeedback,
       rateFeedback,
       hydrateLoop,
@@ -1149,6 +1186,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       sendMessage,
       setMessages,
       setTradeStatus,
+      setMatchShare,
       state,
       submitFeedback,
       setAppConnection,

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, Share, Switch, View } from 'react-native';
@@ -46,27 +47,19 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
         </View>
 
         {!store.isPro ? (
-          <Pressable
+          <MenuRow
+            icon="diamond-outline"
+            label="Get Builder Pro"
             onPress={() => {
               onClose();
               router.push('/paywall?from=menu');
             }}
-            style={({ pressed }) => ({
-              paddingHorizontal: 16,
-              minHeight: 54,
-              borderRadius: 16,
-              backgroundColor: c.raised,
-              justifyContent: 'center',
-              opacity: pressed ? 0.75 : 1,
-            })}
-          >
-            <Txt size={16} weight={600}>
-              Get Builder Pro
-            </Txt>
-          </Pressable>
+          />
         ) : null}
 
-        <Pressable
+        <MenuRow
+          icon="eye-outline"
+          label="Preview my app"
           onPress={() => {
             if (!store.primaryApp) {
               toast('Add an app first');
@@ -76,79 +69,37 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
             store.setPreviewApp(store.primaryApp.id);
             router.push('/(tabs)/discover');
           }}
-          style={({ pressed }) => ({
-            paddingHorizontal: 16,
-            minHeight: 54,
-            borderRadius: 16,
-            backgroundColor: c.raised,
-            justifyContent: 'center',
-            opacity: pressed ? 0.75 : 1,
-          })}
-        >
-          <Txt size={16} weight={600}>
-            Preview my app
-          </Txt>
-        </Pressable>
+        />
 
         {isAdmin && devMode ? (
-          <Pressable
+          <MenuRow
+            icon="flash-outline"
+            label="Preview 8 heys"
             onPress={() => {
               onClose();
               setTimeout(() => heyLimit.open(), 240);
             }}
-            style={({ pressed }) => ({
-              paddingHorizontal: 16,
-              minHeight: 54,
-              borderRadius: 16,
-              backgroundColor: c.raised,
-              justifyContent: 'center',
-              opacity: pressed ? 0.75 : 1,
-            })}
-          >
-            <Txt size={16} weight={600}>
-              Preview 8 heys
-            </Txt>
-          </Pressable>
+          />
         ) : null}
 
-        <Pressable
+        <MenuRow
+          icon="share-outline"
+          label="Share Hey100"
           onPress={() => {
             Share.share({
               message: 'Find your first 100 users on Hey100: https://hey100.com',
             }).catch(() => {});
           }}
-          style={({ pressed }) => ({
-            paddingHorizontal: 16,
-            minHeight: 54,
-            borderRadius: 16,
-            backgroundColor: c.raised,
-            justifyContent: 'center',
-            opacity: pressed ? 0.75 : 1,
-          })}
-        >
-          <Txt size={16} weight={600}>
-            Share Hey100
-          </Txt>
-        </Pressable>
+        />
 
-        <Pressable
+        <MenuRow
+          icon="construct-outline"
+          label="Pro builder tools"
           onPress={() => {
             onClose();
             router.push('/tools');
           }}
-          style={({ pressed }) => ({
-            paddingHorizontal: 16,
-            minHeight: 54,
-            borderRadius: 16,
-            backgroundColor: c.raised,
-            justifyContent: 'center',
-            opacity: pressed ? 0.75 : 1,
-          })}
-        >
-          <Txt size={16} weight={600}>
-            Pro builder tools
-          </Txt>
-        </Pressable>
+        />
 
         <View
           style={{
@@ -175,5 +126,37 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
         </View>
       </View>
     </Sheet>
+  );
+}
+
+function MenuRow({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  onPress: () => void;
+}) {
+  const { c } = useTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        minHeight: 54,
+        borderRadius: 16,
+        backgroundColor: c.raised,
+        opacity: pressed ? 0.75 : 1,
+      })}
+    >
+      <Txt size={16} weight={600} style={{ flex: 1 }}>
+        {label}
+      </Txt>
+      <Ionicons name={icon} size={20} color={c.ink} />
+    </Pressable>
   );
 }

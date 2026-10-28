@@ -21,8 +21,10 @@ import {
   startThread,
   toggleCommunityReaction,
   useCommunityGroup,
+  useCommunityJoins,
   useCommunityRequests,
   useCommunityThreads,
+  type CommunityJoin,
   type CommunityMember,
   type CommunityThread,
 } from '@/data/repo/community';
@@ -38,6 +40,7 @@ import { Composer } from '@/features/community/Composer';
 import { captureReadCursor, readCursor } from '@/features/community/readCursor';
 import { GroupHeader } from '@/features/community/GroupHeader';
 import { GroupPower } from '@/features/community/GroupPower';
+import { JoinChip } from '@/features/community/JoinChip';
 import { MemberProfileSheet } from '@/features/community/MemberProfileSheet';
 import { MessageMenu } from '@/features/community/MessageMenu';
 import { RequestsSheet } from '@/features/community/RequestsSheet';
@@ -46,6 +49,7 @@ import { ThreadBubble } from '@/features/community/ThreadBubble';
 import {
   isSeedId,
   seedGroup,
+  seedJoins,
   seedLeave,
   seedMarkRead,
   seedMembers,
@@ -74,9 +78,11 @@ export default function GroupScreen() {
   useSeedTick();
   const remoteGroup = useCommunityGroup(seeded ? null : id);
   const remoteThreads = useCommunityThreads(seeded ? null : id);
+  const remoteJoins = useCommunityJoins(seeded ? null : id);
   const remoteRequests = useCommunityRequests(seeded ? null : id);
   const group = seeded ? seedGroup(id) : remoteGroup.data;
   const threads = seeded ? seedThreads(id) : (remoteThreads.data ?? []);
+  const joins = seeded ? seedJoins(id) : (remoteJoins.data ?? []);
   const requests = seeded ? seedRequests(id) : (remoteRequests.data ?? []);
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState(false);
@@ -92,26 +98,36 @@ export default function GroupScreen() {
     else void markCommunityGroupRead(id);
   }, [group, id, seeded]);
 
+  const feed = useMemo(() => mergeFeed(threads, joins), [joins, threads]);
+
   const unreadStart = useMemo(() => {
-    const times = threads.map((thread) => thread.createdAt);
+    const times = feed.map((row) => row.at);
     const at = id ? readCursor(id) : undefined;
     if (at) return firstUnreadIndex(times, at);
-    return group?.unread ? Math.max(0, threads.length - 1) : -1;
-  }, [group?.unread, id, threads]);
+    return group?.unread ? Math.max(0, feed.length - 1) : -1;
+  }, [feed, group?.unread, id]);
   const { scrollRef, onUnreadLayout, onContentSizeChange } = useChatAnchor(unreadStart >= 0);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return threads;
-    return threads.filter(
-      (thread) =>
-        thread.body.toLowerCase().includes(needle) ||
-        thread.authorName.toLowerCase().includes(needle),
-    );
-  }, [query, threads]);
+    if (!needle) return feed;
+    return feed.filter((row) => {
+      if (row.kind === 'thread') {
+        return (
+          row.thread.body.toLowerCase().includes(needle) ||
+          row.thread.authorName.toLowerCase().includes(needle)
+        );
+      }
+      return (
+        row.join.name.toLowerCase().includes(needle) ||
+        (row.join.appName ?? '').toLowerCase().includes(needle)
+      );
+    });
+  }, [feed, query]);
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.communityGroup(id) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.communityJoins(id) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.communityHome(userId) });
   };
 
@@ -185,39 +201,55 @@ export default function GroupScreen() {
           paddingBottom: 16,
         }}
       >
-        {visible.map((thread, index) => (
-          <React.Fragment key={thread.id}>
-            {shouldStamp(visible[index - 1]?.createdAt, thread.createdAt) ? (
-              <ChatStamp label={stampLabel(thread.createdAt)} />
+        {visible.map((row, index) => (
+          <React.Fragment key={row.kind === 'thread' ? row.thread.id : `join-${row.join.userId}-${row.at}`}>
+            {shouldStamp(visible[index - 1]?.at, row.at) ? (
+              <ChatStamp label={stampLabel(row.at)} />
             ) : null}
             {index === unreadStart && !query.trim() ? (
               <UnreadDivider onReady={onUnreadLayout} />
             ) : null}
-          <ThreadBubble
-            author={{
-              id: thread.authorId,
-              name: thread.authorName,
-              photo: thread.authorPhoto,
-              listingId: thread.authorListingId,
-              owner: thread.authorId === group?.createdBy,
-            }}
-            body={thread.body}
-            media={thread.media}
-            reactions={thread.reactions}
-            replies={thread.replyCount}
-            replyAvatars={thread.replyAvatars}
-            onPress={() =>
-              router.push({
-                pathname: '/group/[id]/thread/[threadId]',
-                params: { id, threadId: thread.id },
-              })
-            }
-            onLongPress={() => setTarget(thread)}
-            onReact={(emoji) => void react(thread, emoji)}
-            onAuthorPress={() =>
-              openAuthor(thread.authorId, thread.authorName, thread.authorPhoto, thread.authorListingId)
-            }
-          />
+            {row.kind === 'join' ? (
+              <JoinChip
+                name={row.join.name}
+                photo={row.join.photo}
+                appName={row.join.appName}
+                onPress={() =>
+                  openAuthor(row.join.userId, row.join.name, row.join.photo, row.join.listingId)
+                }
+              />
+            ) : (
+              <ThreadBubble
+                author={{
+                  id: row.thread.authorId,
+                  name: row.thread.authorName,
+                  photo: row.thread.authorPhoto,
+                  listingId: row.thread.authorListingId,
+                  owner: row.thread.authorId === group?.createdBy,
+                }}
+                body={row.thread.body}
+                media={row.thread.media}
+                reactions={row.thread.reactions}
+                replies={row.thread.replyCount}
+                replyAvatars={row.thread.replyAvatars}
+                onPress={() =>
+                  router.push({
+                    pathname: '/group/[id]/thread/[threadId]',
+                    params: { id, threadId: row.thread.id },
+                  })
+                }
+                onLongPress={() => setTarget(row.thread)}
+                onReact={(emoji) => void react(row.thread, emoji)}
+                onAuthorPress={() =>
+                  openAuthor(
+                    row.thread.authorId,
+                    row.thread.authorName,
+                    row.thread.authorPhoto,
+                    row.thread.authorListingId,
+                  )
+                }
+              />
+            )}
           </React.Fragment>
         ))}
         {!visible.length ? (
@@ -498,6 +530,17 @@ export default function GroupScreen() {
     await toggleCommunityReaction({ threadId: thread.id, userId, emoji, mine });
     refresh();
   }
+}
+
+type FeedRow =
+  | { kind: 'thread'; at: string; thread: CommunityThread }
+  | { kind: 'join'; at: string; join: CommunityJoin };
+
+function mergeFeed(threads: CommunityThread[], joins: CommunityJoin[]): FeedRow[] {
+  return [
+    ...threads.map((thread) => ({ kind: 'thread' as const, at: thread.createdAt, thread })),
+    ...joins.map((join) => ({ kind: 'join' as const, at: join.joinedAt, join })),
+  ].sort((a, b) => +new Date(a.at) - +new Date(b.at));
 }
 
 function MenuRow({

@@ -22,10 +22,10 @@ import { layout, radii } from '@/theme/tokens';
 
 const PERKS: [string, string][] = [
   ['Join premium groups', 'Get into groups with the strongest group power.'],
-  ['Speed up your matches', 'Say hey to as many apps as you want each day, so matches come faster.'],
+  ['Speed up your matches', 'Say hey to unlimited apps a day'],
   ['Better visibility', 'Shown to more builders who fit your ideal users.'],
   ['More analytics', 'View, skips, hey ratio, and other key insights'],
-  ['Unlimited matches', `Keep trading past the ${FREE_MATCH_LIMIT} free matches.`],
+  ['Unlimited matches & DMs', `Keep chatting past the ${FREE_MATCH_LIMIT} free matches.`],
 ];
 
 export default function Paywall() {
@@ -135,7 +135,7 @@ export default function Paywall() {
             <Txt font="mono" size={28} weight={500} lh={1.15} style={{ marginTop: 4 }}>
               Join the Pro Community.
             </Txt>
-            <Txt font="mono" size={28} weight={500} lh={1.15}>
+            <Txt font="mono" size={28} weight={500} lh={1.15} color={c.accentText}>
               Find your users faster
             </Txt>
             <Txt font="mono" size={28} weight={500} lh={1.15}>

@@ -35,7 +35,7 @@ export function CommunityHome() {
   const toast = useToast();
   const { userId, isAdmin } = useAuth();
   const queryClient = useQueryClient();
-  const { data, isLoading } = useCommunityHome();
+  const { data, isLoading, isError, refetch } = useCommunityHome();
   const { devMode } = useDevMode();
   useSeedTick();
   const [creating, setCreating] = useState(false);
@@ -113,6 +113,11 @@ export function CommunityHome() {
   return (
     <View style={{ gap: 20 }}>
       {isLoading && !mine.length && !discover.length ? <Txt muted>Loading groups…</Txt> : null}
+      {isError && !mine.length && !discover.length ? (
+        <Pressable onPress={() => void refetch()}>
+          <Txt muted>Couldn’t load groups. Tap to retry.</Txt>
+        </Pressable>
+      ) : null}
 
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 6 }}>

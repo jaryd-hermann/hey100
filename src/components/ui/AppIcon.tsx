@@ -4,6 +4,7 @@ import { Image, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useTheme } from '@/theme/ThemeProvider';
 import { appHueColor } from '@/theme/oklch';
 
+import { Identicon } from './Identicon';
 import { Txt } from './Txt';
 
 export type AppIconProps = {
@@ -54,12 +55,14 @@ export function AppIcon({ hue, name, size = 48, uri, style }: AppIconProps) {
 
 export type AvatarProps = {
   name: string;
+  /** Stable identicon source. Defaults to `name`; pass the @username when we have it. */
+  seed?: string;
   size?: number;
   uri?: string | null;
   style?: StyleProp<ViewStyle>;
 };
 
-export function Avatar({ name, size = 40, uri, style }: AvatarProps) {
+export function Avatar({ name, seed, size = 40, uri, style }: AvatarProps) {
   const { c } = useTheme();
 
   if (uri) {
@@ -73,29 +76,5 @@ export function Avatar({ name, size = 40, uri, style }: AvatarProps) {
     );
   }
 
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
-
-  return (
-    <View
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: c.raised,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        style,
-      ]}
-    >
-      <Txt font="mono" weight={600} size={Math.round(size * 0.38)}>
-        {initials}
-      </Txt>
-    </View>
-  );
+  return <Identicon seed={seed || name} size={size} style={style} />;
 }

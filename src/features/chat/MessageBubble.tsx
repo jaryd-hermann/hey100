@@ -206,7 +206,7 @@ export function MessageBubble({
           color={mine ? c.bg : c.ink}
           style={media.length ? { paddingHorizontal: 9, paddingBottom: 4 } : undefined}
         >
-          {message.body}
+          {saidHeyBody(message.body, mine)}
         </Txt>
       ) : null}
     </Pressable>
@@ -304,4 +304,10 @@ function Attachment({
       )}
     </Pressable>
   );
+}
+
+/** Opening hey notes are stored as "Said hey to …"; the sender sees "You said hey". */
+function saidHeyBody(body: string | undefined, mine: boolean): string | undefined {
+  if (!body || !mine) return body;
+  return body.replace(/(^|\n)Said hey to /g, '$1You said hey to ');
 }

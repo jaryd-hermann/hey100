@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import { MAX_SHOTS } from '@/features/apps/pickShots';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { getSupabase, isServerId } from '@/lib/supabase';
+import { getSupabase, isServerId, publicUrl } from '@/lib/supabase';
+import type { ShippedApp } from '@/data/types';
 import type { Database } from '@/types/supabase';
 
 import { queryKeys, staleTimes } from './keys';
@@ -147,6 +148,30 @@ export async function setListingMedia(appId: string, media: NewListing['media'])
 
   const { error } = await db.from('app_media').insert(rows);
   if (error) throw error;
+}
+
+/** Other published listings by the same builder, for the builder card. */
+export async function fetchShippedApps(ownerId: string, exceptId?: string): Promise<ShippedApp[]> {
+  const db = getSupabase();
+  if (!db || !ownerId) return [];
+
+  const { data, error } = await db
+    .from('apps')
+    .select('id, name, slug, hue, icon_path')
+    .eq('owner_id', ownerId)
+    .not('published_at', 'is', null)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? [])
+    .filter((row) => row.id !== exceptId)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug ?? undefined,
+      hue: row.hue,
+      icon: row.icon_path ? publicUrl('listing-media', row.icon_path) : undefined,
+    }));
 }
 
 /** Public share page. Published listings only; callable while signed out. */

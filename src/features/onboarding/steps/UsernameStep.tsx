@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
+import { Field } from '@/components/ui/Field';
 import { Txt } from '@/components/ui/Txt';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
@@ -11,7 +13,10 @@ import { USERNAME_PATTERN, generateUsername } from '../useOnboardingDraft';
 import type { UsernameState } from '../useUsernameState';
 
 export type UsernameStepProps = {
-  realName: string;
+  firstName: string;
+  lastName: string;
+  onChangeFirstName: (firstName: string) => void;
+  onChangeLastName: (lastName: string) => void;
   photo?: string;
   /** Null while the pick is in flight, so the avatar can show it is busy. */
   onPickPhoto: () => void;
@@ -26,7 +31,10 @@ export type UsernameStepProps = {
 };
 
 export function UsernameStep({
-  realName,
+  firstName,
+  lastName,
+  onChangeFirstName,
+  onChangeLastName,
   photo,
   onPickPhoto,
   username,
@@ -42,9 +50,40 @@ export function UsernameStep({
 
   const valid = USERNAME_PATTERN.test(username);
   const taken = state === 'taken';
+  const realName = [firstName, lastName].map((part) => part.trim()).filter(Boolean).join(' ');
 
   return (
     <View style={{ gap: 16 }}>
+      <Txt font="mono" size={27} weight={500} lh={1.22}>
+        Claim your @username to get started{' '}
+        <Ionicons name="checkmark-circle" size={24} color={c.accentText} />
+      </Txt>
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Field
+          label="First name"
+          value={firstName}
+          onChangeText={onChangeFirstName}
+          placeholder="First"
+          autoCapitalize="words"
+          autoCorrect={false}
+          textContentType="givenName"
+          autoComplete="name-given"
+          style={{ flex: 1 }}
+        />
+        <Field
+          label="Last name"
+          value={lastName}
+          onChangeText={onChangeLastName}
+          placeholder="Last"
+          autoCapitalize="words"
+          autoCorrect={false}
+          textContentType="familyName"
+          autoComplete="name-family"
+          style={{ flex: 1 }}
+        />
+      </View>
+
       <Card padding={16} style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <Pressable
@@ -53,7 +92,7 @@ export function UsernameStep({
             onPress={onPickPhoto}
             style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
           >
-            <Avatar name={realName} uri={photo} size={56} />
+            <Avatar name={realName || username} seed={username} uri={photo} size={56} />
             <View
               style={{
                 position: 'absolute',
@@ -129,9 +168,12 @@ export function UsernameStep({
             Checking…
           </Txt>
         ) : state === 'available' ? (
-          <Txt size={12.5} color={c.accentText}>
-            @{username} is yours.
-          </Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="checkmark-circle" size={16} color={c.accentText} />
+            <Txt size={12.5} color={c.accentText}>
+              @{username} is yours
+            </Txt>
+          </View>
         ) : null}
       </Card>
 

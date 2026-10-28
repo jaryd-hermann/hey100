@@ -2,11 +2,13 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
 import { InlineVideo } from '@/components/ui/InlineVideo';
 import { MediaPlaceholder } from '@/components/ui/MediaPlaceholder';
 import { Label, Txt } from '@/components/ui/Txt';
 import type { MediaItem, Message } from '@/data/types';
+import { shortName } from '@/data/mock';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -24,6 +26,7 @@ export type MessageBubbleProps = {
   /** Arrived while the user was away, so it carries a highlight. */
   unread?: boolean;
   onOpenMedia?: (items: MediaItem[], index: number) => void;
+  onOpenInvite?: (groupId: string) => void;
   onLongPress?: () => void;
   onToggleReaction?: (emoji: string) => void;
 };
@@ -34,6 +37,7 @@ export function MessageBubble({
   hue,
   unread,
   onOpenMedia,
+  onOpenInvite,
   onLongPress,
   onToggleReaction,
 }: MessageBubbleProps) {
@@ -112,6 +116,51 @@ export function MessageBubble({
           </View>
         ) : null}
       </View>
+    );
+  }
+
+  if (message.kind === 'invite') {
+    const mine = message.from === 'me';
+    return (
+      <Pressable
+        onPress={() => message.groupId && onOpenInvite?.(message.groupId)}
+        onLongPress={onLongPress}
+        delayLongPress={280}
+        accessibilityRole="button"
+        accessibilityLabel="Open group preview"
+        style={{
+          maxWidth: '92%',
+          alignSelf: mine ? 'flex-end' : 'flex-start',
+        }}
+      >
+        <Card
+          padding={14}
+          radius={radii.cardLg}
+          style={{
+            gap: 10,
+            borderWidth: 1.5,
+            borderColor: unread ? c.accent : c.line,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <AppIcon
+              hue={message.hue ?? hue}
+              name={message.appName || message.groupName || 'App'}
+              uri={message.icon}
+              size={40}
+            />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Label size={10}>Private community</Label>
+              <Txt size={15} weight={600} numberOfLines={1}>
+                {message.groupName || shortName(message.appName)}
+              </Txt>
+            </View>
+          </View>
+          <Txt size={14.5} lh={1.45}>
+            {message.body}
+          </Txt>
+        </Card>
+      </Pressable>
     );
   }
 

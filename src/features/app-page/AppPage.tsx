@@ -53,13 +53,15 @@ export type AppPageProps = {
    * Owner only: tapping a section opens its content editor. Reordering the
    * layout and editing the content are deliberately separate modes.
    */
-  onEditSection?: (section: SectionKey) => void;
+  onEditSection?: (section: SectionKey | 'description') => void;
   /** Owner only: tapping the name/icon block opens the listing editor. */
   onEditListing?: () => void;
   /** Owner only: the listing banner is its own image, not a screenshot. */
   onEditCover?: () => void;
   /** Pinned above the page, e.g. a liker's note. */
   banner?: React.ReactNode;
+  /** Owner only: a picked demo is in the carousel while it uploads. */
+  mediaUploading?: boolean;
 };
 
 /** Carousel card width per orientation. Every shot in one listing shares it. */
@@ -81,6 +83,7 @@ export function AppPage({
   onEditSection,
   onEditListing,
   banner,
+  mediaUploading,
 }: AppPageProps) {
   const { c } = useTheme();
   const [viewer, setViewer] = useState<Viewer | null>(null);
@@ -171,6 +174,7 @@ export function AppPage({
           onOpenBuilder={onOpenBuilder}
           onEdit={editSection ? () => editSection('pitch') : undefined}
           addPrompt={false}
+          mediaUploading={mediaUploading}
           onOpenShots={(shotIndex) =>
             setViewer({ items: shots, index: shotIndex, layout: shotLayout })
           }
@@ -250,6 +254,12 @@ export function AppPage({
           ) : null}
         </View>
 
+        <ListingDescription
+          text={listing.description}
+          editable={!!editSection}
+          onEdit={() => editSection?.('description')}
+        />
+
         {listing.fit && mode !== 'owner' ? (
           <Txt size={12.5} lh={1.4} muted>
             {listing.fit}
@@ -308,6 +318,7 @@ export function AppPage({
               onOpenBuilder={onOpenBuilder}
               onEdit={editSection ? () => editSection(section) : undefined}
               addPrompt={emptyPromptSlots.has(section)}
+              mediaUploading={mediaUploading}
               onOpenShots={(shotIndex) =>
                 setViewer({ items: shots, index: shotIndex, layout: shotLayout })
               }
@@ -476,6 +487,7 @@ type SectionProps = {
   addPrompt?: boolean;
   onOpenShots: (index: number) => void;
   onOpenPitch?: () => void;
+  mediaUploading?: boolean;
 };
 
 function Section({
@@ -492,6 +504,7 @@ function Section({
   addPrompt,
   onOpenShots,
   onOpenPitch,
+  mediaUploading,
 }: SectionProps) {
   const { c } = useTheme();
   const store = useStore();
@@ -540,6 +553,9 @@ function Section({
                 layout={shotLayout}
                 radius={radii.cardLg}
                 style={StyleSheet.absoluteFill}
+                uploading={
+                  !!mediaUploading && !!item.uri && !/^https?:\/\//i.test(item.uri)
+                }
               />
             ) : (
               <Pressable
@@ -696,7 +712,12 @@ function Section({
   if (section === 'pitch') {
     if (!listing.pitchUri) {
       return onEdit ? (
-        <AddTile label="+ Record a quick pitch" icon="videocam" onPress={onEdit} />
+        <AddTile
+          label="+ Record a quick pitch"
+          icon="videocam"
+          badge={<BoostsMatchesTag />}
+          onPress={onEdit}
+        />
       ) : null;
     }
 
@@ -947,10 +968,12 @@ function AddTile({
   label,
   onPress,
   icon,
+  badge,
 }: {
   label: string;
   onPress: () => void;
   icon?: React.ComponentProps<typeof Ionicons>['name'];
+  badge?: React.ReactNode;
 }) {
   const { c } = useTheme();
 
@@ -970,11 +993,109 @@ function AddTile({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      {icon ? <Ionicons name={icon} size={28} color={c.ink} /> : null}
+      {icon || badge ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {icon ? <Ionicons name={icon} size={28} color={c.ink} /> : null}
+          {badge}
+        </View>
+      ) : null}
       <Txt size={15} weight={500} muted>
         {label}
       </Txt>
     </Pressable>
+  );
+}
+
+function BoostsMatchesTag() {
+  return (
+    <View
+      style={{
+        height: 26,
+        paddingHorizontal: 10,
+        borderRadius: 13,
+        backgroundColor: '#FFCC00',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+      }}
+    >
+      <Ionicons name="flash" size={12} color="#121412" />
+      <Txt size={12} weight={600} color="#121412">
+        Boosts matches!
+      </Txt>
+    </View>
+  );
+}
+
+function ListingDescription({
+  text,
+  editable,
+  onEdit,
+}: {
+  text?: string;
+  editable?: boolean;
+  onEdit?: () => void;
+}) {
+  const { c } = useTheme();
+  const value = text?.trim();
+
+  if (editable) {
+    return (
+      <Pressable
+        onPress={onEdit}
+        accessibilityRole="button"
+        accessibilityLabel={value ? 'Edit app bio' : 'Add app bio'}
+        style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}
+      >
+        <View style={{ flex: 1 }}>
+          {value ? (
+            <Txt size={14.5} lh={1.4} numberOfLines={3}>
+              {value}
+            </Txt>
+          ) : (
+            <Txt size={14.5} lh={1.4} muted>
+              Add a longer description of the app
+            </Txt>
+          )}
+        </View>
+        <Txt size={14.5} weight={600} color={c.accentText}>
+          Edit
+        </Txt>
+      </Pressable>
+    );
+  }
+
+  if (!value) return null;
+  return <SeeMore text={value} />;
+}
+
+function SeeMore({ text }: { text: string }) {
+  const { c } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const [overflow, setOverflow] = useState(false);
+
+  return (
+    <View>
+      <Txt
+        size={14.5}
+        lh={1.4}
+        pointerEvents="none"
+        style={{ position: 'absolute', opacity: 0, left: 0, right: 0 }}
+        onTextLayout={(event) => setOverflow(event.nativeEvent.lines.length > 3)}
+      >
+        {text}
+      </Txt>
+      <Txt size={14.5} lh={1.4} numberOfLines={expanded ? undefined : 3}>
+        {text}
+      </Txt>
+      {overflow ? (
+        <Pressable onPress={() => setExpanded((open) => !open)} hitSlop={8}>
+          <Txt size={14.5} weight={600} color={c.accentText}>
+            {expanded ? 'see less' : 'see more'}
+          </Txt>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 

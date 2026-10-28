@@ -3,16 +3,17 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Avatar } from '@/components/ui/AppIcon';
+import { Identicon } from '@/components/ui/Identicon';
 import { Txt } from '@/components/ui/Txt';
 import { isOfficialGroup, type CommunityGroup } from '@/data/repo/community';
 import { TeamMark } from '@/features/chat/TeamMark';
-import { appHueColor } from '@/theme/oklch';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export function GroupCover({
   group,
   size,
   badge = false,
+  round = false,
 }: {
   group: Pick<
     CommunityGroup,
@@ -20,6 +21,7 @@ export function GroupCover({
     | 'kind'
     | 'name'
     | 'coverUrl'
+    | 'iconSeed'
     | 'hue'
     | 'ownerName'
     | 'ownerPhoto'
@@ -29,12 +31,12 @@ export function GroupCover({
   >;
   size: number;
   badge?: boolean;
+  /** Circle instead of the default rounded square. */
+  round?: boolean;
 }) {
   const { c } = useTheme();
   const official = isOfficialGroup(group);
-  const hue = group.hue ?? 128;
-  const radius = Math.round(size * 0.26);
-  const initial = group.name.trim().charAt(0).toUpperCase() || '#';
+  const radius = round ? size / 2 : Math.round(size * 0.26);
   const badgeName = official
     ? undefined
     : group.lastPreview
@@ -59,20 +61,7 @@ export function GroupCover({
           style={{ width: size, height: size, borderRadius: radius, backgroundColor: c.raised }}
         />
       ) : (
-        <View
-          style={{
-            width: size,
-            height: size,
-            borderRadius: radius,
-            backgroundColor: appHueColor(hue),
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Txt font="mono" weight={700} size={Math.round(size * 0.42)} color="#0E100F">
-            {initial}
-          </Txt>
-        </View>
+        <Identicon seed={group.iconSeed || group.id || group.name} size={size} radius={radius} />
       )}
       {badge && badgeName ? (
         <View

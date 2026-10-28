@@ -1069,6 +1069,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
               app.id,
               {
                 ...app,
+                description: app.description || local.description,
                 problemOf: app.problemOf || local.problemOf,
                 problemFor: app.problemFor || local.problemFor,
                 pricingModel: app.pricingModel || local.pricingModel,

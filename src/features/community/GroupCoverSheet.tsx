@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Avatar } from '@/components/ui/AppIcon';
+import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
@@ -12,16 +12,19 @@ import { useToast } from '@/components/ui/Toast';
 import {
   checkCommunityJoin,
   JOIN_CRITERIA,
+  isMatchGroup,
   type CommunityGroup,
   type JoinCriterion,
 } from '@/data/repo/community';
 import { isServerId } from '@/lib/supabase';
 import { useTheme } from '@/theme/ThemeProvider';
+import { layout } from '@/theme/tokens';
 
 import { GroupCover } from './GroupCover';
 import { GroupPower } from './GroupPower';
+import { MemberChip } from './MemberStack';
 import { copyGroupLink } from './shareGroup';
-import { firstName, shortWhen } from './time';
+import { lastActiveLabel } from './time';
 import { seedThreads } from './seed';
 
 export function GroupCoverSheet({
@@ -80,46 +83,57 @@ export function GroupCoverSheet({
         ]
       : [];
   const stack = group.memberStack ?? [];
-  const subtitle = group.audience || group.bio;
 
   return (
-    <Sheet visible tall onClose={onClose}>
+    <Sheet
+      visible
+      tall
+      onClose={onClose}
+      header={
+        <View
+          style={{
+            minHeight: 168,
+            backgroundColor: '#0E100F',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 52,
+          }}
+        >
+          <Txt font="system" size={32} weight={700} color="#FFFFFF" lh={1.05} center>
+            {group.name}
+          </Txt>
+        </View>
+      }
+    >
       <View style={{ gap: 16 }}>
         <View style={{ gap: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-            <GroupCover group={group} size={62} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Txt
-                font="mono"
-                size={18}
-                weight={500}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-              >
-                {group.name}
-              </Txt>
-              {subtitle ? (
-                <Txt size={14.5} muted numberOfLines={1}>
-                  {subtitle}
-                </Txt>
-              ) : null}
-            </View>
-            <Pressable
-              onPress={() => copyGroupLink(group, toast)}
-              hitSlop={12}
-              accessibilityLabel="Copy group link"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Ionicons name="link-outline" size={20} color={c.ink} />
-            </Pressable>
+          <View
+            style={{
+              marginTop: -22,
+              zIndex: 2,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <GroupCover group={group} size={56} round />
+            <MemberChip people={stack} total={group.memberCount} />
           </View>
+
+          {group.bio ? (
+            <Txt size={15} lh={1.45}>
+              {group.bio}
+            </Txt>
+          ) : null}
+
+          {group.audience ? (
+            <Txt size={15} lh={1.45}>
+              <Txt font="system" size={15} weight={700}>
+                Great for
+              </Txt>
+              : {group.audience}
+            </Txt>
+          ) : null}
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
             <Chip
@@ -128,12 +142,27 @@ export function GroupCoverSheet({
                   ? 'Request to join'
                   : group.joinMode === 'criteria'
                     ? 'Match criteria'
-                    : 'Anyone can join'
+                    : isMatchGroup(group)
+                      ? 'Matched with the app'
+                      : 'Anyone can join'
               }
               size="sm"
             />
-            <Chip label={`${group.memberCount.toLocaleString()} members`} size="sm" />
-            {group.ownerName ? <Chip label={group.ownerName} size="sm" /> : null}
+            {isMatchGroup(group) && group.listingName ? (
+              <Chip
+                label={`Must like ${group.listingName}`}
+                size="sm"
+                left={
+                  <AppIcon
+                    hue={group.listingHue ?? group.hue ?? 128}
+                    name={group.listingName}
+                    uri={group.listingIcon}
+                    size={16}
+                  />
+                }
+              />
+            ) : null}
+            {group.ownerName ? <Chip label={`Admin: ${group.ownerName}`} size="sm" /> : null}
             {group.ratingAvg != null && group.ratingCount ? (
               <Chip
                 label={`${group.ratingAvg.toFixed(1)} (${group.ratingCount.toLocaleString()})`}
@@ -142,12 +171,6 @@ export function GroupCoverSheet({
               />
             ) : null}
           </View>
-
-          {group.bio && group.audience ? (
-            <Txt size={15} lh={1.45} muted>
-              {group.bio}
-            </Txt>
-          ) : null}
         </View>
 
         <View style={{ gap: 8 }}>
@@ -156,7 +179,7 @@ export function GroupCoverSheet({
             {[
               [String(group.weeklyActive ?? group.threadCount ?? 0), 'threads this week'],
               [group.memberCount >= 1000 ? `${(group.memberCount / 1000).toFixed(1)}k` : String(group.memberCount), 'members'],
-              [shortWhen(group.lastAt) || '—', 'last active'],
+              [lastActiveLabel(group.lastAt), 'last active'],
             ].map(([value, label]) => (
               <View
                 key={label}
@@ -182,22 +205,6 @@ export function GroupCoverSheet({
         </View>
 
         <GroupPower power={group.power} />
-
-        {stack.length ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ flexDirection: 'row' }}>
-              {stack.map((person, index) => (
-                <View key={`${person.name}-${index}`} style={{ marginLeft: index ? -8 : 0 }}>
-                  <Avatar name={person.name} uri={person.photo} size={30} />
-                </View>
-              ))}
-            </View>
-            <Txt size={14} muted>
-              {stack.map((person) => firstName(person.name)).join(', ')}
-              {group.memberCount > stack.length ? ` and ${group.memberCount - stack.length} others` : ''}
-            </Txt>
-          </View>
-        ) : null}
 
         {recent.length ? (
           <View style={{ gap: 10 }}>
@@ -260,22 +267,34 @@ export function GroupCoverSheet({
           />
         ) : null}
 
-        <Btn
-          label={
-            joined
-              ? 'Open group'
-              : waiting
-                ? 'Request pending'
-                : needsApproval
-                  ? 'Request to join'
-                  : 'Join group'
-          }
-          variant="accent"
-          size="lg"
-          full
-          disabled={waiting || busy || (needsNote && !note.trim())}
-          onPress={() => onJoin(note.trim() || undefined, !needsApproval)}
-        />
+        <View style={{ gap: 10 }}>
+          <Btn
+            label={
+              joined
+                ? 'Open group'
+                : waiting
+                  ? 'Request pending'
+                  : needsApproval
+                    ? 'Request to join'
+                    : 'Join group'
+            }
+            variant="accent"
+            size="lg"
+            full
+            disabled={waiting || busy || (needsNote && !note.trim())}
+            onPress={() => onJoin(note.trim() || undefined, !needsApproval)}
+          />
+          {isMatchGroup(group) ? null : (
+            <Btn
+              label="Share link"
+              variant="ghost"
+              size="md"
+              full
+              left={<Ionicons name="link-outline" size={18} color={c.muted} />}
+              onPress={() => copyGroupLink(group, toast)}
+            />
+          )}
+        </View>
       </View>
     </Sheet>
   );

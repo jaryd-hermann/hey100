@@ -9,11 +9,11 @@ import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
-import { INTEGRATIONS, shortName } from '@/data/mock';
+import { INTEGRATIONS } from '@/data/mock';
 import { queryKeys } from '@/data/repo/keys';
-import type { OwnedApp, SectionKey } from '@/data/types';
+import type { OwnedApp } from '@/data/types';
 import { AppPage } from '@/features/app-page/AppPage';
-import { EditSectionSheet } from '@/features/app-page/EditSectionSheet';
+import { EditSectionSheet, type EditSectionKey } from '@/features/app-page/EditSectionSheet';
 import {
   ConnectSheets,
   IntegrationRow,
@@ -40,6 +40,10 @@ export default function OwnerAppPage() {
 
   const { id, setup } = useLocalSearchParams<{ id: string; setup?: string }>();
   const app = store.apps[id] ?? store.primaryApp;
+  const [editLayout, setEditLayout] = useState(false);
+  const [editSection, setEditSection] = useState<EditSectionKey | null>(null);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
 
   /**
    * The store already has the edit, so a failure here means the screen and the
@@ -49,7 +53,10 @@ export default function OwnerAppPage() {
     const uploadingVideo = patch.media?.some(
       (item) => item.video && item.uri && !/^https?:\/\//i.test(item.uri),
     );
-    if (uploadingVideo) toast('Uploading demo video…');
+    if (uploadingVideo) {
+      setMediaUploading(true);
+      toast('Uploading demo video…');
+    }
 
     persistListing(userId, app.id, patch)
       .then(() =>
@@ -62,12 +69,11 @@ export default function OwnerAppPage() {
         void queryClient.invalidateQueries({
           queryKey: queryKeys.myListings(userId),
         });
+      })
+      .finally(() => {
+        if (uploadingVideo) setMediaUploading(false);
       });
   };
-
-  const [editLayout, setEditLayout] = useState(false);
-  const [editSection, setEditSection] = useState<SectionKey | 'listing' | null>(null);
-  const [verifyOpen, setVerifyOpen] = useState(false);
 
   const isSetup = setup === '1';
   useConnectionsSync(app.id);
@@ -138,23 +144,44 @@ export default function OwnerAppPage() {
           paddingBottom: 10,
         }}
       >
-        {isSetup ? (
-          <View style={{ flex: 1 }} />
-        ) : (
-          <>
-            <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back to Apps">
-              <Ionicons name="chevron-back" size={26} color={c.ink} />
-            </Pressable>
-            <Txt font="mono" size={17} weight={500} style={{ flex: 1 }} numberOfLines={1}>
-              {shortName(app.name)}
-            </Txt>
-            <Pressable onPress={() => setEditLayout((prev) => !prev)} hitSlop={10}>
-              <Txt size={14} weight={600} color={editLayout ? c.accentText : c.ink}>
-                {editLayout ? 'Done' : 'Edit layout'}
-              </Txt>
-            </Pressable>
-          </>
+        {isSetup ? null : (
+          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back to Apps">
+            <Ionicons name="chevron-back" size={26} color={c.ink} />
+          </Pressable>
         )}
+        <View style={{ flex: 1 }} />
+        <Pressable
+          onPress={() => {
+            setEditLayout(false);
+            store.setPreviewApp(app.id);
+            router.push('/(tabs)/discover');
+          }}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Preview on Discover"
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}
+        >
+          <Ionicons name="eye-outline" size={20} color={c.ink} />
+          <Txt size={14} weight={600}>
+            Preview
+          </Txt>
+        </Pressable>
+        <Pressable
+          onPress={() => setEditLayout((prev) => !prev)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={editLayout ? 'Done editing layout' : 'Edit layout'}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}
+        >
+          <Ionicons
+            name="menu-outline"
+            size={20}
+            color={editLayout ? c.accentText : c.ink}
+          />
+          <Txt size={14} weight={600} color={editLayout ? c.accentText : c.ink}>
+            {editLayout ? 'Done' : 'Edit layout'}
+          </Txt>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -184,6 +211,7 @@ export default function OwnerAppPage() {
           }}
           onEditSection={setEditSection}
           onEditListing={() => setEditSection('listing')}
+          mediaUploading={mediaUploading}
           onOpenLink={(kind, value) =>
             router.push({ pathname: '/browser', params: { kind, value } })
           }
@@ -214,13 +242,15 @@ export default function OwnerAppPage() {
       <EditSectionSheet
         section={editSection === 'pitch' ? null : editSection}
         app={app}
+        mediaUploading={mediaUploading}
         onClose={() => setEditSection(null)}
-        onSave={(patch) => {
+        onSave={(patch, opts) => {
           store.updateApp(app.id, patch);
           persist(patch);
           captureEvent('listing_section_edited', {
             section: editSection ?? '',
           });
+          if (opts?.close === false) return;
           setEditSection(null);
           toast('Listing updated');
         }}

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SHOT_RATIO, type MediaItem, type ShotLayout } from '@/data/types';
@@ -21,6 +21,8 @@ export type InlineVideoProps = {
   layout?: ShotLayout;
   radius?: number;
   style?: StyleProp<ViewStyle>;
+  /** Covers the card while the file is still going up. */
+  uploading?: boolean;
 };
 
 /**
@@ -33,6 +35,7 @@ export function InlineVideo({
   layout = 'horizontal',
   radius = radii.card,
   style,
+  uploading,
 }: InlineVideoProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -72,14 +75,14 @@ export function InlineVideo({
     };
   }, [playable, player]);
   const frame: ViewStyle = {
-    aspectRatio: SHOT_RATIO[layout],
     borderRadius: radius,
     overflow: 'hidden',
     backgroundColor: c.raised,
+    ...(style ? null : { aspectRatio: SHOT_RATIO[layout] }),
   };
 
   const toggle = () => {
-    if (!playable) return;
+    if (!playable || uploading) return;
     if (playing) {
       player.pause();
       setPlaying(false);
@@ -90,7 +93,7 @@ export function InlineVideo({
   };
 
   const expand = () => {
-    if (!playable) return;
+    if (!playable || uploading) return;
     player.play();
     setPlaying(true);
     setExpanded(true);
@@ -111,13 +114,33 @@ export function InlineVideo({
             allowsPictureInPicture={false}
             nativeControls={false}
             contentFit="cover"
-            style={{ flex: 1 }}
+            style={{ width: '100%', height: '100%' }}
           />
         ) : (
           <MediaPlaceholder label={item.label} hue={hue} radius={radius} style={{ flex: 1 }} />
         )}
 
-        {!playing ? (
+        {uploading ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              backgroundColor: 'rgba(0, 0, 0, 0.35)',
+            }}
+          >
+            <ActivityIndicator color={OVER_MEDIA} />
+            <Txt font="mono" size={10} weight={500} color={OVER_MEDIA}>
+              Uploading
+            </Txt>
+          </View>
+        ) : !playing ? (
           <View
             pointerEvents="none"
             style={{
@@ -151,7 +174,7 @@ export function InlineVideo({
           </View>
         ) : null}
 
-        {playable ? (
+        {playable && !uploading ? (
           <Pressable
             onPress={expand}
             hitSlop={10}

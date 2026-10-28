@@ -6,14 +6,17 @@ import { identiconOf } from '@/lib/identicon';
 
 const GRID = 5;
 
-/** 5×5 mirrored sprite, clipped to the circular avatar. */
+/** 5×5 mirrored sprite, clipped to a circle unless a radius is passed. */
 export function Identicon({
   seed,
   size,
+  radius,
   style,
 }: {
   seed: string;
   size: number;
+  /** Defaults to a circle, like profile photos. */
+  radius?: number;
   style?: StyleProp<ViewStyle>;
 }) {
   const { cells, fg, bg } = useMemo(() => identiconOf(seed), [seed]);
@@ -23,7 +26,10 @@ export function Identicon({
   return (
     <View
       pointerEvents="none"
-      style={[{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }, style]}
+      style={[
+        { width: size, height: size, borderRadius: radius ?? size / 2, overflow: 'hidden' },
+        style,
+      ]}
     >
       <Svg width={size} height={size}>
         <Rect x={0} y={0} width={size} height={size} fill={bg} />

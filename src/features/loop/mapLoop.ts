@@ -162,6 +162,9 @@ function threadPreviewLine(last: ThreadRow['last_message']): string {
   if (!last) return 'Say hi and swap test links.';
 
   if (last.kind === 'feedback') return last.mine ? 'You sent feedback' : 'Sent you feedback';
+  if (last.kind === 'invite') {
+    return last.mine ? 'You sent a group invite' : 'Invited you to a private community';
+  }
   if (last.body) return last.mine ? `You: ${last.body}` : last.body;
 
   const label = last.media > 1 ? `${last.media} attachments` : 'Attachment';
@@ -226,6 +229,27 @@ export function messageToMessage(row: MessageEmbed, me: string): Message {
       kind: 'system',
       body: row.body ?? '',
       ...(row.sender_id ? { senderId: row.sender_id } : {}),
+      ...extra,
+    };
+  }
+
+  if (row.kind === 'invite') {
+    const meta = (row.feedback ?? {}) as {
+      group_id?: string;
+      app_name?: string;
+      group_name?: string;
+      icon_path?: string | null;
+      hue?: number;
+    };
+    return {
+      kind: 'invite',
+      from: mine ? 'me' : 'them',
+      body: row.body ?? '',
+      groupId: meta.group_id ?? '',
+      appName: meta.app_name ?? '',
+      ...(meta.group_name ? { groupName: meta.group_name } : {}),
+      ...(meta.icon_path ? { icon: publicUrl('listing-media', meta.icon_path) } : {}),
+      ...(typeof meta.hue === 'number' ? { hue: meta.hue } : {}),
       ...extra,
     };
   }

@@ -7,7 +7,7 @@ import { getSupabase, isServerId, publicUrl } from '@/lib/supabase';
 
 import { queryKeys } from './keys';
 
-export type JoinMode = 'open' | 'request' | 'criteria';
+export type JoinMode = 'open' | 'request' | 'criteria' | 'match';
 export type GroupKind = 'community' | 'official';
 
 /** Seeded official group. Everyone is a member; only admins start threads. */
@@ -71,6 +71,8 @@ export type CommunityGroup = {
   audience: string;
   kind?: GroupKind;
   coverUrl?: string;
+  /** Persisted identicon seed when the group has no uploaded cover. */
+  iconSeed?: string;
   joinMode: JoinMode;
   createdBy: string;
   memberCount: number;
@@ -95,7 +97,15 @@ export type CommunityGroup = {
   pendingCount?: number;
   memberStack?: { name: string; photo?: string }[];
   power?: GroupPowerStats;
+  listingId?: string;
+  listingName?: string;
+  listingIcon?: string;
+  listingHue?: number;
 };
+
+export function isMatchGroup(group?: Pick<CommunityGroup, 'joinMode'> | null): boolean {
+  return group?.joinMode === 'match';
+}
 
 export function isOfficialGroup(group?: Pick<CommunityGroup, 'kind' | 'id'> | null): boolean {
   return group?.kind === 'official' || group?.id === OFFICIAL_GROUP_ID;
@@ -178,8 +188,20 @@ function client() {
   return db ? (db as unknown as AnyClient) : null;
 }
 
+const IDENTICON_PREFIX = 'identicon:';
+
 function coverUrl(path?: string | null): string | undefined {
   return path ? publicUrl('listing-media', path) : undefined;
+}
+
+function parseGroupCover(path?: string | null): { coverUrl?: string; iconSeed?: string } {
+  if (!path) return {};
+  if (path.startsWith(IDENTICON_PREFIX)) return { iconSeed: path.slice(IDENTICON_PREFIX.length) };
+  return { coverUrl: coverUrl(path) };
+}
+
+export function identiconCoverPath(seed: string): string {
+  return `${IDENTICON_PREFIX}${seed}`;
 }
 
 function mapGroup(row: {
@@ -212,13 +234,19 @@ function mapGroup(row: {
   pending_count?: number;
   member_stack?: { name: string; photo?: string }[];
   power?: GroupPowerStats;
+  listing_id?: string | null;
+  listing_name?: string | null;
+  listing_icon?: string | null;
+  listing_hue?: number | null;
 }): CommunityGroup {
+  const cover = parseGroupCover(row.cover_path);
   return {
     id: row.id,
     name: row.name,
     bio: row.bio ?? '',
     audience: row.audience ?? '',
-    coverUrl: coverUrl(row.cover_path),
+    coverUrl: cover.coverUrl,
+    iconSeed: cover.iconSeed,
     joinMode: row.join_mode,
     kind: row.kind === 'official' ? 'official' : 'community',
     createdBy: row.created_by,
@@ -244,6 +272,10 @@ function mapGroup(row: {
     pendingCount: row.pending_count,
     memberStack: row.member_stack,
     power: row.power,
+    listingId: row.listing_id ?? undefined,
+    listingName: row.listing_name ?? undefined,
+    listingIcon: row.listing_icon ? coverUrl(row.listing_icon) : undefined,
+    listingHue: row.listing_hue ?? undefined,
   };
 }
 
@@ -315,6 +347,7 @@ export async function fetchCommunityHome(userId: string): Promise<{
       muted: boolean;
       last_read_at?: string | null;
     }[];
+    member_stacks?: { group_id: string; name: string; photo?: string | null }[];
   };
   const groups = packed.groups ?? [];
   const members = packed.memberships ?? [];
@@ -334,17 +367,37 @@ export async function fetchCommunityHome(userId: string): Promise<{
 
   const { data: threads } = await db
     .from('community_threads')
-    .select('group_id, author_id, body, created_at')
+    .select('id, group_id, author_id, body, created_at')
     .order('created_at', { ascending: false });
 
   const lastByGroup = new Map<string, { author_id: string; body: string; created_at: string }>();
+  const threadGroup = new Map<string, string>();
   for (const thread of (threads ?? []) as {
+    id: string;
     group_id: string;
     author_id: string;
     body: string;
     created_at: string;
   }[]) {
+    threadGroup.set(thread.id, thread.group_id);
     if (!lastByGroup.has(thread.group_id)) lastByGroup.set(thread.group_id, thread);
+  }
+
+  const { data: replies } = await db
+    .from('community_replies')
+    .select('thread_id, author_id, body, created_at')
+    .order('created_at', { ascending: false });
+
+  for (const reply of (replies ?? []) as {
+    thread_id: string;
+    author_id: string;
+    body: string;
+    created_at: string;
+  }[]) {
+    const groupId = threadGroup.get(reply.thread_id);
+    if (!groupId) continue;
+    const prev = lastByGroup.get(groupId);
+    if (!prev || reply.created_at > prev.created_at) lastByGroup.set(groupId, reply);
   }
 
   const people = await loadBuilders([
@@ -383,6 +436,12 @@ export async function fetchCommunityHome(userId: string): Promise<{
 
   const pendingByGroup = new Map<string, number>();
   const stackByGroup = new Map<string, { name: string; photo?: string }[]>();
+  for (const row of packed.member_stacks ?? []) {
+    const stack = stackByGroup.get(row.group_id) ?? [];
+    if (stack.length >= 10) continue;
+    stack.push({ name: row.name, photo: row.photo ?? undefined });
+    stackByGroup.set(row.group_id, stack);
+  }
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const weekly = new Map<string, number>();
   const threadCounts = new Map<string, number>();
@@ -396,12 +455,40 @@ export async function fetchCommunityHome(userId: string): Promise<{
     if (row.status === 'pending') {
       pendingByGroup.set(row.group_id, (pendingByGroup.get(row.group_id) ?? 0) + 1);
     }
+    if ((packed.member_stacks ?? []).length) continue;
     if (row.status !== 'active') continue;
     const person = people.get(row.user_id);
     if (!person) continue;
     const stack = stackByGroup.get(row.group_id) ?? [];
-    if (stack.length < 4) stack.push({ name: person.name, photo: person.photo });
+    if (stack.length >= 10) continue;
+    stack.push({ name: person.name, photo: person.photo });
     stackByGroup.set(row.group_id, stack);
+  }
+
+  const listingIds = [
+    ...new Set(
+      ((groups ?? []) as { listing_id?: string | null }[])
+        .map((row) => row.listing_id)
+        .filter((id): id is string => !!id),
+    ),
+  ];
+  const listingById = new Map<
+    string,
+    { name: string; icon?: string | null; hue: number }
+  >();
+  if (listingIds.length) {
+    const { data: listingRows } = await db
+      .from('apps')
+      .select('id, name, icon_path, hue')
+      .in('id', listingIds);
+    for (const row of (listingRows ?? []) as {
+      id: string;
+      name: string;
+      icon_path?: string | null;
+      hue: number;
+    }[]) {
+      listingById.set(row.id, { name: row.name, icon: row.icon_path, hue: row.hue });
+    }
   }
 
   const mapped = ((groups ?? []) as Record<string, unknown>[])
@@ -430,7 +517,7 @@ export async function fetchCommunityHome(userId: string): Promise<{
       last_preview: last?.body,
       last_author: last ? people.get(last.author_id)?.name : undefined,
       last_author_photo: last ? people.get(last.author_id)?.photo : undefined,
-      last_at: last?.created_at,
+      last_at: last?.created_at ?? (row.created_at as string | undefined),
       unread,
       last_read_at: membership?.last_read_at,
       muted: membership?.muted,
@@ -447,6 +534,10 @@ export async function fetchCommunityHome(userId: string): Promise<{
       pending_count: membership?.status === 'active' ? pendingByGroup.get(row.id as string) ?? 0 : 0,
       member_stack: stackByGroup.get(row.id as string),
       power: powerByGroup.get(row.id as string),
+      listing_id: (row.listing_id as string | null) ?? null,
+      listing_name: listingById.get(row.listing_id as string)?.name,
+      listing_icon: listingById.get(row.listing_id as string)?.icon,
+      listing_hue: listingById.get(row.listing_id as string)?.hue,
     });
   });
 
@@ -474,6 +565,7 @@ export async function createCommunityGroup(input: {
   coverPath?: string;
   joinMode: JoinMode;
   criteria?: JoinCriterion[];
+  listingId?: string;
 }): Promise<string> {
   const db = getSupabase();
   if (!db) throw new Error('Not signed in');
@@ -484,6 +576,7 @@ export async function createCommunityGroup(input: {
     p_cover_path: input.coverPath ?? null,
     p_join_mode: input.joinMode,
     p_join_criteria: input.joinMode === 'criteria' ? (input.criteria ?? []) : [],
+    p_listing_id: input.joinMode === 'match' ? (input.listingId ?? null) : null,
   });
   if (error || typeof data !== 'string') throw new Error(error?.message ?? 'Could not create the group');
   return data;

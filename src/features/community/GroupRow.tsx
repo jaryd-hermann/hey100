@@ -3,7 +3,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Txt } from '@/components/ui/Txt';
-import { isOfficialGroup, type CommunityGroup } from '@/data/repo/community';
+import { isMatchGroup, isOfficialGroup, type CommunityGroup } from '@/data/repo/community';
 import { useTheme } from '@/theme/ThemeProvider';
 
 import { GroupCover } from './GroupCover';
@@ -58,10 +58,13 @@ export function GroupRow({
           <Txt size={16.5} weight={600} style={{ flex: 1 }} numberOfLines={1}>
             {group.name}
           </Txt>
+          {isMatchGroup(group) ? <Ionicons name="lock-open" size={13} color={c.muted} /> : null}
           {isOfficialGroup(group) ? <OfficialMark label /> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {group.muted ? <Txt size={13}>🔕</Txt> : null}
-            {group.joinMode === 'request' ? <Ionicons name="lock-closed" size={11} color={c.muted} /> : null}
+            {group.joinMode === 'request' || group.joinMode === 'criteria' ? (
+              <Ionicons name="lock-closed" size={11} color={c.muted} />
+            ) : null}
             <Txt size={13} muted>
               {shortWhen(group.lastAt)}
             </Txt>

@@ -3,11 +3,15 @@ import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
+import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
+import { Identicon } from '@/components/ui/Identicon';
 import { Label, Txt } from '@/components/ui/Txt';
 import {
   createCommunityGroup,
+  identiconCoverPath,
   JOIN_CRITERIA,
   uploadGroupCover,
   type JoinCriterion,
@@ -16,6 +20,8 @@ import {
 import { pickAvatar } from '@/features/profile/avatar';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { captureEvent } from '@/lib/analytics';
+import { isServerId } from '@/lib/supabase';
+import { useStore } from '@/store/AppStore';
 import { useToast } from '@/components/ui/Toast';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -29,13 +35,18 @@ export function CreateGroupForm({
   const { c } = useTheme();
   const toast = useToast();
   const { userId } = useAuth();
+  const store = useStore();
+  const listings = store.ownedApps.filter((app) => isServerId(app.id));
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [audience, setAudience] = useState('');
   const [cover, setCover] = useState<string | null>(null);
+  const [iconSeed, setIconSeed] = useState<string | null>(null);
   const [joinMode, setJoinMode] = useState<JoinMode>('open');
   const [criteria, setCriteria] = useState<JoinCriterion[]>([]);
+  const [listingId, setListingId] = useState<string | null>(listings[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
+  const listing = listings.find((app) => app.id === listingId) ?? listings[0];
 
   const pickCover = async () => {
     const picked = await pickAvatar();
@@ -51,22 +62,27 @@ export function CreateGroupForm({
     if (!name.trim() || !userId || busy) return;
     setBusy(true);
     try {
-      const coverPath = cover ? await uploadGroupCover(userId, cover) : undefined;
+      const generatedSeed = iconSeed || name.trim() || 'new-group';
+      const uploaded = cover ? await uploadGroupCover(userId, cover) : null;
+      const coverPath = uploaded ?? identiconCoverPath(generatedSeed);
       const id = await createCommunityGroup({
         name: name.trim(),
         bio: bio.trim(),
         audience: audience.trim(),
-        coverPath: coverPath ?? undefined,
+        coverPath,
         joinMode,
         criteria,
+        listingId: joinMode === 'match' ? listing?.id : undefined,
       });
       setName('');
       setBio('');
       setAudience('');
       setCover(null);
+      setIconSeed(null);
       setJoinMode('open');
       setCriteria([]);
-      captureEvent('group_created', { join_mode: joinMode, has_cover: !!coverPath });
+      setListingId(listings[0]?.id ?? null);
+      captureEvent('group_created', { join_mode: joinMode, has_cover: !!cover });
       onCreated(id);
     } catch (error) {
       toast(error instanceof Error ? error.message : 'Could not create the group');
@@ -84,33 +100,57 @@ export function CreateGroupForm({
           </Pressable>
         </View>
       ) : null}
-      <Pressable onPress={() => void pickCover()} style={{ alignItems: 'center', gap: 10 }}>
-        <View
-          style={{
-            width: 104,
-            height: 104,
-            borderRadius: 27,
-            backgroundColor: cover ? c.raised : c.surface,
-            borderWidth: cover ? 3 : 1.5,
-            borderColor: cover ? c.bg : c.line,
-            borderStyle: cover ? 'solid' : 'dashed',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          {cover ? (
-            <Image source={{ uri: cover }} style={{ width: 104, height: 104 }} />
-          ) : (
-            <Txt size={34} muted>
-              +
+      <View style={{ alignItems: 'center', gap: 10 }}>
+        <Pressable onPress={() => void pickCover()} accessibilityLabel="Replace group icon">
+          <View
+            style={{
+              width: 104,
+              height: 104,
+              borderRadius: 27,
+              backgroundColor: cover ? c.raised : c.surface,
+              borderWidth: cover ? 3 : 0,
+              borderColor: cover ? c.bg : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            {cover ? (
+              <Image source={{ uri: cover }} style={{ width: 104, height: 104 }} />
+            ) : (
+              <Identicon seed={iconSeed || name.trim() || 'new-group'} size={104} radius={27} />
+            )}
+          </View>
+        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <Pressable onPress={() => void pickCover()} hitSlop={8}>
+            <Txt size={13.5} muted>
+              {cover ? 'Change image' : 'Tap to replace'}
             </Txt>
+          </Pressable>
+          {cover ? (
+            <Pressable onPress={() => setCover(null)} hitSlop={8}>
+              <Txt size={13.5} muted>
+                Use generated
+              </Txt>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() =>
+                setIconSeed(`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`)
+              }
+              hitSlop={8}
+              accessibilityLabel="Shuffle generated icon"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+            >
+              <Ionicons name="shuffle-outline" size={15} color={c.muted} />
+              <Txt size={13.5} muted>
+                Shuffle
+              </Txt>
+            </Pressable>
           )}
         </View>
-        <Txt size={13.5} muted>
-          {cover ? 'Change image' : 'Add image · optional'}
-        </Txt>
-      </Pressable>
+      </View>
 
       <Field
         label="Name"
@@ -150,13 +190,21 @@ export function CreateGroupForm({
             ['open', 'Anyone can join', 'Builders join instantly'],
             ['request', 'Request to join', 'They write a note. Anyone in the group can approve.'],
             ['criteria', 'If they match this criteria', 'They can join without approval if they match. They still tap Join.'],
+            ['match', 'Private: Only people who match with my app', 'Nobody else can see it'],
           ] as const
         ).map(([mode, label, desc]) => {
           const on = joinMode === mode;
           return (
             <Pressable
               key={mode}
-              onPress={() => setJoinMode(mode)}
+              onPress={() => {
+                if (mode === 'match' && !listings.length) {
+                  toast('Publish a listing first to make a private match group');
+                  return;
+                }
+                setJoinMode(mode);
+                if (mode === 'match' && listings.length === 1) setListingId(listings[0].id);
+              }}
               style={{
                 minHeight: 64,
                 paddingHorizontal: 16,
@@ -177,6 +225,14 @@ export function CreateGroupForm({
                 <Txt size={13.5} muted>
                   {desc}
                 </Txt>
+                {mode === 'match' && on && listing ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                    <Txt size={13.5} weight={600}>
+                      Must like
+                    </Txt>
+                    <AppIcon hue={listing.hue} name={listing.name} uri={listing.icon} size={22} />
+                  </View>
+                ) : null}
               </View>
               <View
                 style={{
@@ -202,6 +258,23 @@ export function CreateGroupForm({
           );
         })}
       </View>
+
+      {joinMode === 'match' && listings.length > 1 ? (
+        <View style={{ gap: 8 }}>
+          <Label>Which app</Label>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {listings.map((app) => (
+              <Chip
+                key={app.id}
+                label={app.name}
+                selected={listingId === app.id}
+                onPress={() => setListingId(app.id)}
+                left={<AppIcon hue={app.hue} name={app.name} uri={app.icon} size={18} />}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       {joinMode === 'criteria' ? (
         <View style={{ gap: 8 }}>
@@ -262,7 +335,12 @@ export function CreateGroupForm({
         variant="accent"
         size="lg"
         full
-        disabled={!name.trim() || busy || (joinMode === 'criteria' && !criteria.length)}
+        disabled={
+          !name.trim() ||
+          busy ||
+          (joinMode === 'criteria' && !criteria.length) ||
+          (joinMode === 'match' && !listing)
+        }
         onPress={() => void submit()}
       />
     </View>

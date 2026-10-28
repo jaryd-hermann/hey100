@@ -83,6 +83,7 @@ export function toOwnedApp(row: ListingLike, ctx: ListingContext): OwnedApp {
     ...(row.slug ? { slug: row.slug } : {}),
     name: row.name,
     sub: row.subtitle,
+    ...(row.description ? { description: row.description } : {}),
     cat: row.category,
     plat: row.platform,
     stage: row.stage,
@@ -158,6 +159,7 @@ export function toListingPatch(app: Partial<OwnedApp>): AppPatch {
 
   if (app.name !== undefined) patch.name = app.name;
   if (app.sub !== undefined) patch.subtitle = app.sub;
+  if (app.description !== undefined) patch.description = app.description;
   if (app.cat !== undefined) patch.category = app.cat;
   if (app.plat !== undefined) patch.platform = app.plat;
   if (app.stage !== undefined) patch.stage = app.stage;

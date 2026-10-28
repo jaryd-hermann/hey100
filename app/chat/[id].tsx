@@ -23,11 +23,19 @@ import {
 } from '@/features/chat/ChatStamp';
 import { Composer } from '@/features/chat/Composer';
 import { sendAdminDm } from '@/data/repo/admin';
+import { queryKeys } from '@/data/repo/keys';
 import { listingBySlug } from '@/data/repo/listings';
 import { cardToListing } from '@/features/loop/mapLoop';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { avatarName, firstName, TEAM_ID } from '@/features/chat/chatMeta';
+import {
+  isMatchGroup,
+  joinCommunityGroup,
+  useCommunityHome,
+  type CommunityGroup,
+} from '@/data/repo/community';
 import { JoinChip } from '@/features/community/JoinChip';
+import { GroupCoverSheet } from '@/features/community/GroupCoverSheet';
 import { useDevLoop } from '@/features/dev/useDevLoop';
 import { MessageActions } from '@/features/chat/MessageActions';
 import { MessageBubble } from '@/features/chat/MessageBubble';
@@ -40,6 +48,7 @@ import { TradeCard } from '@/features/chat/TradeCard';
 import { useMediaPicker } from '@/features/chat/useMediaPicker';
 import { useThreadMessages } from '@/features/loop/useThreadMessages';
 import { captureEvent } from '@/lib/analytics';
+import { isServerId } from '@/lib/supabase';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout } from '@/theme/tokens';
@@ -92,6 +101,9 @@ export default function ChatThread() {
   } | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [actionFor, setActionFor] = useState<Message | null>(null);
+  const [groupPreview, setGroupPreview] = useState<CommunityGroup | null>(null);
+  const [joiningGroup, setJoiningGroup] = useState(false);
+  const community = useCommunityHome();
 
   const isTeam = id === TEAM_ID;
   const match =
@@ -137,6 +149,12 @@ export default function ChatThread() {
     unreadAtOpen > 0 && messages.length ? Math.max(0, messages.length - unreadAtOpen) : -1;
   const { scrollRef, onUnreadLayout, onContentSizeChange } = useChatAnchor(unreadStart >= 0);
 
+  const listingGroup = useMemo(() => {
+    if (!listing) return null;
+    const groups = [...(community.data?.mine ?? []), ...(community.data?.discover ?? [])];
+    return groups.find((group) => isMatchGroup(group) && group.listingId === listing.id) ?? null;
+  }, [community.data, listing]);
+
   if (!isTeam && !listing) {
     return (
       <View
@@ -152,9 +170,41 @@ export default function ChatThread() {
     );
   }
 
+  const openGroupPreview = (group: CommunityGroup | null) => {
+    if (!group) return;
+    setGroupPreview(group);
+  };
+
+  const joinPreviewGroup = async (note?: string) => {
+    if (!groupPreview || !userId || joiningGroup) return;
+    if (groupPreview.membership === 'active') {
+      setGroupPreview(null);
+      router.push({ pathname: '/group/[id]', params: { id: groupPreview.id } });
+      return;
+    }
+    setJoiningGroup(true);
+    try {
+      const status = isServerId(groupPreview.id)
+        ? await joinCommunityGroup(groupPreview, userId, note)
+        : 'active';
+      await queryClient.invalidateQueries({ queryKey: queryKeys.communityHome(userId) });
+      setGroupPreview(null);
+      if (status === 'active') {
+        captureEvent('group_joined', { group_id: groupPreview.id, join_mode: groupPreview.joinMode });
+        router.push({ pathname: '/group/[id]', params: { id: groupPreview.id } });
+      } else {
+        toast('Request sent. Anyone in the group can let you in.');
+      }
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not join');
+    } finally {
+      setJoiningGroup(false);
+    }
+  };
+
   const builder = avatarName(listing?.builder ?? 'Jaryd');
   const tradeLink = listingHref(listing, match?.shareUrl);
-  const myDefaultUrl = listingHref(viaApp ?? store.primaryApp)[1];
+  const myDefaultUrl = listingHref(viaApp ?? store.primaryApp)?.[1] ?? '';
   const link: [string, string] = isTeam
     ? ['Web', 'hey100.com']
     : (tradeLink ?? ['Web', `${slugify(listing?.name ?? 'app')}.app`]);
@@ -346,6 +396,8 @@ export default function ChatThread() {
             onSaveShare={(url, code) => {
               void store.setMatchShare(match.id, url, code).then(() => toast('Saved'));
             }}
+            onJoinGroup={listingGroup ? () => openGroupPreview(listingGroup) : undefined}
+            joinedGroup={listingGroup?.membership === 'active'}
             onSendFeedback={() =>
               router.push({
                 pathname: '/feedback-form',
@@ -388,6 +440,13 @@ export default function ChatThread() {
                       <Avatar name={builder} uri={listing?.builderPhoto} size={26} />
                     )
                   }
+                  onOpenInvite={(groupId) => {
+                    const groups = [
+                      ...(community.data?.mine ?? []),
+                      ...(community.data?.discover ?? []),
+                    ];
+                    openGroupPreview(groups.find((group) => group.id === groupId) ?? listingGroup);
+                  }}
                   onOpenMedia={(items, at) => setViewer({ items, index: at })}
                   onLongPress={() => setActionFor(message)}
                   onToggleReaction={(emoji) => void react(message, emoji)}
@@ -525,6 +584,13 @@ export default function ChatThread() {
           }}
         />
       ) : null}
+
+      <GroupCoverSheet
+        group={groupPreview}
+        busy={joiningGroup}
+        onClose={() => setGroupPreview(null)}
+        onJoin={(note) => void joinPreviewGroup(note)}
+      />
 
       <Lightbox
         visible={!!viewer}

@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import React, { useRef, useState } from 'react';
-import { Animated, LayoutAnimation, PanResponder, Pressable, View } from 'react-native';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, PanResponder, Pressable, View } from 'react-native';
 
 import { Txt } from '@/components/ui/Txt';
 import { SHOT_RATIO, type PickedShot, type ShotLayout } from '@/data/types';
@@ -15,11 +16,9 @@ const GAP = 10;
 const COLS: Record<ShotLayout, number> = { vertical: 3, horizontal: 2 };
 
 /** How long a finger rests on a shot before it lifts off the grid. */
-const HOLD_MS = 180;
+const HOLD_MS = 220;
 /** Movement that means the finger is scrolling the page, not holding a shot. */
 const SLOP = 8;
-/** The corner the remove badge answers for, larger than the badge it draws. */
-const REMOVE_HIT = 40;
 
 export type ShotGridProps = {
   shots: PickedShot[];
@@ -27,11 +26,15 @@ export type ShotGridProps = {
   max: number;
   /** True while the photo picker is open, so the add slot can say so. */
   busy?: boolean;
+  /** True while a picked video is still uploading. */
+  uploading?: boolean;
   onReorder: (shots: PickedShot[]) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
   /** Editor-only: empty first slot offers a demo video from Photos. */
   onAddVideo?: () => void;
+  /** Lets the parent freeze its scroll view for the duration of a drag. */
+  onDragChange?: (dragging: boolean) => void;
 };
 
 type Drag = { order: PickedShot[]; from: number; at: number };
@@ -51,10 +54,12 @@ export function ShotGrid({
   layout,
   max,
   busy,
+  uploading,
   onReorder,
   onRemove,
   onAdd,
   onAddVideo,
+  onDragChange,
 }: ShotGridProps) {
   const { c } = useTheme();
   const [width, setWidth] = useState(0);
@@ -63,8 +68,14 @@ export function ShotGrid({
   /** The drag in progress, readable inside a gesture without a re-render. */
   const live = useRef<Drag | null>(null);
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touch = useRef({ x: 0, y: 0 });
+  const origin = useRef({ x: 0, y: 0 });
   const pan = useRef(new Animated.ValueXY()).current;
+  const shotsRef = useRef(shots);
+  shotsRef.current = shots;
+  const dragChangeRef = useRef(onDragChange);
+  dragChangeRef.current = onDragChange;
+  const reorderRef = useRef(onReorder);
+  reorderRef.current = onReorder;
 
   const cols = COLS[layout];
   const ratio = SHOT_RATIO[layout];
@@ -74,11 +85,13 @@ export function ShotGrid({
     x: (index % cols) * (cellW + GAP),
     y: Math.floor(index / cols) * (cellH + GAP),
   });
+  const metrics = useRef({ cellW, cellH, cols, shotOffset: 0 });
 
   const order = drag?.order ?? shots;
   const editor = !!onAddVideo;
   const demoSlot = editor && shots[0]?.kind !== 'video' && shots.length < max;
   const shotOffset = demoSlot ? 1 : 0;
+  metrics.current = { cellW, cellH, cols, shotOffset };
   const emptyCount = editor
     ? Math.max(0, max - order.length - shotOffset)
     : shots.length < max
@@ -91,131 +104,115 @@ export function ShotGrid({
     hold.current = null;
   };
 
-  /** Springs the lifted shot into its slot, then hands it back to the grid. */
+  /** Drops the lifted shot into its slot and commits the preview order. */
   const land = (drop: Drag) => {
     live.current = null;
-    const from = slot(shotOffset + drop.from);
-    const to = slot(shotOffset + drop.at);
-    Animated.spring(pan, {
-      toValue: { x: to.x - from.x, y: to.y - from.y },
-      useNativeDriver: false,
-      speed: 20,
-      bounciness: 3,
-    }).start(() => {
-      pan.setValue({ x: 0, y: 0 });
-      setDrag(null);
-    });
-    if (drop.at !== drop.from) onReorder(drop.order);
+    pan.setValue({ x: 0, y: 0 });
+    setDrag(null);
+    setHeld(null);
+    dragChangeRef.current?.(false);
+    if (drop.at !== drop.from) reorderRef.current(drop.order);
   };
 
-  const gesture = (index: number, shot?: PickedShot) =>
+  const startHold = (index: number) => {
+    if (shotsRef.current.length < 2) return;
+    stopHold();
+    hold.current = setTimeout(() => {
+      hold.current = null;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      live.current = { order: shotsRef.current, from: index, at: index };
+      pan.setValue({ x: 0, y: 0 });
+      setDrag(live.current);
+      dragChangeRef.current?.(true);
+    }, HOLD_MS);
+  };
+
+  const responder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      // Until a shot lifts, the page still owns the gesture, so a swipe that
-      // starts on a screenshot scrolls the step like anywhere else.
+      // The sheet keeps scrolling until a shot actually lifts, then this
+      // responder takes the rest of the gesture so the page does not move.
+      onStartShouldSetPanResponder: () => !!live.current,
+      onMoveShouldSetPanResponder: () => !!live.current,
+      onMoveShouldSetPanResponderCapture: () => !!live.current,
       onPanResponderTerminationRequest: () => !live.current,
-      onPanResponderGrant: (event) => {
-        setHeld(index);
-        touch.current = { x: event.nativeEvent.locationX, y: event.nativeEvent.locationY };
-        if (!shot || shots.length < 2) return;
-        hold.current = setTimeout(() => {
-          hold.current = null;
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-          live.current = { order: shots, from: index, at: index };
-          pan.setValue({ x: 0, y: 0 });
-          setDrag(live.current);
-        }, HOLD_MS);
-      },
       onPanResponderMove: (_, g) => {
         const dragging = live.current;
-        if (!dragging) {
-          if (Math.abs(g.dx) > SLOP || Math.abs(g.dy) > SLOP) {
-            stopHold();
-            setHeld(null);
-          }
-          return;
-        }
+        if (!dragging) return;
 
         pan.setValue({ x: g.dx, y: g.dy });
 
-        // The slot under the middle of the lifted shot, which is steadier than
-        // the finger when a shot straddles two columns.
-        const start = slot(shotOffset + dragging.from);
-        const col = clamp(Math.floor((start.x + g.dx + cellW / 2) / (cellW + GAP)), cols - 1);
-        const row = Math.max(0, Math.floor((start.y + g.dy + cellH / 2) / (cellH + GAP)));
-        const target = clamp(row * cols + col - shotOffset, dragging.order.length - 1);
+        const { cellW: w, cellH: h, cols: n, shotOffset: offset } = metrics.current;
+        const start = {
+          x: ((offset + dragging.from) % n) * (w + GAP),
+          y: Math.floor((offset + dragging.from) / n) * (h + GAP),
+        };
+        const col = clamp(Math.floor((start.x + g.dx + w / 2) / (w + GAP)), n - 1);
+        const row = Math.max(0, Math.floor((start.y + g.dy + h / 2) / (h + GAP)));
+        const target = clamp(row * n + col - offset, dragging.order.length - 1);
         if (target === dragging.at) return;
 
         const next = [...dragging.order];
         next.splice(target, 0, ...next.splice(dragging.at, 1));
         live.current = { order: next, from: dragging.from, at: target };
-        LayoutAnimation.configureNext({ duration: 170, update: { type: 'easeInEaseOut' } });
         Haptics.selectionAsync().catch(() => {});
         setDrag(live.current);
       },
-      onPanResponderRelease: (_, g) => {
-        stopHold();
-        setHeld(null);
-        const dragging = live.current;
-        if (dragging) {
-          land(dragging);
-          return;
-        }
-        if (Math.abs(g.dx) > SLOP || Math.abs(g.dy) > SLOP) return;
-        if (!shot) {
-          onAdd();
-          return;
-        }
-        // Only the badge corner removes, now that the rest of the shot is a
-        // handle for dragging.
-        if (touch.current.x > cellW - REMOVE_HIT && touch.current.y < REMOVE_HIT) {
-          onRemove(index);
-        }
-      },
-      onPanResponderTerminate: () => {
-        stopHold();
-        setHeld(null);
+      onPanResponderRelease: () => {
         if (live.current) land(live.current);
       },
-    });
-
-  const badge = (icon: 'close' | 'play', side: 'left' | 'right') => (
-    <View
-      style={{
-        position: 'absolute',
-        top: 6,
-        [side]: 6,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: c.bg,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Ionicons name={icon} size={icon === 'play' ? 12 : 15} color={c.ink} />
-    </View>
-  );
+      onPanResponderTerminate: () => {
+        if (live.current) land(live.current);
+      },
+    }),
+  ).current;
 
   return (
     <View
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      collapsable={false}
+      {...responder.panHandlers}
       style={{ height: width ? rows * cellH + (rows - 1) * GAP : cellH || 120 }}
     >
       {width
         ? order.map((shot, index) => {
             const lifted = drag?.at === index;
             const base = slot(shotOffset + (lifted ? drag.from : index));
+            const waiting = uploading && shot.kind === 'video' && !/^https?:\/\//i.test(shot.uri);
 
             return (
               <Animated.View
                 key={shot.uri}
-                {...gesture(index, shot).panHandlers}
                 accessible
                 accessibilityRole="button"
                 accessibilityLabel={`Screenshot ${index + 1}${index === 0 ? ', cover' : ''}`}
-                accessibilityHint="Double tap to remove, or hold to reorder"
-                onAccessibilityTap={() => onRemove(index)}
+                accessibilityHint="Hold to reorder"
+                onTouchStart={(event) => {
+                  origin.current = {
+                    x: event.nativeEvent.pageX,
+                    y: event.nativeEvent.pageY,
+                  };
+                  setHeld(index);
+                  startHold(index);
+                }}
+                onTouchMove={(event) => {
+                  if (live.current) return;
+                  const dx = event.nativeEvent.pageX - origin.current.x;
+                  const dy = event.nativeEvent.pageY - origin.current.y;
+                  if (Math.abs(dx) > SLOP || Math.abs(dy) > SLOP) {
+                    stopHold();
+                    setHeld(null);
+                  }
+                }}
+                onTouchEnd={() => {
+                  if (live.current) return;
+                  stopHold();
+                  setHeld(null);
+                }}
+                onTouchCancel={() => {
+                  if (live.current) return;
+                  stopHold();
+                  setHeld(null);
+                }}
                 style={{
                   position: 'absolute',
                   left: base.x,
@@ -245,13 +242,66 @@ export function ShotGrid({
                     justifyContent: 'center',
                   }}
                 >
-                  <Image
-                    source={{ uri: shot.uri }}
-                    style={{ width: '100%', height: '100%' }}
-                    contentFit="cover"
-                  />
-                  {badge('close', 'right')}
-                  {shot.kind === 'video' ? badge('play', 'left') : null}
+                  {shot.kind === 'video' ? (
+                    <VideoThumb uri={shot.uri} />
+                  ) : (
+                    <Image
+                      source={{ uri: shot.uri }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                    />
+                  )}
+                  {shot.kind === 'video' ? (
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {waiting ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Ionicons name="play" size={16} color="#FFFFFF" style={{ marginLeft: 2 }} />
+                        </View>
+                      )}
+                    </View>
+                  ) : null}
+                  <Pressable
+                    onPress={() => onRemove(index)}
+                    onPressIn={stopHold}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove"
+                    style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 6,
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: c.bg,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name="close" size={15} color={c.ink} />
+                  </Pressable>
                   {index === 0 ? (
                     <View
                       style={{
@@ -304,6 +354,42 @@ export function ShotGrid({
           ))
         : null}
     </View>
+  );
+}
+
+function VideoThumb({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (instance) => {
+    instance.muted = true;
+    instance.loop = false;
+  });
+
+  useEffect(() => {
+    try {
+      player.play();
+    } catch {
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        player.pause();
+        player.currentTime = 0;
+      } catch {
+        // Player may have been released if the cell unmounted.
+      }
+    }, 160);
+    return () => clearTimeout(timer);
+  }, [player]);
+
+  return (
+    <VideoView
+      player={player}
+      nativeControls={false}
+      allowsFullscreen={false}
+      allowsPictureInPicture={false}
+      contentFit="cover"
+      pointerEvents="none"
+      style={{ width: '100%', height: '100%' }}
+    />
   );
 }
 

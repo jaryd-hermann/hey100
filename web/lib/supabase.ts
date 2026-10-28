@@ -7,6 +7,7 @@ export type ListingCard = {
     id: string;
     name: string;
     subtitle: string;
+    description?: string | null;
     slug: string;
     hue: number;
     icon_path: string | null;
@@ -36,7 +37,7 @@ export type GroupCard = {
   bio: string | null;
   audience: string | null;
   cover_path: string | null;
-  join_mode: 'open' | 'request' | 'criteria';
+  join_mode: 'open' | 'request' | 'criteria' | 'match';
   member_count: number;
 };
 

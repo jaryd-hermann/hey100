@@ -21,7 +21,7 @@ export { NAME_MAX };
  * Apple's own category names, in their order, so a category the lookup
  * returned and one picked by hand are the same string.
  */
-const ALL_CATEGORIES = [
+export const ALL_CATEGORIES = [
   'Books',
   'Business',
   'Developer Tools',

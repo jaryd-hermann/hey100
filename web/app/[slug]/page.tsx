@@ -119,6 +119,12 @@ export default async function ListingPage({ params }: Props) {
         ) : null}
       </div>
 
+      {data.app.description ? (
+        <p className="muted" style={{ margin: '0 0 4px', fontSize: 15, lineHeight: 1.45 }}>
+          {data.app.description}
+        </p>
+      ) : null}
+
       {shots.length ? (
         <section className="block">
           <p className="label">Screenshots</p>

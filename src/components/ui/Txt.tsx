@@ -4,10 +4,17 @@ import { Text as RNText, type TextProps, type TextStyle } from 'react-native';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/tokens';
 
-export type FontFamily = 'body' | 'mono' | 'logo';
+export type FontFamily = 'body' | 'mono' | 'logo' | 'system';
 export type FontWeight = 400 | 500 | 600 | 700;
 
-const families: Record<Exclude<FontFamily, 'logo'>, Record<FontWeight, string>> = {
+const systemWeight: Record<FontWeight, TextStyle['fontWeight']> = {
+  400: '400',
+  500: '500',
+  600: '600',
+  700: '700',
+};
+
+const families: Record<Exclude<FontFamily, 'logo' | 'system'>, Record<FontWeight, string>> = {
   body: {
     400: fonts.body,
     500: fonts.bodyMedium,
@@ -55,9 +62,11 @@ export function Txt({
   const { c } = useTheme();
 
   const resolved: TextStyle = {
-    fontFamily: font === 'logo' ? fonts.logo : families[font][weight],
     fontSize: size,
     color: color ?? (accent ? c.accentText : muted ? c.muted : c.ink),
+    ...(font === 'system'
+      ? { fontWeight: systemWeight[weight] }
+      : { fontFamily: font === 'logo' ? fonts.logo : families[font][weight] }),
   };
 
   if (lh) resolved.lineHeight = Math.round(size * lh);

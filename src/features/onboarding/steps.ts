@@ -282,6 +282,15 @@ export const DEVICES = ['iPhone (iOS)', 'Android', 'Mac', 'Windows', 'Web'];
  */
 export const AGES = ['Any age', '18–24', '25–34', '35–44', '45–54', '55+'];
 
+export const GENDERS = ['Anyone', 'Mostly women', 'Mostly men'];
+
+export const STAGE_OPTIONS = [
+  '💡 Idea or prototype',
+  '🧪 In beta or TestFlight',
+  '🚀 Live',
+  '💸 Live with revenue',
+] as const;
+
 /**
  * Who a listing is for. Long on purpose: a builder should find their actual
  * audience rather than round it to the nearest of ten, so the step searches
@@ -378,7 +387,7 @@ export const STEPS: Step[] = [
     single: true,
     vis: true,
     title: 'What stage is your app at?',
-    opts: ['💡 Idea or prototype', '🧪 In beta or TestFlight', '🚀 Live', '💸 Live with revenue'],
+    opts: [...STAGE_OPTIONS],
   },
   {
     kind: 'pick',

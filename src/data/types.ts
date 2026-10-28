@@ -65,6 +65,8 @@ export type AppListing = {
   ownerId?: string;
   name: string;
   sub: string;
+  /** Longer description under the tags. Empty until the owner writes one. */
+  description?: string;
   cat: string;
   plat: string;
   stage: string;
@@ -238,6 +240,16 @@ export type Message =
   | ({ kind: 'them'; body?: string; media?: MediaItem[] } & ChatMessage)
   | ({ kind: 'me'; body?: string; media?: MediaItem[] } & ChatMessage)
   | ({ kind: 'announcement'; body: string; when: string; media?: MediaItem[] } & ChatMessage)
+  | ({
+      kind: 'invite';
+      from: 'me' | 'them';
+      body: string;
+      groupId: string;
+      appName: string;
+      groupName?: string;
+      icon?: string;
+      hue?: number;
+    } & ChatMessage)
   | ({
       kind: 'feedback';
       from: 'me' | 'them';

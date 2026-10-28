@@ -3,6 +3,8 @@ import { getSupabase } from '@/lib/supabase';
 
 /** App Store Connect caps the name and subtitle at 30 characters. */
 export const NAME_MAX = 30;
+/** Longer listing description under the tags. */
+export const DESCRIPTION_MAX = 330;
 
 export type AppMetadata = {
   name: string;

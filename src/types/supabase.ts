@@ -242,6 +242,7 @@ export type Database = {
           category: string
           cover_path: string | null
           created_at: string
+          description: string
           feedback_wanted: string[]
           hue: number
           icon_path: string | null
@@ -279,6 +280,7 @@ export type Database = {
           category: string
           cover_path?: string | null
           created_at?: string
+          description?: string
           feedback_wanted?: string[]
           hue?: number
           icon_path?: string | null
@@ -316,6 +318,7 @@ export type Database = {
           category?: string
           cover_path?: string | null
           created_at?: string
+          description?: string
           feedback_wanted?: string[]
           hue?: number
           icon_path?: string | null

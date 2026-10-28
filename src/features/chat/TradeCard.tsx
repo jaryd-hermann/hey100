@@ -26,6 +26,9 @@ export type TradeCardProps = {
   myDefaultUrl: string;
   onOpenLink: () => void;
   onSendFeedback: () => void;
+  /** Opens the builder's private group for this listing, when they have one. */
+  onJoinGroup?: () => void;
+  joinedGroup?: boolean;
   onCopyCode: () => void;
   onTryingChange: (trying: boolean) => void;
   onSaveShare: (url: string, code: string) => void;
@@ -57,6 +60,8 @@ export function TradeCard({
   myDefaultUrl,
   onOpenLink,
   onSendFeedback,
+  onJoinGroup,
+  joinedGroup,
   onCopyCode,
   onTryingChange,
   onSaveShare,
@@ -167,18 +172,32 @@ export function TradeCard({
         </Txt>
       </Pressable>
 
+      <Btn
+        label={`Check out ${shortName(theirAppName)}`}
+        variant="accent"
+        full
+        onPress={onOpenLink}
+      />
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Btn label="Open app" variant="accent" onPress={onOpenLink} />
-        </View>
         <View style={{ flex: 1 }}>
           <Btn
             label="Send feedback"
             variant="surface"
+            full
             dim={match.mine === 'Feedback sent'}
             onPress={onSendFeedback}
           />
         </View>
+        {onJoinGroup ? (
+          <View style={{ flex: 1 }}>
+            <Btn
+              label={joinedGroup ? 'Open group' : 'Join app group'}
+              variant="surface"
+              full
+              onPress={onJoinGroup}
+            />
+          </View>
+        ) : null}
       </View>
 
       <Sheet visible={mineOpen && !mineLocked} onClose={() => setMineOpen(false)}>

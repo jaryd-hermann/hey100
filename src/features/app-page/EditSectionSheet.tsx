@@ -24,6 +24,7 @@ import { MAX_SHOTS, pickDemoVideo, pickShots } from '@/features/apps/pickShots';
 import { ShotGrid } from '@/features/apps/ShotGrid';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { pickAvatar } from '@/features/profile/avatar';
+import { assertClean } from '@/lib/contentFilter';
 import { ALL_CATEGORIES } from '@/features/onboarding/steps/AddAppStep';
 import {
   AGES,
@@ -319,6 +320,7 @@ function Actions({
 }
 
 function DescriptionEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'>) {
+  const toast = useToast();
   const [description, setDescription] = useState(app.description ?? '');
 
   return (
@@ -340,7 +342,14 @@ function DescriptionEditor({ app, onClose, onSave }: Omit<EditorProps, 'section'
       <Actions
         saveLabel="Save app bio"
         onClose={onClose}
-        onSave={() => onSave({ description: description.trim() })}
+        onSave={() => {
+          try {
+            assertClean(description);
+            onSave({ description: description.trim() });
+          } catch (error) {
+            toast(error instanceof Error ? error.message : 'That text is not allowed.');
+          }
+        }}
       />
     </View>
   );

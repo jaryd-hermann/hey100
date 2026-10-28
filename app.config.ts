@@ -62,7 +62,59 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           NSPrivacyAccessedAPITypeReasons: ['E174.1', '85F4.1'],
         },
       ],
-      NSPrivacyCollectedDataTypes: [],
+      NSPrivacyCollectedDataTypes: [
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeEmailAddress',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeName',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeUserID',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: [
+            'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+            'NSPrivacyCollectedDataTypePurposeAnalytics',
+          ],
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypePhotosorVideos',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeOtherUserContent',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeProductInteraction',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAnalytics'],
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypePurchaseHistory',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeCrashData',
+          NSPrivacyCollectedDataTypeLinked: false,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+        },
+      ],
       NSPrivacyTracking: false,
     },
     entitlements: {
@@ -72,11 +124,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       UIBackgroundModes: ['remote-notification'],
       ITSAppUsesNonExemptEncryption: false,
       NSPhotoLibraryUsageDescription:
-        'Hey100 needs photo access so you can add screenshots to your app listing and attach them to bug reports.',
+        'Hey100 uses your photos so you can set a profile picture, add screenshots to your listing, and attach photos in chats.',
       NSCameraUsageDescription:
-        'Hey100 needs camera access so you can record a quick pitch for your listing and take a profile photo.',
+        'Hey100 uses the camera so you can take a profile photo or record a listing pitch.',
       NSMicrophoneUsageDescription:
-        'Hey100 needs the microphone so your quick pitch has audio.',
+        'Hey100 uses the microphone so listing pitch videos can include audio.',
     },
   },
 
@@ -128,8 +180,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-camera',
       {
         cameraPermission:
-          'Hey100 needs camera access so you can record a quick pitch for your listing.',
-        microphonePermission: 'Hey100 needs the microphone so your quick pitch has audio.',
+          'Hey100 uses the camera so you can take a profile photo or record a listing pitch.',
+        microphonePermission: 'Hey100 uses the microphone so listing pitch videos can include audio.',
         recordAudioAndroid: true,
       },
     ],

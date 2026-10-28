@@ -59,6 +59,7 @@ function listingForMember(
   return {
     ...LISTING_FALLBACK,
     id: member.appIds[0] ?? member.userId,
+    ownerId: member.userId,
     name: member.name,
     sub: member.bio ?? '',
     hue: 128,

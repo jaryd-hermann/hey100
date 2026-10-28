@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { slugify } from '@/data/mock';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { MediaItem } from '@/data/types';
+import { assertClean } from '@/lib/contentFilter';
+import { fetchBlockedIds } from './safety';
 import { getSupabase, isServerId, publicUrl } from '@/lib/supabase';
 
 import { queryKeys } from './keys';
@@ -569,6 +571,7 @@ export async function createCommunityGroup(input: {
 }): Promise<string> {
   const db = getSupabase();
   if (!db) throw new Error('Not signed in');
+  assertClean([input.name, input.bio, input.audience].join(' '));
   const { data, error } = await (db as unknown as AnyClient).rpc('create_community_group', {
     p_name: input.name,
     p_bio: input.bio,
@@ -678,14 +681,15 @@ export async function fetchThreads(groupId: string, userId?: string): Promise<Co
     .order('created_at', { ascending: true });
   if (error) throw error;
 
-  const threads = (data ?? []) as {
+  const blocked = new Set(await fetchBlockedIds());
+  const threads = ((data ?? []) as {
     id: string;
     group_id: string;
     author_id: string;
     body: string;
     media?: unknown;
     created_at: string;
-  }[];
+  }[]).filter((thread) => !blocked.has(thread.author_id));
 
   const threadIds = threads.map((thread) => thread.id);
   const { data: replies } = threadIds.length
@@ -791,6 +795,7 @@ export async function startThread(
 ): Promise<string> {
   const db = client();
   if (!db) throw new Error('Not signed in');
+  assertClean(body);
   const { data, error } = await db
     .from('community_threads')
     .insert({
@@ -829,14 +834,15 @@ export async function fetchThread(
     .eq('thread_id', threadId)
     .order('created_at', { ascending: true });
 
-  const replies = (replyRows ?? []) as {
+  const blocked = new Set(await fetchBlockedIds());
+  const replies = ((replyRows ?? []) as {
     id: string;
     thread_id: string;
     author_id: string;
     body: string;
     media?: unknown;
     created_at: string;
-  }[];
+  }[]).filter((reply) => !blocked.has(reply.author_id));
   const thread = threadRow as {
     id: string;
     group_id: string;
@@ -920,6 +926,7 @@ export async function replyToThread(
 ): Promise<void> {
   const db = client();
   if (!db) throw new Error('Not signed in');
+  assertClean(body);
   const { error } = await db.from('community_replies').insert({
     thread_id: threadId,
     author_id: authorId,

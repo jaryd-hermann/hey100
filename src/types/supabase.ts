@@ -1404,6 +1404,19 @@ export type Database = {
         Returns: Json
       }
       username_available: { Args: { p_username: string }; Returns: boolean }
+      my_blocked_ids: { Args: never; Returns: string[] }
+      block_user: { Args: { p_user_id: string }; Returns: Json }
+      unmatch_user: { Args: { p_match_id: string }; Returns: Json }
+      report_content: {
+        Args: {
+          p_reason: string
+          p_subject_id: string
+          p_subject_type: string
+          p_subject_user_id?: string | null
+        }
+        Returns: Json
+      }
+      delete_my_account: { Args: never; Returns: Json }
       sponsored_tool_vote_tallies: {
         Args: never
         Returns: { down: number; tool_id: string; up: number }[]

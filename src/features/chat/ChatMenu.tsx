@@ -27,6 +27,8 @@ export type ChatMenuProps = {
   onSendFeedback?: () => void;
   onDelete: () => void;
   onReport: () => void;
+  onBlock?: () => void;
+  onUnmatch?: () => void;
 };
 
 /** The ··· menu in the thread header. */
@@ -44,13 +46,15 @@ export function ChatMenu({
   onSendFeedback,
   onDelete,
   onReport,
+  onBlock,
+  onUnmatch,
 }: ChatMenuProps) {
   const name = firstName(builder);
 
   const confirmDelete = () =>
     Alert.alert(
       'Delete chat?',
-      `This clears the thread with ${name}. The trade itself stays open, and unmatching is still being built.`,
+      `This hides the thread with ${name}. Unmatch if you do not want to see them again.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: onDelete },
@@ -60,7 +64,7 @@ export function ChatMenu({
   const confirmReport = () =>
     Alert.alert(
       `Report ${name}?`,
-      'The Hey100 team reviews every report and follows up by email. Blocking and unmatching land with the full safety tools.',
+      'The Hey100 team reviews every report. You can also block them so they cannot find or message you.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Report', style: 'destructive', onPress: onReport },
@@ -103,8 +107,19 @@ export function ChatMenu({
             ) : null}
             <MenuRow icon="trash-outline" label="Delete chat" danger onPress={confirmDelete} />
             <MenuRow icon="flag-outline" label={`Report ${name}`} danger onPress={confirmReport} />
+            {onBlock ? (
+              <MenuRow
+                icon="hand-left-outline"
+                label={`Block ${name}`}
+                danger
+                onPress={onBlock}
+              />
+            ) : null}
+            {onUnmatch ? (
+              <MenuRow icon="person-remove-outline" label="Unmatch" danger onPress={onUnmatch} />
+            ) : null}
             <Txt size={12.5} lh={1.45} muted style={{ paddingHorizontal: 4, paddingTop: 2 }}>
-              Reports go to the Hey100 team. Blocking and unmatching are still being built.
+              Reports go to the Hey100 team. Block hides them everywhere.
             </Txt>
           </>
         )}

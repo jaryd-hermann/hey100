@@ -202,6 +202,8 @@ export type Match = {
   id: string;
   appId: string;
   viaAppId: string;
+  /** The other builder, used to block or report them. */
+  themId?: string;
   last: string;
   time: string;
   mine: TradeStatus;

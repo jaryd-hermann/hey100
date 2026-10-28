@@ -8,6 +8,7 @@ import { connectionsFromBadges } from '@/features/apps/connect/fromBadges';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { uploadAttachments } from '@/features/chat/uploadAttachments';
 import { ONBOARDED_KEY } from '@/lib/authStorage';
+import { assertClean } from '@/lib/contentFilter';
 import { getSupabase } from '@/lib/supabase';
 
 import {
@@ -721,6 +722,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     async (matchId, body, media, replyTo) => {
       const trimmed = body.trim();
       if (!trimmed && !media?.length) return;
+      if (trimmed) assertClean(trimmed);
 
       if (remote) {
         // Attachments are uploaded before the message, so a half-sent bubble

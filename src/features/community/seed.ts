@@ -16,8 +16,9 @@ export const REACTION_SET = ['👍', '🔥', '💙', '😂', '🙏', '👀', '�
 export const REPORT_REASONS = [
   'Spam or self-promotion',
   'Harassment or hate',
+  'Sexual or explicit content',
   'Scam or fraud',
-  'Off-topic for Hey100',
+  'Impersonation',
   'Something else',
 ] as const;
 

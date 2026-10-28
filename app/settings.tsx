@@ -31,6 +31,7 @@ const ROWS = [
   { label: 'Notifications', href: '/settings/notifications' },
   { label: 'Connected accounts', href: '/settings/connected' },
   { label: 'Account', href: '/settings/account' },
+  { label: 'Support', href: '/chat/team' },
 ] as const;
 
 export default function Settings() {

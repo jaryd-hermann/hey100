@@ -176,6 +176,7 @@ export function threadToMatch(row: ThreadRow): Match {
     id: row.match_id,
     appId: row.their_app?.app.id ?? row.match_id,
     viaAppId: row.my_app?.app.id ?? '',
+    ...(row.them ? { themId: row.them } : {}),
     last: threadPreviewLine(row.last_message),
     time: shortAgo(row.last_message_at),
     mine: row.trade_mine,

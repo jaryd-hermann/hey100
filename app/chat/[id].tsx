@@ -25,6 +25,8 @@ import { Composer } from '@/features/chat/Composer';
 import { sendAdminDm } from '@/data/repo/admin';
 import { queryKeys } from '@/data/repo/keys';
 import { listingBySlug } from '@/data/repo/listings';
+import { blockUser, reportContent, unmatchUser } from '@/data/repo/safety';
+import { ReportSheet } from '@/features/safety/ReportSheet';
 import { cardToListing } from '@/features/loop/mapLoop';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { avatarName, firstName, TEAM_ID } from '@/features/chat/chatMeta';
@@ -103,6 +105,7 @@ export default function ChatThread() {
   const [actionFor, setActionFor] = useState<Message | null>(null);
   const [groupPreview, setGroupPreview] = useState<CommunityGroup | null>(null);
   const [joiningGroup, setJoiningGroup] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const community = useCommunityHome();
 
   const isTeam = id === TEAM_ID;
@@ -232,7 +235,7 @@ export default function ChatThread() {
       void uploadAttachments(userId, pending)
         .then((media) => sendAdminDm(userId, body, false, media, replyId))
         .then(() => queryClient.invalidateQueries({ queryKey: ['team-chat', userId] }))
-        .catch(() => toast("That didn't send"));
+        .catch((error) => toast(error instanceof Error ? error.message : "That didn't send"));
     } else {
       void store
         .sendMessage(id, body, pending, replyId)
@@ -242,7 +245,7 @@ export default function ChatThread() {
             is_reply: !!replyId,
           }),
         )
-        .catch(() => toast("That didn't send"));
+        .catch((error) => toast(error instanceof Error ? error.message : "That didn't send"));
     }
     setAttachments([]);
     setDraft('');
@@ -542,7 +545,58 @@ export default function ChatThread() {
         }}
         onReport={() => {
           setMenuOpen(false);
-          toast('Report sent to the Hey100 team');
+          setTimeout(() => setReportOpen(true), 240);
+        }}
+        onBlock={
+          isTeam || !(match?.themId || listing?.ownerId)
+            ? undefined
+            : () => {
+                setMenuOpen(false);
+                const them = match?.themId ?? listing?.ownerId;
+                if (!them) return;
+                void blockUser(them)
+                  .then(() => {
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.blocked(userId) });
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.threads(userId) });
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.deck(userId) });
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.heys(userId) });
+                    toast('Blocked. They can no longer find or message you.');
+                    router.back();
+                  })
+                  .catch(() => toast('Could not block'));
+              }
+        }
+        onUnmatch={
+          isTeam || !match
+            ? undefined
+            : () => {
+                setMenuOpen(false);
+                void unmatchUser(match.id)
+                  .then(() => {
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.threads(userId) });
+                    void queryClient.invalidateQueries({ queryKey: queryKeys.deck(userId) });
+                    toast('Unmatched');
+                    router.back();
+                  })
+                  .catch(() => toast('Could not unmatch'));
+              }
+        }
+      />
+
+      <ReportSheet
+        visible={reportOpen}
+        title={`Report ${isTeam || !listing ? 'Jaryd' : firstName(listing.builder)}`}
+        onClose={() => setReportOpen(false)}
+        onPick={(reason) => {
+          setReportOpen(false);
+          void reportContent({
+            type: 'user',
+            id: match?.themId ?? listing?.ownerId ?? id,
+            reason,
+            userId: match?.themId ?? listing?.ownerId,
+          })
+            .then(() => toast('Report sent to the Hey100 team'))
+            .catch(() => toast('Could not send the report'));
         }}
       />
 

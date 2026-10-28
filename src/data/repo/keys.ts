@@ -23,6 +23,7 @@ export const queryKeys = {
   communityJoins: (groupId: string | null) => ['community', 'joins', groupId] as const,
   communityRequests: (groupId: string | null) => ['community', 'requests', groupId] as const,
   toolDiscussion: (toolId: string | null) => ['tools', 'discussion', toolId] as const,
+  blocked: (userId: string | null) => ['safety', 'blocked', userId] as const,
 };
 
 export const staleTimes = {

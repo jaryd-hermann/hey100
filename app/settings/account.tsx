@@ -17,6 +17,8 @@ import { updateMyProfile } from '@/data/repo/profile';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { signOut } from '@/features/auth/signIn';
 import { toProfilePatch } from '@/features/profile/mapProfile';
+import { deleteMyAccount } from '@/data/repo/safety';
+import { resetAnalytics } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
@@ -229,7 +231,7 @@ export default function Account() {
             </Txt>
             <Txt size={13} lh={1.45} muted>
               Your listings come down, matches and chats close, and feedback you left is
-              anonymised. This can&apos;t be undone.
+              anonymised. Pro keeps billing through Apple until you cancel it there.
             </Txt>
             <Pressable
               accessibilityRole="button"
@@ -256,14 +258,21 @@ export default function Account() {
 
           <Txt size={14} lh={1.5} muted>
             Your listings come down, your matches and chats close, and the feedback you gave other
-            builders is anonymised. This can&apos;t be undone.
+            builders is anonymised. This can&apos;t be undone. An active Pro subscription is billed
+            by Apple until you cancel it in your Apple Account settings.
           </Txt>
 
           <Pressable
             accessibilityRole="button"
             onPress={() => {
-              setConfirmDelete(false);
-              toast('Account deletion lands with real auth');
+              void deleteMyAccount()
+                .then(async () => {
+                  resetAnalytics();
+                  await signOut();
+                  setConfirmDelete(false);
+                  router.replace('/onboarding');
+                })
+                .catch(() => toast('Could not delete the account. Try again.'));
             }}
             style={({ pressed }) => ({
               height: 56,

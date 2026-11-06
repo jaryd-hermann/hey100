@@ -17,10 +17,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppIcon, Avatar } from '@/components/ui/AppIcon';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { Btn } from '@/components/ui/Btn';
 import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
-import { askListingCoach } from '@/data/repo/coach';
+import { streamListingCoach } from '@/data/repo/coach';
+import { CoachMarkdown } from '@/features/feedback/CoachMarkdown';
 import type { OwnedApp } from '@/data/types';
 import type { UserProfile } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -35,12 +37,18 @@ export function ListingCoachSheet({
   locked,
   user,
   app,
+  feedbackCount = 0,
+  listingScore = { done: 0, total: 8 },
+  onRecordPitch,
 }: {
   visible: boolean;
   onClose: () => void;
   locked: boolean;
   user: UserProfile;
   app: OwnedApp;
+  feedbackCount?: number;
+  listingScore?: { done: number; total: number };
+  onRecordPitch?: () => void;
 }) {
   const { c, isDark } = useTheme();
   const router = useRouter();
@@ -48,18 +56,22 @@ export function ListingCoachSheet({
   const { width } = useWindowDimensions();
   const scroll = useRef<ScrollView>(null);
   const drawerAnim = useRef(new Animated.Value(0)).current;
-  const drawerW = Math.round(width * 0.78);
+  const drawerW = Math.round(width * 0.72);
+  const drawerBg = isDark ? '#141614' : '#D8DAD4';
 
   const first = user.realName.split(' ')[0] || 'there';
+  const audience = targetAudience(app);
   const greeting = useMemo(
     () =>
-      `Hi ${first}, I can help you analyze your last listing, brainstorm new ideas, and research your audience. How would you like me to help?`,
+      `Hi ${first}, I can help you analyze your product page, brainstorm growth ideas, share feedback on your content, and research your audience. How would you like me to help?`,
     [first],
   );
 
   const [turns, setTurns] = useState<ChatTurn[]>([{ role: 'assistant', text: greeting }]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  const [streamText, setStreamText] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CoachThread[]>([]);
@@ -89,6 +101,8 @@ export function ListingCoachSheet({
     setTurns(fresh);
     setDraft('');
     setThreadId(null);
+    setThinking(false);
+    setStreamText('');
     setDrawerOpen(false);
     drawerAnim.setValue(0);
     setKeyboard(0);
@@ -102,7 +116,7 @@ export function ListingCoachSheet({
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, greeting, storageKey]);
+  }, [visible, storageKey]);
 
   const saveThread = (id: string, nextTurns: ChatTurn[]) => {
     const title =
@@ -131,6 +145,8 @@ export function ListingCoachSheet({
     setThreadId(null);
     setTurns(fresh);
     setDraft('');
+    setThinking(false);
+    setStreamText('');
     setDrawer(false);
   };
 
@@ -138,6 +154,8 @@ export function ListingCoachSheet({
     setThreadId(thread.id);
     setTurns(thread.turns);
     setDraft('');
+    setThinking(false);
+    setStreamText('');
     setDrawer(false);
   };
 
@@ -160,19 +178,34 @@ export function ListingCoachSheet({
     setTurns(history);
     saveThread(id, history);
     setBusy(true);
+    setThinking(true);
+    setStreamText('');
     try {
-      const reply = await askListingCoach(
+      const reply = await streamListingCoach(
         app.id,
-        history.map((turn) => ({ role: turn.role, content: turn.text })),
+        history
+          .filter((turn, index) => !(index === 0 && turn.role === 'assistant'))
+          .map((turn) => ({
+            role: turn.role,
+            content: turn.text.replace(/\[\[\s*action\s*:\s*record_pitch\s*\]\]/gi, '').trim(),
+          }))
+          .filter((turn) => turn.content),
+        (full) => {
+          setThinking(false);
+          setStreamText(full);
+          requestAnimationFrame(() => scroll.current?.scrollToEnd({ animated: false }));
+        },
       );
       const done = [...history, { role: 'assistant' as const, text: reply }];
       setTurns(done);
+      setStreamText('');
       saveThread(id, done);
     } catch (error) {
       if (String(error).includes('pro_required')) {
         gate();
         return;
       }
+      setStreamText('');
       const fail = [
         ...history,
         {
@@ -183,47 +216,89 @@ export function ListingCoachSheet({
       setTurns(fail);
       saveThread(id, fail);
     } finally {
+      setThinking(false);
       setBusy(false);
       setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
     }
   };
 
   const chips = [
+    app.pitchUri
+      ? {
+          key: 'pitch',
+          title: 'How to improve my pitch',
+          body: 'Tighten the first 8 seconds so people stay.',
+          prompt: 'How to improve my pitch. Tighten the first 8 seconds so people stay.',
+          media: (
+            <ChipThumb>
+              <PitchStill uri={app.pitchUri} size={48} />
+            </ChipThumb>
+          ),
+        }
+      : {
+          key: 'make-pitch',
+          title: 'Help me make a video pitch',
+          body: 'Script a 30-second hello from your listing.',
+          prompt:
+            'Help me make a video pitch. Review my listing, ask me questions to close any gaps, then suggest a 30-second script and why it works.',
+          media: (
+            <ChipThumb>
+              <Ionicons name="videocam-outline" size={22} color={c.ink} />
+            </ChipThumb>
+          ),
+        },
+    feedbackCount > 0
+      ? {
+          key: 'feedback',
+          title: 'Help me action feedback',
+          body: feedbackCount === 1 ? 'Turn your latest note into a change.' : 'Turn tester notes into the next ship.',
+          prompt: 'Help me action feedback',
+          media: <CountBox n={feedbackCount} />,
+        }
+      : {
+          key: 'ask-feedback',
+          title: 'How to ask for feedback',
+          body: 'How to get useful notes from testers.',
+          prompt:
+            'How to ask for feedback. How do I get good, useful feedback from testers and people who try my product?',
+          media: (
+            <ChipThumb>
+              <Ionicons name="chatbubbles-outline" size={22} color={c.ink} />
+            </ChipThumb>
+          ),
+        },
     {
-      key: 'pitch',
-      title: 'How to improve my pitch',
-      body: 'Tighten the first 8 seconds so people stay.',
+      key: 'audience',
+      title: `Brainstorm ways to reach ${audience}`,
+      body: 'Channels, hooks, and a first experiment.',
+      prompt: `Brainstorm ways to reach ${audience}`,
       media: (
         <ChipThumb>
-          {app.pitchUri ? <PitchStill uri={app.pitchUri} size={48} /> : null}
-          <Avatar
-            name={user.realName}
-            seed={user.username}
-            uri={user.photo}
-            size={app.pitchUri ? 20 : 48}
-            style={
-              app.pitchUri
-                ? { position: 'absolute', left: 4, bottom: 4, borderWidth: 1.5, borderColor: '#fff' }
-                : undefined
-            }
-          />
+          <Ionicons name="people-outline" size={22} color={c.ink} />
         </ChipThumb>
       ),
     },
     {
       key: 'listing',
       title: 'How to improve my listing',
-      body: 'Make the page clearer, stronger, and easier to hey.',
+      body: 'Make my product clearer to get more heys',
+      prompt: 'How to improve my listing. Make my product clearer to get more heys.',
       media: (
-        <ChipThumb>
-          <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={48} />
-        </ChipThumb>
+        <View style={{ alignItems: 'center', gap: 4, width: 48, flexShrink: 0 }}>
+          <ChipThumb>
+            <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={48} />
+          </ChipThumb>
+          <Txt font="mono" size={11} weight={700}>
+            {listingScore.done}/{listingScore.total}
+          </Txt>
+        </View>
       ),
     },
     {
       key: 'prompts',
       title: 'Review my prompt answers',
       body: 'Make them specific, useful, and easy to hey.',
+      prompt: 'Review my prompt answers. Make them specific, useful, and easy to hey.',
       media: (
         <ChipThumb>
           {shot ? (
@@ -236,15 +311,76 @@ export function ListingCoachSheet({
     },
   ];
 
-  const empty = turns.length <= 1;
+  const empty = turns.length <= 1 && !thinking && !streamText;
 
   return (
     <Sheet visible={visible} onClose={onClose} full scroll={false} flush>
-      <View style={{ flex: 1, overflow: 'hidden' }}>
+      <View style={{ flex: 1, overflow: 'hidden', backgroundColor: drawerBg }}>
+        <View
+          pointerEvents={drawerOpen ? 'auto' : 'none'}
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: drawerW,
+            paddingTop: 10,
+            paddingBottom: insets.bottom + 12,
+          }}
+        >
+          <Pressable
+            onPress={startNew}
+            accessibilityRole="button"
+            accessibilityLabel="New chat"
+            style={({ pressed }) => ({
+              marginHorizontal: 16,
+              marginBottom: 10,
+              height: 44,
+              borderRadius: 22,
+              borderWidth: 1.5,
+              borderColor: c.ink,
+              backgroundColor: isDark ? '#1C1F1D' : '#F2F3EF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.75 : 1,
+            })}
+          >
+            <Txt size={15} weight={600}>
+              New chat
+            </Txt>
+          </Pressable>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {threads.map((thread) => (
+              <Pressable
+                key={thread.id}
+                onPress={() => openThread(thread)}
+                style={({ pressed }) => ({
+                  paddingHorizontal: 22,
+                  paddingVertical: 13,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Txt size={16} numberOfLines={1} color={thread.id === threadId ? c.ink : undefined}>
+                  {thread.title}
+                </Txt>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
         <Animated.View
           pointerEvents={drawerOpen ? 'none' : 'auto'}
           style={{
             flex: 1,
+            backgroundColor: c.surface,
+            overflow: 'hidden',
+            borderTopLeftRadius: drawerOpen ? 32 : 0,
+            borderBottomLeftRadius: drawerOpen ? 32 : 0,
+            shadowColor: '#000',
+            shadowOpacity: drawerOpen ? 0.35 : 0,
+            shadowRadius: 16,
+            shadowOffset: { width: -6, height: 0 },
+            elevation: drawerOpen ? 12 : 0,
             transform: [
               {
                 translateX: drawerAnim.interpolate({
@@ -286,9 +422,11 @@ export function ListingCoachSheet({
                 index === 0 ? (
                   <Greeting key="greeting" first={first} />
                 ) : (
-                  <Txt key={`${turn.role}-${index}`} size={16} lh={1.45}>
-                    {turn.text}
-                  </Txt>
+                  <AssistantReply
+                    key={`${turn.role}-${index}`}
+                    text={turn.text}
+                    onRecordPitch={onRecordPitch}
+                  />
                 )
               ) : (
                 <View key={`${turn.role}-${index}`} style={{ alignItems: 'flex-end' }}>
@@ -308,6 +446,10 @@ export function ListingCoachSheet({
                 </View>
               ),
             )}
+            {thinking ? <ThinkingMark /> : null}
+            {streamText ? (
+              <AssistantReply text={streamText} streaming onRecordPitch={onRecordPitch} />
+            ) : null}
           </ScrollView>
 
           {empty ? (
@@ -316,7 +458,7 @@ export function ListingCoachSheet({
               showsHorizontalScrollIndicator={false}
               style={{ flexGrow: 0 }}
               contentContainerStyle={{
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: 10,
                 paddingHorizontal: 16,
                 paddingBottom: 12,
@@ -326,25 +468,28 @@ export function ListingCoachSheet({
               {chips.map((chip) => (
                 <Pressable
                   key={chip.key}
-                  onPress={() => void send(`${chip.title}. ${chip.body}`)}
+                  onPress={() => void send(chip.prompt)}
                   style={({ pressed }) => ({
-                    width: 220,
-                    height: 64,
+                    width: 236,
+                    minHeight: 78,
                     flexDirection: 'row',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     gap: 10,
                     backgroundColor: c.raised,
                     borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: c.ink,
                     paddingHorizontal: 8,
+                    paddingVertical: 10,
                     opacity: pressed ? 0.8 : 1,
                   })}
                 >
                   {chip.media}
-                  <View style={{ flex: 1, gap: 2, paddingRight: 8 }}>
-                    <Txt size={14} weight={600} numberOfLines={1}>
+                  <View style={{ flex: 1, gap: 3, paddingRight: 6, paddingTop: 1 }}>
+                    <Txt size={14} weight={600} lh={1.25}>
                       {chip.title}
                     </Txt>
-                    <Txt size={12} muted numberOfLines={1}>
+                    <Txt size={12} muted lh={1.3}>
                       {chip.body}
                     </Txt>
                   </View>
@@ -416,57 +561,6 @@ export function ListingCoachSheet({
             style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: drawerW }}
           />
         ) : null}
-
-        <Animated.View
-          pointerEvents={drawerOpen ? 'auto' : 'none'}
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: drawerW,
-            backgroundColor: isDark ? '#1C1F1D' : '#E6E7E2',
-            paddingTop: 18,
-            paddingBottom: insets.bottom + 12,
-            transform: [
-              {
-                translateX: drawerAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-drawerW, 0],
-                }),
-              },
-            ],
-          }}
-        >
-          <Pressable
-            onPress={startNew}
-            style={({ pressed }) => ({
-              paddingHorizontal: 22,
-              paddingVertical: 14,
-              opacity: pressed ? 0.65 : 1,
-            })}
-          >
-            <Txt size={16}>New chat</Txt>
-          </Pressable>
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            {threads.map((thread) => (
-              <Pressable
-                key={thread.id}
-                onPress={() => openThread(thread)}
-                style={({ pressed }) => ({
-                  paddingHorizontal: 22,
-                  paddingVertical: 14,
-                  backgroundColor: thread.id === threadId ? (isDark ? '#262A27' : '#DDDFD9') : 'transparent',
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Txt size={16} numberOfLines={1}>
-                  {thread.title}
-                </Txt>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </Animated.View>
       </View>
     </Sheet>
   );
@@ -475,14 +569,142 @@ export function ListingCoachSheet({
 function Greeting({ first }: { first: string }) {
   return (
     <Txt size={19} lh={1.4}>
-      Hi {first}, I can help you <Txt size={19} weight={700}>analyze</Txt> your last listing,{' '}
-      <Txt size={19} weight={700}>brainstorm</Txt> new ideas, and{' '}
-      <Txt size={19} weight={700}>research</Txt> your audience. How would you like me to help?
+      Hi <Txt size={19} weight={700}>{first}</Txt>, I can help you analyze your product page, brainstorm growth ideas, share feedback on your content, and research your audience. How would you like me to help?
     </Txt>
   );
 }
 
+function ThinkingMark() {
+  const { c } = useTheme();
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 380);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 2 }}>
+      <View style={{ flexDirection: 'row', gap: 5 }}>
+        {[0, 1, 2].map((dot) => (
+          <View
+            key={dot}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 4,
+              backgroundColor: c.ink,
+              opacity: tick % 3 === dot ? 1 : 0.22,
+            }}
+          />
+        ))}
+      </View>
+      <Txt size={15} muted>
+        Thinking
+      </Txt>
+    </View>
+  );
+}
+
+function targetAudience(app: OwnedApp): string {
+  const interest = stripLeadingEmoji(app.ideal.interests.split(',')[0]?.trim() ?? '');
+  const named = interest && interest !== 'Anyone' ? interest : stripLeadingEmoji(app.problemFor?.trim() ?? '');
+  return pluralAudience(named || 'your audience');
+}
+
+function stripLeadingEmoji(value: string): string {
+  return value.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+}
+
+function pluralAudience(value: string): string {
+  if (/^(your audience|anyone|people)$/i.test(value)) return value;
+  if (/\s/.test(value) || /(s|people|ies)$/i.test(value)) return value;
+  if (/[^aeiou]y$/i.test(value)) return `${value.slice(0, -1)}ies`;
+  if (/(s|x|z|ch|sh)$/i.test(value)) return `${value}es`;
+  return `${value}s`;
+}
+
+function AssistantReply({
+  text,
+  streaming,
+  onRecordPitch,
+}: {
+  text: string;
+  streaming?: boolean;
+  onRecordPitch?: () => void;
+}) {
+  const { c } = useTheme();
+  const recordPitch = /\[\[\s*action\s*:\s*record_pitch\s*\]\]/i.test(text);
+  const body = text.replace(/\[\[\s*action\s*:\s*record_pitch\s*\]\]/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+
+  return (
+    <View style={{ gap: 12 }}>
+      {body ? <CoachMarkdown text={body} /> : null}
+      {recordPitch && onRecordPitch && !streaming ? (
+        <View
+          style={{
+            borderWidth: 1.5,
+            borderColor: c.ink,
+            borderRadius: 18,
+            backgroundColor: c.raised,
+            padding: 14,
+            gap: 10,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: c.bg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="videocam" size={20} color={c.ink} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt size={15} weight={700}>
+                Record quick pitch
+              </Txt>
+              <Txt size={12} muted>
+                Front camera, 30 seconds, retake anytime.
+              </Txt>
+            </View>
+          </View>
+          <Btn label="Record quick pitch" variant="accent" size="sm" onPress={onRecordPitch} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function CountBox({ n }: { n: number }) {
+  const { c } = useTheme();
+  return (
+    <View
+      style={{
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: c.ink,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: c.bg,
+        flexShrink: 0,
+      }}
+    >
+      <Txt font="mono" weight={700} size={n > 99 ? 14 : 18}>
+        {n}
+      </Txt>
+    </View>
+  );
+}
+
 function ChipThumb({ children }: { children: React.ReactNode }) {
+  const { c } = useTheme();
   return (
     <View
       style={{
@@ -492,6 +714,8 @@ function ChipThumb({ children }: { children: React.ReactNode }) {
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
+        flexShrink: 0,
+        backgroundColor: c.bg,
       }}
     >
       {children}

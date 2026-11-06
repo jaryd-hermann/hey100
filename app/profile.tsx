@@ -16,6 +16,7 @@ import { Label, Txt } from '@/components/ui/Txt';
 import { stripEmoji } from '@/data/mock';
 import { syncGithubProfile } from '@/data/repo/connections';
 import { TAG_ROWS } from '@/features/profile/fields';
+import { KarmaCard } from '@/features/profile/KarmaCard';
 import { PRO_PRICE, useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
@@ -107,7 +108,6 @@ export default function Profile() {
             hey100.com/{handle}
           </Txt>
         </View>
-
         {user.bio || socials.length ? (
           <View style={{ gap: 12 }}>
             {user.bio ? (
@@ -166,6 +166,8 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={18} color={c.muted} />
           </Card>
         </Pressable>
+
+        <KarmaCard />
 
         {/* Real counts only. A dash means we do not have the number yet. */}
         <Card padding={16} radius={radii.cardLg}>

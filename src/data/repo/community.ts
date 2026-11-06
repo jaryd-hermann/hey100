@@ -115,6 +115,27 @@ export function isOfficialGroup(group?: Pick<CommunityGroup, 'kind' | 'id'> | nu
   return group?.kind === 'official' || group?.id === OFFICIAL_GROUP_ID;
 }
 
+function compactNumber(value?: string): number {
+  if (!value || value === '—') return 0;
+  const raw = value.replace(/[$,]/g, '').trim().toLowerCase();
+  const amount = parseFloat(raw);
+  if (!Number.isFinite(amount)) return 0;
+  if (raw.endsWith('m')) return amount * 1_000_000;
+  if (raw.endsWith('k')) return amount * 1_000;
+  return amount;
+}
+
+function compareDiscoverGroups(a: CommunityGroup, b: CommunityGroup): number {
+  const size = (b.memberCount ?? 0) - (a.memberCount ?? 0);
+  if (size) return size;
+  const rating = (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0);
+  if (rating) return rating;
+  const power =
+    compactNumber(b.power?.revenue) + compactNumber(b.power?.customers) + compactNumber(b.power?.commits) -
+    (compactNumber(a.power?.revenue) + compactNumber(a.power?.customers) + compactNumber(a.power?.commits));
+  return power;
+}
+
 export type CommunityThread = {
   id: string;
   groupId: string;
@@ -165,6 +186,7 @@ export type CommunityMember = {
   revenue: string;
   appIds: string[];
   listings?: MemberApp[];
+  karma?: number;
 };
 
 export type CommunityJoin = {
@@ -282,6 +304,14 @@ function mapGroup(row: {
     listingIcon: row.listing_icon ? coverUrl(row.listing_icon) : undefined,
     listingHue: row.listing_hue ?? undefined,
   };
+}
+
+export async function fetchBuilderPublicGroups(userId: string): Promise<CommunityGroup[]> {
+  const db = getSupabase();
+  if (!db || !isServerId(userId)) return [];
+  const { data, error } = await db.rpc('builder_public_groups', { p_user_id: userId });
+  if (error || !Array.isArray(data)) return [];
+  return data.map((row) => mapGroup(row as Parameters<typeof mapGroup>[0]));
 }
 
 export function hueFromName(name: string): number {
@@ -550,7 +580,9 @@ export async function fetchCommunityHome(userId: string): Promise<{
     mine: mapped
       .filter((group) => group.membership)
       .sort((a, b) => Number(isOfficialGroup(b)) - Number(isOfficialGroup(a))),
-    discover: mapped.filter((group) => !group.membership && !isOfficialGroup(group)),
+    discover: mapped
+      .filter((group) => !group.membership && !isOfficialGroup(group))
+      .sort(compareDiscoverGroups),
   };
 }
 
@@ -1061,6 +1093,7 @@ function mapMember(row: Record<string, unknown>): CommunityMember {
     revenue: String(row.revenue ?? '—'),
     appIds: Array.isArray(row.app_ids) ? row.app_ids.map(String) : [],
     listings,
+    karma: typeof row.karma === 'number' ? row.karma : undefined,
   };
 }
 

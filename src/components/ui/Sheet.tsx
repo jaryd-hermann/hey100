@@ -28,8 +28,12 @@ export type SheetProps = {
   scrollEnabled?: boolean;
   /** Nearly full-height, for join previews and member profiles. */
   tall?: boolean;
+  /** Almost the whole screen, for the listing coach. */
+  full?: boolean;
   /** Full-bleed block at the top. The grab handle and close sit over it. */
   header?: React.ReactNode;
+  /** Drop the default content padding so the child can fill the sheet. */
+  flush?: boolean;
 };
 
 /** Slides up over a scrim with a grab handle. Tapping the scrim dismisses. */
@@ -41,7 +45,9 @@ export function Sheet({
   scroll = true,
   scrollEnabled = true,
   tall,
+  full,
   header,
+  flush,
 }: SheetProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -51,8 +57,15 @@ export function Sheet({
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
   const wasOpen = useRef(visible);
+  const closedFired = useRef(false);
   const [mounted, setMounted] = useState(visible);
+  const [modalOn, setModalOn] = useState(visible);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const hideModal = () => {
+    closedFired.current = true;
+    setModalOn(false);
+  };
 
   useEffect(() => {
     const show = Keyboard.addListener(
@@ -72,7 +85,9 @@ export function Sheet({
   useEffect(() => {
     if (visible) {
       wasOpen.current = true;
+      closedFired.current = false;
       setMounted(true);
+      setModalOn(true);
       Animated.timing(anim, {
         toValue: 1,
         duration: 260,
@@ -83,16 +98,29 @@ export function Sheet({
     }
     if (!wasOpen.current) return;
     wasOpen.current = false;
+    let hidden = false;
+    const finish = () => {
+      if (hidden) return;
+      hidden = true;
+      hideModal();
+    };
     Animated.timing(anim, {
       toValue: 0,
       duration: 180,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start(() => {
-      setMounted(false);
-      onClosedRef.current?.();
-    });
+    }).start(finish);
+    const t = setTimeout(finish, 280);
+    return () => clearTimeout(t);
   }, [anim, visible]);
+
+  // Unmount only after Modal has committed visible={false}. Unmounting a
+  // still-visible RN Modal leaves a touch-blocking overlay on iOS.
+  useEffect(() => {
+    if (modalOn || !closedFired.current || !mounted) return;
+    setMounted(false);
+    onClosedRef.current?.();
+  }, [modalOn, mounted]);
 
   useEffect(() => {
     if (!visible) setKeyboardHeight(0);
@@ -115,17 +143,24 @@ export function Sheet({
 
   return (
     <Modal
-      visible
+      visible={modalOn}
       transparent
       animationType="none"
       presentationStyle="overFullScreen"
       onRequestClose={onClose}
+      onDismiss={hideModal}
     >
-      <Animated.View style={{ flex: 1, backgroundColor: c.scrim, opacity: anim }}>
+      <Animated.View
+        pointerEvents={visible && modalOn ? 'auto' : 'none'}
+        style={{ flex: 1, backgroundColor: c.scrim, opacity: anim }}
+      >
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Dismiss" />
       </Animated.View>
 
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: keyboardHeight }}>
+      <View
+        pointerEvents={visible && modalOn ? 'box-none' : 'none'}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: keyboardHeight }}
+      >
         <Animated.View
           style={{
             backgroundColor: c.surface,
@@ -137,7 +172,13 @@ export function Sheet({
             // A percentage has no definite parent height to resolve against
             // here, since the wrapper is positioned absolutely.
             maxHeight: sheetMax,
-            minHeight: tall && keyboardHeight === 0 ? height * 0.78 : undefined,
+            minHeight:
+              keyboardHeight === 0 && (full || tall) ? height * (full ? 0.92 : 0.78) : undefined,
+            height: full
+              ? keyboardHeight === 0
+                ? height * 0.92
+                : sheetMax
+              : undefined,
             transform: [
               { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] }) },
             ],
@@ -187,7 +228,13 @@ export function Sheet({
           </View>
           <Content
             ref={scroll ? scrollRef : undefined}
-            style={{ flexGrow: overlay ? 1 : 0, flex: overlay ? 1 : undefined, maxHeight: sheetMax - (overlay ? 0 : 16) }}
+            style={{
+              flexGrow: overlay || (full && !scroll) ? 1 : 0,
+              flex: overlay || (full && !scroll) ? 1 : undefined,
+              ...(full && !scroll
+                ? { minHeight: 0 }
+                : { maxHeight: sheetMax - (overlay ? 0 : 16) }),
+            }}
             {...(scroll
               ? {
                   scrollEnabled,
@@ -223,9 +270,10 @@ export function Sheet({
             ) : (
               <View
                 style={{
-                  paddingHorizontal: overlay ? 0 : layout.gutter,
-                  paddingTop: overlay ? 0 : 10,
-                  paddingBottom: padBottom,
+                  flex: full ? 1 : undefined,
+                  paddingHorizontal: overlay || flush ? 0 : layout.gutter,
+                  paddingTop: overlay || flush ? 0 : 10,
+                  paddingBottom: flush ? 0 : padBottom,
                 }}
               >
                 {header}

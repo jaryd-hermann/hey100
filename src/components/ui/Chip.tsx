@@ -16,7 +16,7 @@ export type ChipProps = {
   right?: React.ReactNode;
   /** A count rendered after the label, used by active filter chips. */
   count?: number;
-  tone?: 'default' | 'accent';
+  tone?: 'default' | 'accent' | 'pink' | 'blue';
   style?: StyleProp<ViewStyle>;
 };
 
@@ -31,11 +31,33 @@ export function Chip({
   tone = 'default',
   style,
 }: ChipProps) {
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   const height = size === 'sm' ? 30 : 36;
 
-  const bg = selected ? c.ink : tone === 'accent' ? c.soft : 'transparent';
-  const fg = selected ? c.bg : tone === 'accent' ? c.accentText : c.ink;
+  const pink = tone === 'pink';
+  const blue = tone === 'blue';
+  const bg = selected
+    ? c.ink
+    : pink
+      ? 'rgba(255, 182, 193, 0.32)'
+      : blue
+        ? isDark
+          ? 'rgba(96, 165, 250, 0.22)'
+          : 'rgba(59, 130, 246, 0.14)'
+        : tone === 'accent'
+          ? c.soft
+          : 'transparent';
+  const fg = selected
+    ? c.bg
+    : pink
+      ? '#9A3B58'
+      : blue
+        ? isDark
+          ? '#93C5FD'
+          : '#1D4ED8'
+        : tone === 'accent'
+          ? c.accentText
+          : c.ink;
 
   const content = (
     <>
@@ -57,7 +79,17 @@ export function Chip({
     gap: 6,
     backgroundColor: bg,
     borderWidth: 1,
-    borderColor: selected ? c.ink : tone === 'accent' ? 'transparent' : c.line,
+    borderColor: selected
+      ? c.ink
+      : pink
+        ? 'rgba(196, 90, 120, 0.28)'
+        : blue
+          ? isDark
+            ? 'rgba(147, 197, 253, 0.35)'
+            : 'rgba(37, 99, 235, 0.28)'
+          : tone === 'accent'
+            ? 'transparent'
+            : c.line,
   };
 
   if (!onPress) return <View style={[box, style]}>{content}</View>;

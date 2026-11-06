@@ -6,12 +6,13 @@ import { Pressable, TextInput, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
+import { OptionRow } from '@/components/ui/OptionRow';
 import { Sheet } from '@/components/ui/Sheet';
 import { Label, Txt } from '@/components/ui/Txt';
 import { NAME_MAX, fetchAppMetadata, type AppMetadata } from '@/data/repo/metadata';
 import { SHOT_RATIO, type PickedShot } from '@/data/types';
+import { pickAvatar } from '@/features/profile/avatar';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
@@ -63,8 +64,8 @@ const POPULAR_CATEGORIES = [
  * What the lookup found first, then the popular ones. A store listing arrives
  * with its real categories, so those are what the builder sees selected.
  */
-function categoryChips(cats: string[]): string[] {
-  return [...cats, ...POPULAR_CATEGORIES.filter((option) => !cats.includes(option))].slice(0, 6);
+function categoryRows(cats: string[]): string[] {
+  return [...cats, ...POPULAR_CATEGORIES.filter((option) => !cats.includes(option))].slice(0, 4);
 }
 
 export type AddAppStepProps = {
@@ -83,7 +84,9 @@ export type AddAppStepProps = {
   onChangeName: (name: string) => void;
   onChangeSub: (sub: string) => void;
   onChangeCats: (cats: string[]) => void;
+  onChangeIcon: (icon: string) => void;
   onChangeLink: (key: 'web' | 'tiktok' | 'instagram', value: string) => void;
+  onToast?: (message: string) => void;
 };
 
 export function AddAppStep({
@@ -101,16 +104,36 @@ export function AddAppStep({
   onChangeName,
   onChangeSub,
   onChangeCats,
+  onChangeIcon,
   onChangeLink,
+  onToast,
 }: AddAppStepProps) {
   const { c } = useTheme();
   const [fetching, setFetching] = useState(false);
   const [browsing, setBrowsing] = useState(false);
 
-  /** The chosen category leads, so re-fetching keeps the rest as fallbacks. */
   const pick = (cat: string) => {
-    onChangeCats([cat, ...cats.filter((other) => other !== cat)]);
+    if (cats.includes(cat)) {
+      onChangeCats(cats.filter((other) => other !== cat));
+      return;
+    }
+    if (cats.length >= 2) {
+      onChangeCats([...cats.slice(1), cat]);
+      setBrowsing(false);
+      return;
+    }
+    onChangeCats([...cats, cat]);
     setBrowsing(false);
+  };
+
+  const replaceIcon = async () => {
+    const picked = await pickAvatar();
+    if (!picked) return;
+    if ('error' in picked) {
+      onToast?.(picked.error);
+      return;
+    }
+    onChangeIcon(picked.uri);
   };
 
   const run = async () => {
@@ -126,7 +149,8 @@ export function AddAppStep({
   return (
     <View style={{ gap: 16 }}>
       <Txt size={15.5} lh={1.5} muted>
-        Paste your App Store, Play or web link. We&apos;ll pull in the icon, name and screenshots.
+        Paste your App Store, Play or web link. We&apos;ll pull in the icon and name. App Store
+        listings also bring their screenshots.
       </Txt>
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -164,13 +188,38 @@ export function AddAppStep({
         <>
           <Card padding={14} style={{ gap: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <AppIcon hue={hue} name={name || 'A'} uri={icon} size={54} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Replace product icon"
+                onPress={() => void replaceIcon()}
+                style={{ position: 'relative' }}
+              >
+                <AppIcon hue={hue} name={name || 'A'} uri={icon} size={54} />
+                <View
+                  style={{
+                    position: 'absolute',
+                    right: -4,
+                    bottom: -4,
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    backgroundColor: c.ink,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="camera-outline" size={12} color={c.bg} />
+                </View>
+              </Pressable>
               <View style={{ flex: 1 }}>
                 <Txt font="mono" size={15} weight={500} numberOfLines={1}>
-                  {name || 'Your app'}
+                  {name || 'Your product'}
                 </Txt>
                 <Txt size={13.5} muted numberOfLines={1}>
                   {sub || 'Add a one-line subtitle'}
+                </Txt>
+                <Txt size={12} muted style={{ marginTop: 3 }}>
+                  Tap the icon to replace it
                 </Txt>
               </View>
             </View>
@@ -230,24 +279,27 @@ export function AddAppStep({
               />
             </View>
 
-            <View>
-              <Label style={{ marginBottom: 8 }}>Category</Label>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {categoryChips(cats).map((cat) => (
-                  <Chip
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                <Label>Category</Label>
+                <Txt size={12.5} muted>
+                  Select up to 2
+                </Txt>
+              </View>
+              <View style={{ gap: 8 }}>
+                {categoryRows(cats).map((cat) => (
+                  <OptionRow
                     key={cat}
                     label={cat}
-                    selected={cat === cats[0]}
-                    size="sm"
+                    selected={cats.includes(cat)}
                     onPress={() => pick(cat)}
                   />
                 ))}
-                <Chip
-                  label="More…"
-                  size="sm"
-                  onPress={() => setBrowsing(true)}
-                  selected={!!cats[0] && !categoryChips(cats).includes(cats[0])}
-                />
+                <Pressable onPress={() => setBrowsing(true)} style={{ paddingVertical: 6 }}>
+                  <Txt size={14} weight={600} style={{ textDecorationLine: 'underline' }}>
+                    More categories
+                  </Txt>
+                </Pressable>
               </View>
             </View>
           </Card>
@@ -299,7 +351,7 @@ export function AddAppStep({
           The same list the App Store uses.
         </Txt>
         {ALL_CATEGORIES.map((cat) => {
-          const selected = cat === cats[0];
+          const selected = cats.includes(cat);
 
           return (
             <Pressable

@@ -1,14 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, Share, Switch, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand/Logo';
+import { AiMark } from '@/components/brand/Marks';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useDailyHeyLimit } from '@/features/billing/DailyHeyLimit';
+import { useCoach } from '@/features/feedback/CoachHost';
 import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -38,6 +41,7 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
   const { isAdmin } = useAuth();
   const { devMode } = useDevMode();
   const heyLimit = useDailyHeyLimit();
+  const coach = useCoach();
 
   return (
     <Sheet visible={visible} onClose={onClose}>
@@ -45,6 +49,36 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
         <View style={{ paddingBottom: 4 }}>
           <Wordmark size={26} />
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Optimization and Growth Assistant"
+          onPress={() => {
+            onClose();
+            setTimeout(() => coach.open(), 240);
+          }}
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        >
+          <LinearGradient
+            colors={isDark ? [c.accent, c.mid] : [c.accent, '#B7E86A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              minHeight: 62,
+              borderRadius: 16,
+            }}
+          >
+            <Txt size={16} weight={700} color={c.accentInk} style={{ flex: 1 }} numberOfLines={2}>
+              Optimization & Growth Assistant
+            </Txt>
+            <AiMark size={28} />
+          </LinearGradient>
+        </Pressable>
 
         {!store.isPro ? (
           <MenuRow

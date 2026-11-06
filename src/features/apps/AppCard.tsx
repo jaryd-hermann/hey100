@@ -1,13 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
 import { Label, Txt } from '@/components/ui/Txt';
+import { queryKeys } from '@/data/repo/keys';
+import { fetchListingCooldowns } from '@/data/repo/insights';
 import type { OwnedApp } from '@/data/types';
 import { listingStrength, verifiedListingStats } from '@/features/apps/listingStrength';
-import { FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { useDevMode } from '@/lib/devMode';
+import { FREE_DAILY_VIEWS, FREE_MATCH_LIMIT, useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -21,7 +27,21 @@ export type AppCardProps = {
 /** The owner's listing card: stats, strength, and the three actions. */
 export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
   const { c } = useTheme();
+  const router = useRouter();
   const store = useStore();
+  const { userId } = useAuth();
+  const { simulateCooldown } = useDevMode();
+  const { data: cooldowns } = useQuery({
+    queryKey: queryKeys.listingCooldowns(userId),
+    queryFn: fetchListingCooldowns,
+    enabled: !!userId && !store.isPro,
+  });
+  const cooldown = cooldowns?.find((row) => row.listingId === app.id);
+  const onCooldown =
+    !store.isPro && (simulateCooldown || (cooldown != null && cooldown.viewsToday >= FREE_DAILY_VIEWS));
+  const resetsAt = simulateCooldown
+    ? new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString()
+    : cooldown?.resetsAt;
   const connections = store.connections[app.id] ?? {};
   const strength = listingStrength(app, connections);
   const verified = verifiedListingStats(app, connections);
@@ -36,7 +56,30 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
       : `${app.primary ? 'Primary · ' : ''}free · ${store.matches.length} of ${FREE_MATCH_LIMIT + store.user.bonusMatches} matches`;
 
   return (
-    <Card padding={16} radius={radii.cardLg} style={{ gap: 14 }}>
+    <Card padding={16} radius={radii.cardLg} style={{ gap: 14, overflow: 'hidden' }}>
+      {onCooldown ? (
+        <Pressable
+          onPress={() => router.push('/paywall')}
+          style={{
+            marginHorizontal: -16,
+            marginTop: -16,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            backgroundColor: '#F5C84C',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <CooldownTick resetsAt={resetsAt} active={onCooldown} />
+          <Txt size={12.5} weight={700} color="#1A1608" style={{ flex: 1 }}>
+            Daily views used · back in {countdownLabel(resetsAt)}
+          </Txt>
+          <Txt size={12.5} weight={700} color="#1A1608">
+            Get visible now
+          </Txt>
+        </Pressable>
+      ) : null}
       <Pressable onPress={onEdit} accessibilityRole="button" accessibilityLabel={`View and edit ${app.name}`}>
         <View style={{ gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
@@ -124,6 +167,26 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
       </View>
     </Card>
   );
+}
+
+function countdownLabel(iso?: string): string {
+  if (!iso) return 'a few hours';
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return 'a moment';
+  const hours = Math.floor(ms / 3_600_000);
+  const mins = Math.floor((ms % 3_600_000) / 60_000);
+  if (hours >= 1) return `${hours}h ${mins}m`;
+  return `${Math.max(1, mins)}m`;
+}
+
+function CooldownTick({ resetsAt, active }: { resetsAt?: string; active: boolean }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [active, resetsAt]);
+  return null;
 }
 
 function VerifiedStat({ value }: { value: string }) {

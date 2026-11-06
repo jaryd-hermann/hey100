@@ -117,6 +117,8 @@ export type AppListing = {
   storeUrl?: string;
   /** Public GitHub commit total for this builder, across their repos. */
   githubCommits?: number;
+  /** Public community karma for this builder. */
+  builderKarma?: number;
   /** Vertical elevator-pitch video from the builder. */
   pitchUri?: string;
   pitchSeconds?: number;
@@ -198,6 +200,21 @@ export type SentHey = {
 
 export type TradeStatus = 'Not started' | 'Using' | 'Feedback sent';
 
+export type GivenFeedback = {
+  id: string;
+  stars: number;
+  summary: string;
+  keep?: 'Yes' | 'Maybe' | 'No' | null;
+  keepWhy?: string | null;
+  confusion?: string | null;
+  bestMoment?: string | null;
+  bug?: string | null;
+  bugShot?: string | null;
+  bugShots?: string[] | null;
+  videoPath?: string | null;
+  price?: string | null;
+};
+
 export type Match = {
   id: string;
   appId: string;
@@ -222,6 +239,8 @@ export type Match = {
   myShareUrl?: string;
   /** Access code you set for them. */
   myShareCode?: string;
+  /** The review you already left, so the form can reopen it. */
+  givenFeedback?: GivenFeedback;
 };
 
 export type MessageReaction = { emoji: string; count: number; mine: boolean };
@@ -258,6 +277,8 @@ export type Message =
       stars: string;
       body: string;
       meta: string;
+      /** Hidden until the viewer leaves their own review. */
+      locked?: boolean;
     } & ChatMessage);
 
 export type FeedbackEntry = {
@@ -275,6 +296,8 @@ export type FeedbackEntry = {
   /** Whether the giver agreed to their quote being used as a testimonial. */
   optIn: boolean;
   helpful?: 'yes' | 'no';
+  /** False until the viewer has left feedback on this match. */
+  unlocked?: boolean;
 };
 
 export type InboxData = {

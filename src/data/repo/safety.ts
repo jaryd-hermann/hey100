@@ -56,6 +56,39 @@ export function reportContent(input: {
   });
 }
 
-export function deleteMyAccount() {
+export async function deleteMyAccount() {
+  try {
+    await removeOwnedMedia();
+  } catch {
+    // Account delete still has to go through if media cleanup fails.
+  }
   return rpc<SafetyStatus>('delete_my_account');
+}
+
+/** Storage API only — a SQL delete on storage.objects is rejected. */
+async function removeOwnedMedia() {
+  const db = getSupabase();
+  if (!db) return;
+  const { data } = await db.auth.getUser();
+  const userId = data.user?.id;
+  if (!userId) return;
+
+  for (const bucket of ['listing-media', 'avatars'] as const) {
+    const paths = await listOwnedPaths(bucket, userId);
+    if (!paths.length) continue;
+    await db.storage.from(bucket).remove(paths);
+  }
+}
+
+async function listOwnedPaths(bucket: 'listing-media' | 'avatars', prefix: string): Promise<string[]> {
+  const db = getSupabase();
+  if (!db) return [];
+  const { data } = await db.storage.from(bucket).list(prefix, { limit: 1000 });
+  const paths: string[] = [];
+  for (const item of data ?? []) {
+    const path = `${prefix}/${item.name}`;
+    if (item.id) paths.push(path);
+    else paths.push(...(await listOwnedPaths(bucket, path)));
+  }
+  return paths;
 }

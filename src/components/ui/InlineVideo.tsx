@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -40,6 +40,25 @@ export function rewindOnEnd(player: VideoPlayer, onEnd?: () => void) {
   };
 }
 
+function flushWatch(
+  player: VideoPlayer,
+  maxWatched: React.MutableRefObject<number>,
+  userPlayed: React.MutableRefObject<boolean>,
+  reported: React.MutableRefObject<boolean>,
+  onWatch?: (watchedSeconds: number, durationSeconds: number) => void,
+) {
+  if (!onWatch || !userPlayed.current || reported.current) return;
+  try {
+    const watched = Math.max(maxWatched.current, player.currentTime || 0);
+    const duration = player.duration > 0 ? player.duration : 0;
+    if (watched < 0.5) return;
+    reported.current = true;
+    onWatch(watched, duration);
+  } catch {
+    // Released before we could read time.
+  }
+}
+
 export type InlineVideoProps = {
   item: MediaItem;
   hue: number;
@@ -48,6 +67,8 @@ export type InlineVideoProps = {
   style?: StyleProp<ViewStyle>;
   /** Covers the card while the file is still going up. */
   uploading?: boolean;
+  /** Fires once when the viewer leaves, with farthest progress in seconds. */
+  onWatch?: (watchedSeconds: number, durationSeconds: number) => void;
 };
 
 /**
@@ -61,11 +82,17 @@ export function InlineVideo({
   radius = radii.card,
   style,
   uploading,
+  onWatch,
 }: InlineVideoProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const [playing, setPlaying] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const onWatchRef = useRef(onWatch);
+  onWatchRef.current = onWatch;
+  const maxWatched = useRef(0);
+  const userPlayed = useRef(false);
+  const reported = useRef(false);
 
   // A null source is valid, so the hook still runs for placeholder-only items.
   const player = useVideoPlayer(item.uri ?? null, (instance) => {
@@ -102,8 +129,33 @@ export function InlineVideo({
 
   useEffect(() => {
     if (!playable) return;
-    return rewindOnEnd(player, () => setPlaying(false));
+    return rewindOnEnd(player, () => {
+      try {
+        maxWatched.current = Math.max(maxWatched.current, player.duration || 0);
+      } catch {
+        // Player may already be rewound.
+      }
+      setPlaying(false);
+      flushWatch(player, maxWatched, userPlayed, reported, onWatchRef.current);
+    });
   }, [playable, player]);
+
+  useEffect(() => {
+    if (!playing) return;
+    userPlayed.current = true;
+    const id = setInterval(() => {
+      try {
+        maxWatched.current = Math.max(maxWatched.current, player.currentTime || 0);
+      } catch {
+        // Player may have been released.
+      }
+    }, 400);
+    return () => clearInterval(id);
+  }, [playing, player]);
+
+  useEffect(() => {
+    return () => flushWatch(player, maxWatched, userPlayed, reported, onWatchRef.current);
+  }, [player]);
   const frame: ViewStyle = {
     borderRadius: radius,
     overflow: 'hidden',

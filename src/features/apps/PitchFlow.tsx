@@ -11,8 +11,6 @@ import { Txt } from '@/components/ui/Txt';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout, radii } from '@/theme/tokens';
 
-const LIMIT = 30;
-
 type Step = 'intro' | 'record' | 'preview' | 'saving' | 'done';
 
 export type PitchFlowProps = {
@@ -21,17 +19,29 @@ export type PitchFlowProps = {
   onClose: () => void;
   onPublish: (uri: string, seconds: number) => void | Promise<void>;
   skipIntro?: boolean;
+  maxSeconds?: number;
+  hideTimer?: boolean;
+  publishLabel?: string;
 };
 
-export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: PitchFlowProps) {
+export function PitchFlow({
+  visible,
+  builder,
+  onClose,
+  onPublish,
+  skipIntro,
+  maxSeconds = 30,
+  hideTimer = false,
+  publishLabel,
+}: PitchFlowProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [step, setStep] = useState<Step>(skipIntro ? 'record' : 'intro');
   const [mirror, setMirror] = useState(true);
   const [recording, setRecording] = useState(false);
-  const [left, setLeft] = useState(LIMIT);
-  const leftRef = useRef(LIMIT);
+  const [left, setLeft] = useState(maxSeconds);
+  const leftRef = useRef(maxSeconds);
   const [uri, setUri] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [camPerm, requestCam] = useCameraPermissions();
@@ -43,7 +53,7 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
     if (!visible) {
       setStep(skipIntro ? 'record' : 'intro');
       setRecording(false);
-      setLeft(LIMIT);
+      setLeft(maxSeconds);
       setUri(null);
       setLensReady(false);
       setSaving(false);
@@ -94,15 +104,15 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
       if (!next.granted) return;
     }
     if (!lensReady) return;
-    setLeft(LIMIT);
-    leftRef.current = LIMIT;
+    setLeft(maxSeconds);
+    leftRef.current = maxSeconds;
     setRecording(true);
     setStep('record');
     try {
-      const clip = await camera.current?.recordAsync({ maxDuration: LIMIT });
+      const clip = await camera.current?.recordAsync({ maxDuration: maxSeconds });
       if (clip?.uri) {
         setUri(clip.uri);
-        setSeconds(Math.max(1, LIMIT - leftRef.current));
+        setSeconds(Math.max(1, maxSeconds - leftRef.current));
         setStep('preview');
       }
     } catch {
@@ -191,24 +201,35 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
                   </Txt>
                 </View>
               )}
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: 16,
-                  alignSelf: 'center',
-                  left: 0,
-                  right: 0,
-                  alignItems: 'center',
-                }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  {recording ? <RecDot /> : null}
-                  <Txt font="mono" size={42} weight={700} color="#FFFFFF">
-                    {recording ? left : LIMIT}
-                  </Txt>
+              {hideTimer ? (
+                recording ? (
+                  <View
+                    pointerEvents="none"
+                    style={{ position: 'absolute', top: 16, alignSelf: 'center' }}
+                  >
+                    <RecDot />
+                  </View>
+                ) : null
+              ) : (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    alignSelf: 'center',
+                    left: 0,
+                    right: 0,
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    {recording ? <RecDot /> : null}
+                    <Txt font="mono" size={42} weight={700} color="#FFFFFF">
+                      {recording ? left : maxSeconds}
+                    </Txt>
+                  </View>
                 </View>
-              </View>
+              )}
             </View>
 
             <View
@@ -278,14 +299,24 @@ export function PitchFlow({ visible, builder, onClose, onPublish, skipIntro }: P
             seconds={seconds}
             bottom={insets.bottom}
             saving={saving}
+            publishLabel={publishLabel}
             onRetake={() => {
               setUri(null);
-              setLeft(LIMIT);
-              leftRef.current = LIMIT;
+              setLeft(maxSeconds);
+              leftRef.current = maxSeconds;
               setStep('record');
             }}
             onPublish={async () => {
               setSaving(true);
+              if (hideTimer) {
+                try {
+                  await Promise.resolve(onPublish(uri, seconds || 1));
+                  onClose();
+                } catch {
+                  setSaving(false);
+                }
+                return;
+              }
               setStep('saving');
               try {
                 await Promise.resolve(onPublish(uri, seconds || 1));
@@ -342,6 +373,7 @@ function Preview({
   seconds,
   bottom,
   saving,
+  publishLabel,
   onRetake,
   onPublish,
 }: {
@@ -349,6 +381,7 @@ function Preview({
   seconds: number;
   bottom: number;
   saving: boolean;
+  publishLabel?: string;
   onRetake: () => void;
   onPublish: () => void;
 }) {
@@ -382,7 +415,7 @@ function Preview({
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Btn label="Retake" variant="surface" size="lg" style={{ flex: 1 }} disabled={saving} onPress={onRetake} />
           <Btn
-            label={saving ? 'Publishing…' : 'Publish'}
+            label={saving ? 'Publishing…' : publishLabel ?? 'Publish'}
             variant="accent"
             size="lg"
             style={{ flex: 1.4 }}

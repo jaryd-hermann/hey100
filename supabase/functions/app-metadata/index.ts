@@ -245,12 +245,7 @@ async function fromWebsite(url: string): Promise<Metadata> {
     cats: [],
     web: host,
     icon: absolute(squareIcon(html), response.url || url),
-    // The social card, which is the one image on a marketing page the builder
-    // chose themselves. Everything else on such a page is decoration, and a
-    // wrong guess is worse than a carousel they fill in themselves.
-    shots: [absolute(meta(html, 'og:image'), response.url || url)].filter(
-      (shot): shot is string => !!shot,
-    ),
+    shots: [],
     hue: hueOf(host),
   };
 }

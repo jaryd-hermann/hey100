@@ -4,7 +4,10 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { VerifiedBadge } from '@/components/brand/Marks';
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
+import { KarmaChip } from '@/features/profile/KarmaCard';
+import { isVerified } from '@/features/profile/karma';
 import { Chip } from '@/components/ui/Chip';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
@@ -89,8 +92,17 @@ export default function GroupMembersScreen() {
                   <Txt size={15} weight={600} style={{ flex: 1 }} numberOfLines={1}>
                     {member.name}
                   </Txt>
+                  {member.karma != null && isVerified(member.karma) ? <VerifiedBadge size={16} /> : null}
                   {member.role === 'owner' ? <Chip label="Owner" size="sm" /> : null}
                 </View>
+                {member.karma != null ? (
+                  <KarmaChip karma={member.karma} verified={isVerified(member.karma)} />
+                ) : null}
+                {member.bio ? (
+                  <Txt size={13} lh={1.35} numberOfLines={2}>
+                    {member.bio}
+                  </Txt>
+                ) : null}
                 <Txt size={12.5} muted>
                   {member.apps} app{member.apps === 1 ? '' : 's'} ·{' '}
                   {member.commits != null ? `${member.commits.toLocaleString()} commits` : 'commits —'} ·{' '}

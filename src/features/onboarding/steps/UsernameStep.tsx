@@ -180,7 +180,7 @@ export function UsernameStep({
 
       <Card padding={16} style={{ gap: 12 }}>
         <Txt size={14.5} weight={600}>
-          In Discover, show my:
+          In Discover and public groups, show my:
         </Txt>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -7,16 +7,24 @@ import { Screen } from '@/components/layout/Screen';
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
+import { Fuzzy } from '@/components/ui/Fuzzy';
 import { Label, Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import type { FeedbackEntry } from '@/data/types';
+import { firstName } from '@/features/chat/chatMeta';
 import { useDevLoop } from '@/features/dev/useDevLoop';
+import { CoachFab } from '@/features/feedback/CoachHost';
+import { PremiumInsights, useListingInsights } from '@/features/feedback/PremiumInsights';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
+
+const PERIODS = ['all', 7, 30, 90] as const;
+type Period = (typeof PERIODS)[number];
 
 export default function FeedbackInbox() {
   const router = useRouter();
@@ -26,13 +34,16 @@ export default function FeedbackInbox() {
 
   const [appId, setAppId] = useState(store.primaryApp.id);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [days, setDays] = useState<Period>('all');
 
   const app = store.apps[appId] ?? store.primaryApp;
   const data = loop.inbox(appId);
+  const insights = useListingInsights(app.id, days).data;
 
   return (
     <Screen
       title="Feedback"
+      overlay={<CoachFab appId={app.id} />}
       headerRight={
         <Pressable
           accessibilityRole="button"
@@ -54,15 +65,41 @@ export default function FeedbackInbox() {
         const maybe = data?.maybe ?? 0;
         const no = data?.no ?? 0;
 
+        const views =
+          days === 'all' ? funnel.views : insights ? String(insights.views) : funnel.views;
+        const skips =
+          days === 'all' ? funnel.skips : insights ? String(insights.skips) : funnel.skips;
+        const heys =
+          days === 'all' ? funnel.heys : insights ? String(insights.likes) : funnel.heys;
+        const ratio =
+          days === 'all'
+            ? funnel.ratio
+            : Number(views)
+              ? `${Math.round((Number(heys) / Number(views)) * 100)}%`
+              : '—';
+
         return (
         <View style={{ gap: 16 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {PERIODS.map((period) => (
+              <Chip
+                key={String(period)}
+                label={
+                  period === 'all' ? 'All time' : `Last ${period}d`
+                }
+                selected={days === period}
+                onPress={() => setDays(period)}
+              />
+            ))}
+          </View>
+
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {(
               [
-                ['Views', funnel.views, false],
-                ['Skips', funnel.skips, false],
-                ['Heys', funnel.heys, false],
-                ['Hey ratio', funnel.ratio, true],
+                ['Views', String(views), false],
+                ['Skips', String(skips), false],
+                ['Heys', String(heys), false],
+                ['Hey ratio', ratio, true],
               ] as const
             ).map(([label, value, accent]) => (
               <Card key={label} padding={14} style={{ width: '47.5%', gap: 4 }}>
@@ -74,8 +111,10 @@ export default function FeedbackInbox() {
             ))}
           </View>
           <Txt size={11.5} muted style={{ marginTop: -6 }}>
-            All time · only you can see these numbers
+            Only you can see these numbers
           </Txt>
+
+          <PremiumInsights app={app} isPro={store.isPro} days={days} />
 
           <Card padding={16} radius={radii.cardLg} style={{ gap: 14 }}>
             <View style={{ flexDirection: 'row' }}>
@@ -178,10 +217,25 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
   const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
+  const locked = entry.unlocked === false;
+  const name = firstName(entry.who);
 
   const matchId =
     entry.matchId ??
     store.matches.find((match) => store.listing(match.appId)?.builder === entry.who)?.id;
+
+  const openUnlock = () => {
+    if (!matchId) return;
+    toast({
+      message: `To unlock ${name}'s feedback, share your quick thoughts on theirs`,
+      action: 'Give feedback',
+      onAction: () =>
+        router.push({
+          pathname: '/feedback-form',
+          params: { matchId },
+        }),
+    });
+  };
 
   return (
     <Card padding={16} radius={radii.cardLg} style={{ gap: 13 }}>
@@ -189,6 +243,10 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
       <Pressable
         accessibilityRole="button"
         onPress={() => {
+          if (locked) {
+            openUnlock();
+            return;
+          }
           if (matchId) router.push({ pathname: '/chat/[id]', params: { id: matchId } });
         }}
         style={({ pressed }) => ({ gap: 13, opacity: pressed ? 0.9 : 1 })}
@@ -209,30 +267,35 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
           <Ionicons name="chevron-forward" size={16} color={c.muted} />
         </View>
 
-        <Txt size={16} lh={1.45}>
-          &ldquo;{entry.text}&rdquo;
-        </Txt>
+        <Fuzzy locked={locked}>
+          <View style={{ gap: 13 }}>
+            <Txt size={16} lh={1.45}>
+              &ldquo;{entry.text}&rdquo;
+            </Txt>
 
-        <View style={{ gap: 6 }}>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Txt size={12.5} muted style={{ width: 86 }}>
-              Confusion
-            </Txt>
-            <Txt size={13.5} style={{ flex: 1 }}>
-              {entry.confusion}
-            </Txt>
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Txt size={12.5} muted style={{ width: 86 }}>
+                  Confusion
+                </Txt>
+                <Txt size={13.5} style={{ flex: 1 }}>
+                  {entry.confusion}
+                </Txt>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Txt size={12.5} muted style={{ width: 86 }}>
+                  Keep using
+                </Txt>
+                <Txt size={13.5} style={{ flex: 1 }}>
+                  {entry.keep}
+                </Txt>
+              </View>
+            </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Txt size={12.5} muted style={{ width: 86 }}>
-              Keep using
-            </Txt>
-            <Txt size={13.5} style={{ flex: 1 }}>
-              {entry.keep}
-            </Txt>
-          </View>
-        </View>
+        </Fuzzy>
       </Pressable>
 
+      {locked ? null : (
       <View
         style={{
           borderTopWidth: 1,
@@ -290,6 +353,7 @@ function FeedbackCard({ appId, entry }: { appId: string; entry: FeedbackEntry })
           </View>
         )}
       </View>
+      )}
     </Card>
   );
 }

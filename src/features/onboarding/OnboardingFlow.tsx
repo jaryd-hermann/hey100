@@ -76,6 +76,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   // Orientation for every screenshot in this listing, picked on the media step.
   const [shotLayout, setShotLayout] = useState<ShotLayout>('vertical');
   const [joining, setJoining] = useState<string | null>(null);
+  const [askInvite, setAskInvite] = useState(false);
 
   const usernameState = useUsernameState(draft.username);
 
@@ -88,7 +89,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const isWelcome = step.kind === 'welcome';
   const isStory = step.kind === 'story';
   const isWhy = step.kind === 'why';
-  const inviteStep = STEPS.findIndex((item) => item.kind === 'invite');
   const isCheckLike = step.kind === 'check';
   const isSummary = step.kind === 'summary';
   const welcomed = useRef(false);
@@ -100,13 +100,12 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     (invitedBy: string) => {
       captureEvent('invite_redeemed', { invited_by: invitedBy });
       toast('You got 3 extra free matches');
-      update((prev) => ({
+      update({
         inviteOk: true,
         invitedBy,
-        ...(prev.step === inviteStep ? { step: prev.step + 1 } : {}),
-      }));
+      });
     },
-    [inviteStep, toast, update],
+    [toast, update],
   );
 
   useEffect(() => {
@@ -134,7 +133,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       inviteCode: code,
       inviteOk: false,
       invitedBy: null,
-      step: STEPS.findIndex((item) => item.kind === 'invite'),
     });
     void (async () => {
       try {
@@ -157,8 +155,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   const valid = useMemo(() => {
     switch (step.kind) {
-      case 'invite':
-        return draft.inviteOk;
       case 'link':
         return draft.fetched;
       case 'username':
@@ -177,7 +173,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   }, [
     draft.fetched,
     draft.firstName,
-    draft.inviteOk,
     draft.lastName,
     draft.own,
     draft.terms,
@@ -188,8 +183,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   const invalidMessage = () => {
     switch (step.kind) {
-      case 'invite':
-        return 'Redeem an invite code first';
       case 'link':
         return 'Fetch your app first';
       case 'username':
@@ -220,7 +213,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     hue: draft.appHue,
     // Shown immediately; the uploaded copy replaces it on the next refetch.
     icon: draft.appIcon || undefined,
-    cat: draft.appCats[0] ?? 'Productivity',
+    cat: draft.appCats.slice(0, 2).join(' · ') || 'Productivity',
     stage: stripEmoji(picked('stage')[0] ?? '🧪 In beta or TestFlight'),
     media: draft.shots.map((shot) => ({
       label: shot.label ?? '',
@@ -382,7 +375,15 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       invited_by: draft.invitedBy,
     });
 
-    setJoining(app.name || draft.appName || 'your app');
+    setAskInvite(true);
+  };
+
+  const continueAfterInvite = () => {
+    if (draft.inviteCode.trim()) {
+      void redeemInvite(draft.inviteCode).catch(() => {});
+    }
+    setAskInvite(false);
+    setJoining(draft.appName || 'your product');
   };
 
   /**
@@ -622,6 +623,40 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   const background = isWelcome ? SPLASH_BG.light : c.bg;
 
+  if (askInvite) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 24 }}>
+        <View style={{ paddingHorizontal: layout.gutter, gap: 20 }}>
+          <InviteStep
+            title="Did someone invite you?"
+            body="Paste the code so you both get free matches."
+            code={draft.inviteCode}
+            onChangeCode={(code) => update({ inviteCode: code })}
+            redeemed={draft.inviteOk}
+            invitedBy={draft.invitedBy}
+            checking={checkingCode}
+            onRedeem={redeemCode}
+          />
+          <Pressable
+            onPress={continueAfterInvite}
+            style={({ pressed }) => ({
+              height: 56,
+              borderRadius: radii.pill,
+              backgroundColor: c.ink,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <Txt size={15.5} weight={600} color={c.bg}>
+              {draft.inviteOk ? 'Continue' : 'Skip for now'}
+            </Txt>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   if (joining) {
     return (
       <JoiningStep
@@ -770,7 +805,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
           flexGrow: isCheckLike ? 1 : undefined,
         }}
       >
-        {!isCheckLike && title && step.kind !== 'username' ? (
+        {!isCheckLike && title && step.kind !== 'username' && step.kind !== 'problem' ? (
           <Txt font="mono" size={27} weight={500} lh={1.22} style={{ marginBottom: 18 }}>
             {title}
           </Txt>
@@ -797,36 +832,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             gap: 14,
           }}
         >
-          {step.vis && step.group ? (
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: isVisible(step.group) }}
-              onPress={() => toggleVisible(step.group!)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}
-            >
-              <View
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 6,
-                  borderWidth: 1.5,
-                  borderColor: isVisible(step.group) ? c.ink : c.muted,
-                  backgroundColor: isVisible(step.group) ? c.ink : 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {isVisible(step.group) ? (
-                  <Txt size={13} weight={700} color={c.bg}>
-                    ✓
-                  </Txt>
-                ) : null}
-              </View>
-              <Txt size={14} weight={600}>
-                Visible on profile
-              </Txt>
-            </Pressable>
-          ) : step.kind === 'media' && draft.shots.length ? (
+          {step.kind === 'media' && draft.shots.length ? (
             <Txt size={13.5} lh={1.4} muted style={{ flex: 1 }}>
               Continue with {draft.shots.length === 1 ? 'this' : 'these'} {shotTally(draft.shots)}
             </Txt>
@@ -883,21 +889,6 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     }
 
     switch (step.kind) {
-      case 'invite':
-        return (
-          <InviteStep
-            code={draft.inviteCode}
-            onChangeCode={(code) => update({ inviteCode: code })}
-            redeemed={draft.inviteOk}
-            invitedBy={draft.invitedBy}
-            checking={checkingCode}
-            onRedeem={redeemCode}
-            onWaitlist={() =>
-              router.push({ pathname: '/browser', params: { kind: 'Web', value: 'https://hey100.com' } })
-            }
-          />
-        );
-
       case 'check':
         return <CheckStep title={step.title!} onContinue={next} />;
 
@@ -920,7 +911,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
                 appName: result.name,
                 appSub: prev.appSub || result.sub,
                 appHue: result.hue,
-                appCats: result.cats,
+                appCats: result.cats.slice(0, 2),
                 appIcon: result.icon ?? '',
                 storeUrl: result.storeUrl ?? '',
                 storeRating: result.rating,
@@ -938,7 +929,9 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             }
             onChangeName={(appName) => update({ appName })}
             onChangeSub={(appSub) => update({ appSub })}
-            onChangeCats={(appCats) => update({ appCats })}
+            onChangeCats={(appCats) => update({ appCats: appCats.slice(0, 2) })}
+            onChangeIcon={(appIcon) => update({ appIcon })}
+            onToast={toast}
             onChangeLink={(key, value) =>
               update((prev) => ({ links: { ...prev.links, [key]: value } }))
             }
@@ -991,7 +984,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
               }
               toggle(group, label, step.single);
             }}
-            subtitle={step.max ? `Pick up to ${step.max}` : undefined}
+            subtitle={step.subtitle ?? (step.max ? `Pick up to ${step.max}` : undefined)}
             search={step.search}
             own={step.own}
             ownText={draft.own[step.group!] ?? ''}

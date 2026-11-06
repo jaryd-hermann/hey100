@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,7 +15,9 @@ import { LegalRow } from '@/features/legal/LegalLinks';
 import { captureEvent } from '@/lib/analytics';
 import { getMonthlyPrice, purchaseMonthly, restorePurchases } from '@/lib/purchases';
 import {
+  FREE_AUDIENCE_LIMIT,
   FREE_DAILY_HEYS,
+  FREE_DAILY_VIEWS,
   FREE_MATCH_LIMIT,
   PRO_PRICE,
   useStore,
@@ -23,10 +27,12 @@ import { layout, radii } from '@/theme/tokens';
 
 const PERKS: [string, string][] = [
   ['Join premium groups', 'Get into groups with the strongest group power.'],
-  ['Speed up your matches', 'Say hey to unlimited apps a day'],
-  ['Better visibility', 'Shown to more builders who fit your ideal users.'],
-  ['More analytics', 'View, skips, hey ratio, and other key insights'],
-  ['Unlimited matches & DMs', `Keep chatting past the ${FREE_MATCH_LIMIT} free matches.`],
+  ['Speed up your matches', `Unlimited heys, keep chatting past ${FREE_MATCH_LIMIT}/day`],
+  ['Extra visibility. More audiences', 'Shown to more builders who fit your ideal users.'],
+  ['No daily cooldowns', `Skip the ${FREE_DAILY_VIEWS} views per day.`],
+  ['List unlimited products', 'Free accounts can list one product.'],
+  ['Pro insights & analytics', 'Fit sentiment, scroll depth, and an AI listing coach.'],
+  ['AI assistant', 'Tips & advice based on top apps and builders'],
 ];
 
 export default function Paywall() {
@@ -62,7 +68,15 @@ export default function Paywall() {
   }, []);
 
   const dismiss = () => {
-    if (from === 'onboarding') {
+    if (from === 'onboarding' || from === 'audiences') {
+      const interests = (store.primaryApp.ideal?.interests ?? '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (from === 'onboarding' && !store.isPro && interests.length > FREE_AUDIENCE_LIMIT) {
+        router.replace('/setup/audiences');
+        return;
+      }
       router.replace({
         pathname: '/setup/notifications',
         params: { appId: store.primaryApp.id },
@@ -127,15 +141,7 @@ export default function Paywall() {
         </Pressable>
       </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: layout.gutter,
-          paddingBottom: 260,
-          paddingTop: 8,
-        }}
-      >
+      <View style={{ paddingHorizontal: layout.gutter, paddingBottom: 8 }}>
         {atMatchLimit ? (
           <>
             <Txt font="mono" size={64} weight={700} color={c.accentText}>
@@ -148,6 +154,26 @@ export default function Paywall() {
               List {shortName(store.primaryApp.name)} to keep matching. Your existing chats stay
               open either way.
             </Txt>
+            <Card tone="soft" padding={16} style={{ marginTop: 16, gap: 10 }}>
+              <Txt size={15} weight={600} color={c.accentText}>
+                Or invite a builder to keep going
+              </Txt>
+              <Txt size={13.5} lh={1.45} color={c.accentText}>
+                Free · you both get +3 matches when they publish a listing.
+              </Txt>
+              <Btn
+                label="Share invite"
+                variant="surface"
+                size="sm"
+                onPress={() =>
+                  router.push({
+                    pathname: '/share',
+                    params: { kind: 'invite' },
+                  })
+                }
+                style={{ alignSelf: 'flex-start', marginTop: 4 }}
+              />
+            </Card>
           </>
         ) : (
           <>
@@ -162,24 +188,32 @@ export default function Paywall() {
             </Txt>
           </>
         )}
+      </View>
 
-        <View style={{ gap: 16, marginTop: 26 }}>
-          {PERKS.map(([title, body]) => (
-            <View key={title} style={{ flexDirection: 'row', gap: 12 }}>
-              <Ionicons name="checkmark-circle" size={19} color={c.accentText} />
-              <View style={{ flex: 1 }}>
-                <Txt size={15.5} weight={600}>
-                  {title}
-                </Txt>
-                <Txt size={13.5} lh={1.45} muted style={{ marginTop: 2 }}>
-                  {body}
-                </Txt>
-              </View>
-            </View>
-          ))}
-        </View>
+      <View style={{ flex: 1 }}>
+        <LoopingPerks />
+        <LinearGradient
+          pointerEvents="none"
+          colors={[c.bg, `${c.bg}00`]}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 28 }}
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={[`${c.bg}00`, c.bg]}
+          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 28 }}
+        />
+      </View>
 
-        <Card padding={16} radius={radii.cardLg} style={{ marginTop: 26, gap: 6 }}>
+      <View
+        style={{
+          backgroundColor: c.bg,
+          paddingHorizontal: layout.gutter,
+          paddingTop: 8,
+          paddingBottom: insets.bottom + 16,
+          gap: 10,
+        }}
+      >
+        <Card padding={16} radius={radii.cardLg} style={{ gap: 6 }}>
           <Txt size={15} weight={600}>
             One plan only. Cancel whenever
           </Txt>
@@ -192,40 +226,6 @@ export default function Paywall() {
             </Txt>
           </View>
         </Card>
-
-        {atMatchLimit ? (
-          <Card tone="soft" padding={16} style={{ marginTop: 16, gap: 10 }}>
-            <Txt size={15} weight={600} color={c.accentText}>
-              Or invite a builder to keep going
-            </Txt>
-            <Txt size={13.5} lh={1.45} color={c.accentText}>
-              Free · you both get +3 matches when they publish a listing.
-            </Txt>
-            <Btn
-              label="Share invite"
-              variant="surface"
-              size="sm"
-              onPress={() =>
-                router.push({
-                  pathname: '/share',
-                  params: { kind: 'invite' },
-                })
-              }
-              style={{ alignSelf: 'flex-start', marginTop: 4 }}
-            />
-          </Card>
-        ) : null}
-      </ScrollView>
-
-      <View
-        style={{
-          position: 'absolute',
-          left: layout.gutter,
-          right: layout.gutter,
-          bottom: insets.bottom + 16,
-          gap: 10,
-        }}
-      >
         <Btn
           label={buying ? 'Starting Pro…' : `Start Pro · ${price}/mo`}
           variant="accent"
@@ -251,5 +251,94 @@ export default function Paywall() {
         />
       </View>
     </View>
+  );
+}
+
+const LOOP_COPIES = 3;
+
+function LoopingPerks() {
+  const { c } = useTheme();
+  const scroll = useRef<ScrollView>(null);
+  const cycle = useRef(0);
+  const wrapping = useRef(false);
+  const lastTick = useRef(-1);
+  const primed = useRef(false);
+
+  const tick = (y: number) => {
+    const height = cycle.current;
+    if (!height || wrapping.current || !primed.current) return;
+    const row = height / PERKS.length;
+    const index = Math.floor((y + row / 2) / row);
+    if (index === lastTick.current) return;
+    lastTick.current = index;
+    Haptics.selectionAsync().catch(() => {});
+  };
+
+  const wrap = (y: number) => {
+    const height = cycle.current;
+    if (!height || wrapping.current) return;
+    tick(y);
+    if (y < height) {
+      wrapping.current = true;
+      scroll.current?.scrollTo({ y: y + height, animated: false });
+      wrapping.current = false;
+    } else if (y >= height * 2) {
+      wrapping.current = true;
+      scroll.current?.scrollTo({ y: y - height, animated: false });
+      wrapping.current = false;
+    }
+  };
+
+  return (
+    <ScrollView
+      ref={scroll}
+      style={{ flex: 1 }}
+      showsVerticalScrollIndicator={false}
+      scrollEventThrottle={16}
+      onScroll={(event) => wrap(event.nativeEvent.contentOffset.y)}
+      onMomentumScrollEnd={(event) => wrap(event.nativeEvent.contentOffset.y)}
+      contentContainerStyle={{
+        paddingHorizontal: layout.gutter,
+        paddingVertical: 28,
+        gap: 16,
+      }}
+    >
+      {Array.from({ length: LOOP_COPIES }, (_, copy) => (
+        <View
+          key={copy}
+          style={{ gap: 16 }}
+          onLayout={
+            copy === 0
+              ? (event) => {
+                  const next = event.nativeEvent.layout.height + 16;
+                  const first = cycle.current === 0;
+                  cycle.current = next;
+                  if (first) {
+                    lastTick.current = PERKS.length;
+                    scroll.current?.scrollTo({ y: next, animated: false });
+                    requestAnimationFrame(() => {
+                      primed.current = true;
+                    });
+                  }
+                }
+              : undefined
+          }
+        >
+          {PERKS.map(([title, body]) => (
+            <View key={`${copy}-${title}`} style={{ flexDirection: 'row', gap: 12 }}>
+              <Ionicons name="checkmark-circle" size={19} color={c.accentText} />
+              <View style={{ flex: 1 }}>
+                <Txt size={15.5} weight={600}>
+                  {title}
+                </Txt>
+                <Txt size={13.5} lh={1.45} muted style={{ marginTop: 2 }}>
+                  {body}
+                </Txt>
+              </View>
+            </View>
+          ))}
+        </View>
+      ))}
+    </ScrollView>
   );
 }

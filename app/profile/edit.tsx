@@ -23,6 +23,8 @@ import { BIO_MAX, EDITABLE_GROUPS, SOCIAL_FIELDS } from '@/features/profile/fiel
 import { updateMyProfile } from '@/data/repo/profile';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { pickAvatar, uploadAvatar } from '@/features/profile/avatar';
+import { KarmaChip } from '@/features/profile/KarmaCard';
+import { useMyKarma } from '@/features/profile/karma';
 import { toProfilePatch } from '@/features/profile/mapProfile';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -40,6 +42,7 @@ export default function EditProfile() {
   const toast = useToast();
   const store = useStore();
   const { userId } = useAuth();
+  const { karma, verified } = useMyKarma();
 
   const { user } = store;
 
@@ -271,13 +274,18 @@ export default function EditProfile() {
           </Txt>
         </View>
 
-        <Field
-          label="Your name"
-          value={realName}
-          onChangeText={setRealName}
-          placeholder="Your name"
-          hint="Only shown once you match and start chatting."
-        />
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Label style={{ flex: 1 }}>Your name</Label>
+            <KarmaChip karma={karma} verified={verified} />
+          </View>
+          <Field
+            value={realName}
+            onChangeText={setRealName}
+            placeholder="Your name"
+            hint="Only shown once you match and start chatting."
+          />
+        </View>
 
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>

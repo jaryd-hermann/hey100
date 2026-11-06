@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
+import { CoachFab } from '@/features/feedback/CoachHost';
 import { Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
@@ -16,7 +17,7 @@ import { BadgesSheet } from '@/features/apps/BadgesSheet';
 import { ShareListingSheet } from '@/features/apps/ShareListingSheet';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useDevMode } from '@/lib/devMode';
-import { useStore } from '@/store/AppStore';
+import { FREE_LISTING_LIMIT, useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -33,6 +34,7 @@ export default function AppsScreen() {
   return (
     <Screen
       title="My apps"
+      overlay={<CoachFab />}
       headerRight={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <Pressable onPress={() => router.push('/settings')} hitSlop={8} accessibilityLabel="Settings">
@@ -56,12 +58,18 @@ export default function AppsScreen() {
         ))}
 
         <Btn
-          label="List another app"
+          label="List another product"
           variant="accent"
           size="lg"
           full
           left={<Ionicons name="add" size={20} color={c.accentInk} />}
-          onPress={() => router.push('/add-app')}
+          onPress={() => {
+            if (!store.isPro && store.ownedApps.length >= FREE_LISTING_LIMIT) {
+              router.push({ pathname: '/paywall', params: { from: 'listing_limit' } });
+              return;
+            }
+            router.push('/add-app');
+          }}
         />
 
         <Pressable

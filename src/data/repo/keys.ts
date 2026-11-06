@@ -24,6 +24,10 @@ export const queryKeys = {
   communityRequests: (groupId: string | null) => ['community', 'requests', groupId] as const,
   toolDiscussion: (toolId: string | null) => ['tools', 'discussion', toolId] as const,
   blocked: (userId: string | null) => ['safety', 'blocked', userId] as const,
+  builderGroups: (userId: string | null) => ['community', 'builder-groups', userId] as const,
+  listingInsights: (appId: string | null, days: number | 'all') =>
+    ['insights', 'listing', appId, days] as const,
+  listingCooldowns: (userId: string | null) => ['listings', 'cooldowns', userId] as const,
 };
 
 export const staleTimes = {

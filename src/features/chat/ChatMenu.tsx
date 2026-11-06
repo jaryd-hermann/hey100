@@ -25,6 +25,7 @@ export type ChatMenuProps = {
   onViewProfile: () => void;
   onOpenLink: () => void;
   onSendFeedback?: () => void;
+  hasGivenFeedback?: boolean;
   onDelete: () => void;
   onReport: () => void;
   onBlock?: () => void;
@@ -44,6 +45,7 @@ export function ChatMenu({
   onViewProfile,
   onOpenLink,
   onSendFeedback,
+  hasGivenFeedback,
   onDelete,
   onReport,
   onBlock,
@@ -103,7 +105,11 @@ export function ChatMenu({
         ) : (
           <>
             {onSendFeedback ? (
-              <MenuRow icon="chatbubble-ellipses-outline" label="Send feedback" onPress={onSendFeedback} />
+              <MenuRow
+                icon="chatbubble-ellipses-outline"
+                label={hasGivenFeedback ? 'Edit feedback' : 'Send feedback'}
+                onPress={onSendFeedback}
+              />
             ) : null}
             <MenuRow icon="trash-outline" label="Delete chat" danger onPress={confirmDelete} />
             <MenuRow icon="flag-outline" label={`Report ${name}`} danger onPress={confirmReport} />

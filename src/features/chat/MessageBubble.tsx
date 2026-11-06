@@ -4,8 +4,10 @@ import { Pressable, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
+import { Fuzzy } from '@/components/ui/Fuzzy';
 import { InlineVideo } from '@/components/ui/InlineVideo';
 import { MediaPlaceholder } from '@/components/ui/MediaPlaceholder';
+import { LinkedText } from '@/components/ui/LinkedText';
 import { Label, Txt } from '@/components/ui/Txt';
 import type { MediaItem, Message } from '@/data/types';
 import { shortName } from '@/data/mock';
@@ -27,6 +29,7 @@ export type MessageBubbleProps = {
   unread?: boolean;
   onOpenMedia?: (items: MediaItem[], index: number) => void;
   onOpenInvite?: (groupId: string) => void;
+  onPressFeedback?: () => void;
   onLongPress?: () => void;
   onToggleReaction?: (emoji: string) => void;
 };
@@ -38,6 +41,7 @@ export function MessageBubble({
   unread,
   onOpenMedia,
   onOpenInvite,
+  onPressFeedback,
   onLongPress,
   onToggleReaction,
 }: MessageBubbleProps) {
@@ -166,34 +170,48 @@ export function MessageBubble({
 
   if (message.kind === 'feedback') {
     const mine = message.from === 'me';
+    const locked = !!message.locked && !mine;
     return (
-      <View
-        style={{
-          borderRadius: radii.cardLg,
-          borderWidth: 1.5,
-          borderColor: c.accent,
-          backgroundColor: c.surface,
-          padding: 15,
-          gap: 9,
-          maxWidth: '92%',
-          alignSelf: mine ? 'flex-end' : 'flex-start',
-        }}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          mine ? 'Edit the feedback you sent' : locked ? 'Unlock this feedback' : 'Feedback received'
+        }
+        onPress={onPressFeedback}
+        onLongPress={onLongPress}
+        delayLongPress={280}
+        style={{ maxWidth: '92%', alignSelf: mine ? 'flex-end' : 'flex-start' }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Label size={10} style={{ flex: 1 }}>
-            {mine ? 'Feedback you sent' : 'Feedback received'}
-          </Label>
-          <Txt font="mono" size={13} weight={600} color={c.accentText}>
-            {message.stars}
-          </Txt>
-        </View>
-        <Txt size={15} lh={1.45}>
-          {message.body}
-        </Txt>
-        <Txt size={12} muted>
-          {message.meta}
-        </Txt>
-      </View>
+        <Fuzzy locked={locked}>
+          <View
+            style={{
+              borderRadius: radii.cardLg,
+              borderWidth: 1.5,
+              borderColor: c.accent,
+              backgroundColor: c.surface,
+              padding: 15,
+              gap: 9,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Label size={10} style={{ flex: 1 }}>
+                {mine ? 'Feedback you sent' : 'Feedback received'}
+              </Label>
+              <Txt font="mono" size={13} weight={600} color={c.accentText}>
+                {message.stars}
+              </Txt>
+            </View>
+            <Txt size={15} lh={1.45}>
+              {message.body}
+            </Txt>
+            {message.meta ? (
+              <Txt size={12} muted>
+                {message.meta}
+              </Txt>
+            ) : null}
+          </View>
+        </Fuzzy>
+      </Pressable>
     );
   }
 
@@ -249,14 +267,14 @@ export function MessageBubble({
       ) : null}
 
       {hasBody ? (
-        <Txt
-          size={15.5}
-          lh={1.4}
-          color={mine ? c.bg : c.ink}
-          style={media.length ? { paddingHorizontal: 9, paddingBottom: 4 } : undefined}
-        >
-          {saidHeyBody(message.body, mine)}
-        </Txt>
+        <View style={media.length ? { paddingHorizontal: 9, paddingBottom: 4 } : undefined}>
+          <LinkedText
+            text={saidHeyBody(message.body, mine)}
+            size={15.5}
+            lh={1.4}
+            color={mine ? c.bg : c.ink}
+          />
+        </View>
       ) : null}
     </Pressable>
   );

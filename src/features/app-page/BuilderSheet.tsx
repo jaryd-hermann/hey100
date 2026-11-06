@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
-import React, { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/AppIcon';
@@ -9,7 +10,14 @@ import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { queryKeys } from '@/data/repo/keys';
+import {
+  fetchBuilderPublicGroups,
+  joinCommunityGroup,
+  type CommunityGroup,
+} from '@/data/repo/community';
 import { blockUser, reportContent } from '@/data/repo/safety';
+import { GroupCover } from '@/features/community/GroupCover';
+import { GroupCoverSheet } from '@/features/community/GroupCoverSheet';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { ReportSheet } from '@/features/safety/ReportSheet';
 import { shortName } from '@/data/mock';
@@ -23,7 +31,10 @@ import {
   useOpenShippedApp,
   verifiedMoney,
 } from '@/features/profile/BuilderBits';
+import { VerifiedBadge } from '@/components/brand/Marks';
 import { builderFromUser, publicRole } from '@/features/profile/builderCard';
+import { KarmaChip } from '@/features/profile/KarmaCard';
+import { isVerified, useMyKarma } from '@/features/profile/karma';
 import { isServerId } from '@/lib/supabase';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -61,11 +72,35 @@ export function BuilderSheet({
 }: BuilderSheetProps) {
   const { c } = useTheme();
   const toast = useToast();
+  const router = useRouter();
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   const store = useStore();
+  const mineKarma = useMyKarma();
   const [reportOpen, setReportOpen] = useState(false);
+  const [preview, setPreview] = useState<CommunityGroup | null>(null);
+  const [joining, setJoining] = useState(false);
+  const pending = useRef<
+    null | { kind: 'group'; id: string } | { kind: 'preview'; group: CommunityGroup }
+  >(null);
+
+  const flushPending = () => {
+    const next = pending.current;
+    pending.current = null;
+    if (next?.kind === 'group') {
+      router.push({ pathname: '/group/[id]', params: { id: next.id } });
+    }
+    if (next?.kind === 'preview') {
+      setPreview(next.group);
+    }
+  };
   const mine = !!listing && store.ownedApps.some((app) => app.id === listing.id);
+  const builderId = mine ? userId : listing?.ownerId;
+  const { data: groups = [] } = useQuery({
+    queryKey: queryKeys.builderGroups(builderId ?? null),
+    queryFn: () => fetchBuilderPublicGroups(builderId!),
+    enabled: visible && !!builderId,
+  });
   const products = useBuilderProducts(listing, mine);
   const openApp = useOpenShippedApp();
 
@@ -91,18 +126,43 @@ export function BuilderSheet({
 
   return (
     <>
-    <Sheet visible={visible && !reportOpen} onClose={onClose}>
+    <Sheet
+      visible={visible && !reportOpen && !preview}
+      onClose={() => {
+        pending.current = null;
+        setPreview(null);
+        onClose();
+      }}
+      onClosed={flushPending}
+    >
       <View style={{ gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <Avatar name={card.builder} uri={card.builderPhoto} size={60} />
           <View style={{ flex: 1 }}>
-            <Txt size={19} weight={700}>
-              {card.builder}
-            </Txt>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Txt size={19} weight={700} style={{ flexShrink: 1 }}>
+                {card.builder}
+              </Txt>
+              {(mine ? mineKarma.verified : listing.builderKarma != null && isVerified(listing.builderKarma)) ? (
+                <VerifiedBadge size={16} />
+              ) : null}
+            </View>
             {role ? (
               <Txt size={13.5} muted>
                 {role}
               </Txt>
+            ) : null}
+            {(mine ? mineKarma.karma : listing.builderKarma) != null ? (
+              <View style={{ marginTop: 6 }}>
+                <KarmaChip
+                  karma={mine ? mineKarma.karma : listing.builderKarma!}
+                  verified={
+                    mine
+                      ? mineKarma.verified
+                      : listing.builderKarma != null && isVerified(listing.builderKarma)
+                  }
+                />
+              </View>
             ) : null}
             <Txt size={13.5} muted style={{ marginTop: 2 }}>
               Building {shortName(listing.name)}
@@ -138,6 +198,44 @@ export function BuilderSheet({
 
         <ChipRow label="Skills" items={card.skills ?? []} />
         <ChipRow label="Apps I'd try" items={card.interests ?? []} />
+
+        {groups.length ? (
+          <View style={{ gap: 8 }}>
+            <Txt size={12} muted>
+              Groups
+            </Txt>
+            {groups.map((group) => (
+              <Pressable
+                key={group.id}
+                onPress={() => {
+                  pending.current =
+                    group.membership === 'active'
+                      ? { kind: 'group', id: group.id }
+                      : { kind: 'preview', group };
+                  onClose();
+                }}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingHorizontal: 12,
+                  height: 52,
+                  borderRadius: radii.option,
+                  backgroundColor: c.surface,
+                  borderWidth: 1,
+                  borderColor: c.line,
+                  opacity: pressed ? 0.75 : 1,
+                })}
+              >
+                <GroupCover group={group} size={32} />
+                <Txt size={14.5} weight={500} style={{ flex: 1 }} numberOfLines={1}>
+                  {group.name}
+                </Txt>
+                <Ionicons name="chevron-forward" size={16} color={c.muted} />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         <View style={{ gap: 8 }}>
           {socials.map(([kind, value, icon]) => (
@@ -218,6 +316,29 @@ export function BuilderSheet({
         ) : null}
       </View>
     </Sheet>
+    <GroupCoverSheet
+      group={preview}
+      busy={joining}
+      onClose={() => setPreview(null)}
+      onClosed={flushPending}
+      onJoin={(note, skipApproval) => {
+        if (!preview || !userId || joining) return;
+        setJoining(true);
+        void joinCommunityGroup(preview, userId, note)
+          .then((status) => {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.communityHome(userId) });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.builderGroups(builderId ?? null) });
+            if (status === 'active' || skipApproval) {
+              pending.current = { kind: 'group', id: preview.id };
+            } else {
+              toast('Request sent. Anyone in the group can let you in.');
+            }
+            setPreview(null);
+          })
+          .catch(() => toast('Could not join'))
+          .finally(() => setJoining(false));
+      }}
+    />
     <ReportSheet
       visible={reportOpen}
       title={`Report ${card.builder}`}

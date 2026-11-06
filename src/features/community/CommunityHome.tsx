@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Label, Txt } from '@/components/ui/Txt';
@@ -42,6 +42,13 @@ export function CommunityHome() {
   const [creating, setCreating] = useState(false);
   const [preview, setPreview] = useState<CommunityGroup | null>(null);
   const [joining, setJoining] = useState(false);
+  const pendingGroup = useRef<string | null>(null);
+
+  const openPendingGroup = () => {
+    const id = pendingGroup.current;
+    pendingGroup.current = null;
+    if (id) router.push({ pathname: '/group/[id]', params: { id } });
+  };
   const communityHint = useFirstHint('community');
 
   const seeded = useMemo(
@@ -76,8 +83,8 @@ export function CommunityHome() {
   const join = async (note?: string, skipApproval?: boolean) => {
     if (!preview || !userId || joining) return;
     if (preview.membership === 'active') {
+      pendingGroup.current = preview.id;
       setPreview(null);
-      router.push({ pathname: '/group/[id]', params: { id: preview.id } });
       return;
     }
     setJoining(true);
@@ -87,7 +94,7 @@ export function CommunityHome() {
         seedJoin(preview.id, instant);
         setPreview(null);
         if (instant) {
-          router.push({ pathname: '/group/[id]', params: { id: preview.id } });
+          pendingGroup.current = preview.id;
         } else {
           toast('Request sent. Anyone in the group can let you in.');
         }
@@ -99,7 +106,7 @@ export function CommunityHome() {
       if (status === 'active') {
         joinedFired.add(preview.id);
         captureEvent('group_joined', { group_id: preview.id, join_mode: preview.joinMode });
-        router.push({ pathname: '/group/[id]', params: { id: preview.id } });
+        pendingGroup.current = preview.id;
       } else {
         seenPending.add(preview.id);
         toast('Request sent. Anyone in the group can let you in.');
@@ -162,13 +169,18 @@ export function CommunityHome() {
         <CreateGroupPromo onPress={() => setCreating(true)} />
       </View>
 
-      <Sheet visible={creating} tall onClose={() => setCreating(false)}>
+      <Sheet
+        visible={creating}
+        tall
+        onClose={() => setCreating(false)}
+        onClosed={openPendingGroup}
+      >
         <CreateGroupForm
           onClose={() => setCreating(false)}
           onCreated={(id) => {
+            pendingGroup.current = id;
             setCreating(false);
             void queryClient.invalidateQueries({ queryKey: queryKeys.communityHome(userId) });
-            router.push({ pathname: '/group/[id]', params: { id } });
           }}
         />
       </Sheet>
@@ -177,6 +189,7 @@ export function CommunityHome() {
         group={preview}
         busy={joining}
         onClose={() => setPreview(null)}
+        onClosed={openPendingGroup}
         onJoin={(note) => void join(note)}
       />
 

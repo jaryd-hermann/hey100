@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Share, View } from 'react-native';
@@ -6,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderLogo } from '@/components/brand/Logo';
 import { Btn } from '@/components/ui/Btn';
-import { HeyPill } from '@/components/ui/HeyPill';
+import { HeyPill, PassPill } from '@/components/ui/HeyPill';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { DECK_IDS, LISTINGS, shortName } from '@/data/mock';
@@ -28,6 +27,7 @@ import { useDailyHeyLimit } from '@/features/billing/DailyHeyLimit';
 import { CommunityPromoCard } from '@/features/marketing/CommunityPromoCard';
 import { ProductHint } from '@/features/marketing/ProductHint';
 import { useFirstHint } from '@/features/marketing/useFirstHint';
+import { recordHeySource, recordListingScroll } from '@/data/repo/insights';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -42,6 +42,7 @@ export default function DiscoverScreen() {
   const heyLimit = useDailyHeyLimit();
 
   const scrollRef = useRef<ScrollView>(null);
+  const depthRef = useRef(0);
   const { compact, onScroll, reset } = useCompactBar();
 
   const [filters, setFilters] = useState(INITIAL_FILTERS);
@@ -95,7 +96,15 @@ export default function DiscoverScreen() {
   const listing = deck[index];
   const viaApp = listing ? store.attributedApp(listing.id) : store.primaryApp;
 
+  useEffect(() => {
+    depthRef.current = 0;
+    return () => {
+      if (listing) void recordListingScroll(listing.id, depthRef.current);
+    };
+  }, [listing]);
+
   const advance = () => {
+    if (listing) void recordListingScroll(listing.id, depthRef.current);
     reset();
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     setIndex((prev) => (prev + 1 >= deck.length ? 0 : prev + 1));
@@ -116,6 +125,11 @@ export default function DiscoverScreen() {
     // The card leaves the deck now; the server's answer only decides what the
     // next screen is.
     advance();
+
+    void recordHeySource(
+      listing.id,
+      target.type === 'media' ? target.label.toLowerCase() : target.type,
+    );
 
     const result = await store.sayHey({
       appId: listing.id,
@@ -277,7 +291,12 @@ export default function DiscoverScreen() {
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={64}
-        onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
+        onScroll={(event) => {
+          const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+          onScroll(contentOffset.y);
+          const max = Math.max(1, contentSize.height - layoutMeasurement.height);
+          depthRef.current = Math.max(depthRef.current, contentOffset.y / max);
+        }}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
           paddingBottom: layout.tabBarSpacer + 70,
@@ -308,28 +327,15 @@ export default function DiscoverScreen() {
             justifyContent: 'space-between',
           }}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Pass on ${shortName(listing.name)}`}
+          <PassPill
+            size={58}
+            label={`Pass on ${shortName(listing.name)}`}
             onPress={() => {
               void store.passApp(listing.id);
               captureEvent('app_passed', { app_id: listing.id });
               advance();
             }}
-            style={({ pressed }) => ({
-              width: 58,
-              height: 58,
-              borderRadius: 29,
-              borderWidth: 2,
-              borderColor: c.ink,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: c.raised,
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            <Ionicons name="close" size={28} color={c.danger} />
-          </Pressable>
+          />
 
           <HeyPill
             size={58}

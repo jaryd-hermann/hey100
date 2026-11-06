@@ -3,6 +3,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
+import { LinkedText } from '@/components/ui/LinkedText';
 import { Txt } from '@/components/ui/Txt';
 import { LISTINGS, MATCH_APPS } from '@/data/mock';
 import type { CommunityReaction } from '@/data/repo/community';
@@ -102,11 +103,7 @@ export function ThreadBubble({
                 )}
               </View>
             ) : null}
-            {body.trim() ? (
-              <Txt size={14} lh={1.4}>
-                {body}
-              </Txt>
-            ) : null}
+            {body.trim() ? <LinkedText text={body} size={14} lh={1.4} /> : null}
           </Pressable>
 
           {reactions?.length ? (

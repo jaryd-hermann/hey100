@@ -68,6 +68,20 @@ export type ThreadRow = {
   } | null;
   unread: number;
   my_feedback_id: string | null;
+  given: {
+    id: string;
+    stars: number;
+    summary: string;
+    confusion: string | null;
+    keep: 'Yes' | 'Maybe' | 'No' | null;
+    keep_why: string | null;
+    best_moment: string | null;
+    bug: string | null;
+    bug_shot: string | null;
+    bug_shots: string[] | null;
+    video_path: string | null;
+    price: string | null;
+  } | null;
   share_mine_url: string | null;
   share_mine_code: string | null;
   share_theirs_url: string | null;
@@ -89,6 +103,7 @@ export type FeedbackRow = {
   price: string | null;
   created_at: string;
   from: BuilderRow | null;
+  unlocked?: boolean;
 };
 
 /** Feedback on the owner's apps, keyed by app id. */
@@ -112,7 +127,7 @@ export type Counters = {
  * usually a plan limit the client turns into a paywall, not an error.
  */
 export type ActionResult = {
-  status: 'sent' | 'matched' | 'passed' | 'blocked' | 'set' | 'unchanged' | 'hidden' | 'read';
+  status: 'sent' | 'matched' | 'passed' | 'blocked' | 'set' | 'unchanged' | 'hidden' | 'read' | 'updated';
   reason?: string;
   match_id?: string;
   hit_paywall?: boolean;
@@ -305,6 +320,9 @@ export type FeedbackArgs = {
   bug?: string;
   /** Storage path of the bug screenshot, already uploaded. */
   bugShot?: string;
+  bugShots?: string[];
+  keepWhy?: string;
+  videoPath?: string;
   price?: string;
 };
 
@@ -315,10 +333,13 @@ export function leaveFeedback(args: FeedbackArgs) {
     p_summary: args.summary,
     p_confusion: args.confusion ?? null,
     p_keep: args.keep ?? null,
+    p_keep_why: args.keepWhy ?? null,
     p_opt_in: args.optIn ?? false,
     p_best_moment: args.bestMoment ?? null,
     p_bug: args.bug ?? null,
-    p_bug_shot: args.bugShot ?? null,
+    p_bug_shot: args.bugShot ?? args.bugShots?.[0] ?? null,
+    p_bug_shots: args.bugShots ?? null,
+    p_video_path: args.videoPath ?? null,
     p_price: args.price ?? null,
   });
 }

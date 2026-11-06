@@ -181,10 +181,9 @@ export function TradeCard({
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}>
           <Btn
-            label="Send feedback"
+            label={match.mine === 'Feedback sent' ? 'Edit feedback' : 'Send feedback'}
             variant="surface"
             full
-            dim={match.mine === 'Feedback sent'}
             onPress={onSendFeedback}
           />
         </View>

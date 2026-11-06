@@ -54,9 +54,12 @@ export async function fetchAppMetadata(url: string): Promise<AppMetadata> {
   });
 
   if (error || !data?.name) return metadataFromHost(url);
+  // Web pages often have an og:image, which is a banner, not a listing shot.
+  // Only App Store lookups that actually returned screenshots keep them.
+  const fromStore = !!data.storeUrl || /apps\.apple\.com\/.+\/id\d+/i.test(url);
   return {
     ...data,
-    shots: hiResStoreImages(data.shots ?? []),
+    shots: fromStore ? hiResStoreImages(data.shots ?? []) : [],
     cats: data.cats ?? [],
   };
 }

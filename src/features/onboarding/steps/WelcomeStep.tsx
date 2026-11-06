@@ -43,7 +43,19 @@ export function WelcomeStep({
       </Pressable>
 
       <View style={{ flex: 1, justifyContent: 'center', gap: 22 }}>
-        <HeroLogo onLight />
+        <View style={{ gap: 10 }}>
+          <HeroLogo onLight />
+          <Txt
+            font="system"
+            size={22}
+            weight={700}
+            lh={1.25}
+            color="#000000"
+            style={{ fontFamily: 'Inter-Bold' }}
+          >
+            the &quot;product dating app&quot; for founders and indie makers
+          </Txt>
+        </View>
 
         <Txt size={22} weight={400} lh={1.35} tracking={-0.2} color={ink}>
           <Txt size={22} weight={700} lh={1.35} tracking={-0.2} color={ink}>
@@ -53,14 +65,25 @@ export function WelcomeStep({
         </Txt>
       </View>
 
-      <Btn
-        label="Continue"
-        variant="accent"
-        size="lg"
-        full
-        onPress={onContinue}
-        style={{ borderColor: ink }}
-      />
+      <View
+        style={{
+          borderRadius: radii.pill,
+          shadowColor: '#000000',
+          shadowOpacity: 1,
+          shadowRadius: 0,
+          shadowOffset: { width: 4, height: 4 },
+          elevation: 6,
+        }}
+      >
+        <Btn
+          label="Continue"
+          variant="accent"
+          size="lg"
+          full
+          onPress={onContinue}
+          style={{ borderColor: '#000000', borderWidth: 2 }}
+        />
+      </View>
 
       <Txt size={12.5} color={ink} center style={{ marginTop: 16 }}>
         For builders &amp; devs with real products

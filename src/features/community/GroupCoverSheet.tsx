@@ -31,11 +31,13 @@ export function GroupCoverSheet({
   group,
   busy,
   onClose,
+  onClosed,
   onJoin,
 }: {
   group: CommunityGroup | null;
   busy?: boolean;
   onClose: () => void;
+  onClosed?: () => void;
   onJoin: (note?: string, skipApproval?: boolean) => void;
 }) {
   const { c } = useTheme();
@@ -61,7 +63,9 @@ export function GroupCoverSheet({
     void checkCommunityJoin(group.id).then((result) => setCheck(result.items));
   }, [group]);
 
-  if (!group) return <Sheet visible={false} onClose={onClose} children={null} />;
+  if (!group) {
+    return <Sheet visible={false} onClose={onClose} onClosed={onClosed} children={null} />;
+  }
 
   const waiting = group.membership === 'pending';
   const joined = group.membership === 'active';
@@ -89,6 +93,7 @@ export function GroupCoverSheet({
       visible
       tall
       onClose={onClose}
+      onClosed={onClosed}
       header={
         <View
           style={{

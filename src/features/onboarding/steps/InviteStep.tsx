@@ -15,7 +15,10 @@ export type InviteStepProps = {
   /** The server decides whether a code is valid, so the step only reports the press. */
   onRedeem: () => void;
   checking?: boolean;
-  onWaitlist: () => void;
+  onWaitlist?: () => void;
+  title?: string;
+  body?: string;
+  waitlistLabel?: string;
 };
 
 export function InviteStep({
@@ -26,13 +29,21 @@ export function InviteStep({
   onRedeem,
   checking = false,
   onWaitlist,
+  title,
+  body = 'Paste the code so you both get free matches.',
+  waitlistLabel,
 }: InviteStepProps) {
   const { c } = useTheme();
 
   return (
     <View style={{ gap: 18 }}>
+      {title ? (
+        <Txt font="mono" size={22} weight={500} lh={1.25}>
+          {title}
+        </Txt>
+      ) : null}
       <Txt size={15.5} lh={1.5} muted>
-        Every builder here was vouched for by another builder. Enter the code you were sent.
+        {body}
       </Txt>
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -76,11 +87,13 @@ export function InviteStep({
         </Card>
       ) : null}
 
-      <Pressable onPress={onWaitlist} style={{ paddingVertical: 6 }}>
-        <Txt size={14.5} weight={600} style={{ textDecorationLine: 'underline' }}>
-          No code? Ask me (Jaryd) for one
-        </Txt>
-      </Pressable>
+      {onWaitlist ? (
+        <Pressable onPress={onWaitlist} style={{ paddingVertical: 6 }}>
+          <Txt size={14.5} weight={600} style={{ textDecorationLine: 'underline' }}>
+            {waitlistLabel ?? 'No code? Ask me (Jaryd) for one'}
+          </Txt>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

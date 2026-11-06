@@ -31,6 +31,7 @@ export type Step = {
   search?: boolean;
   /** Caps a multi-select, so the answer stays a priority rather than a list. */
   max?: number;
+  subtitle?: string;
 };
 
 /**
@@ -299,12 +300,20 @@ export const STAGE_OPTIONS = [
  */
 export const IDEAL_USERS = [
   '🚀 Founders',
+  '🛠️ Indie hackers',
+  '✨ Vibe coders',
+  '🧍 Solopreneurs',
+  '💸 SaaS founders',
   '👩‍💻 Developers',
+  '🤖 AI developers',
   '🎨 Designers',
   '📣 Marketers',
+  '📈 Growth hackers',
   '📋 Product managers',
   '💼 Freelancers',
   '🧑‍💼 Consultants',
+  '🏢 Small business owners',
+  '🧰 Agencies',
   '💵 Sales teams',
   '🎧 Support teams',
   '🤝 Recruiters',
@@ -317,6 +326,7 @@ export const IDEAL_USERS = [
   '🛍️ Shop owners',
   '🍽️ Restaurant owners',
   '🧑‍🔬 Researchers',
+  '🔓 Open source maintainers',
   '✍️ Writers',
   '🎬 Video creators',
   '🎙️ Podcasters',
@@ -368,17 +378,16 @@ export const STEPS: Step[] = [
   { kind: 'welcome' },
   { kind: 'story' },
   { kind: 'why' },
-  { kind: 'invite', title: 'Hey100 is invite-only right now' },
   {
     kind: 'check',
     title:
-      "Let's start with your app. You don't need to get it perfect. We'll guide you as you go.",
+      "Let's start with your product's profile. The stronger your profile the better we can match you to users",
   },
-  { kind: 'link', title: 'Add your app' },
+  { kind: 'link', title: 'Add your product' },
   { kind: 'media', title: 'Add up to 10 screenshots or videos', skip: true },
   {
     kind: 'problem',
-    title: 'This solves the problem of… for…',
+    title: 'This solves the problem of',
     skip: true,
   },
   {
@@ -405,8 +414,8 @@ export const STEPS: Step[] = [
     kind: 'pick',
     group: 'ii',
     own: true,
-    vis: true,
     search: true,
+    max: 6,
     title: 'Who are your ideal users?',
     opts: IDEAL_USERS,
   },
@@ -426,7 +435,7 @@ export const STEPS: Step[] = [
     title: 'What devices are they on?',
     opts: DEVICES,
   },
-  { kind: 'summary', title: "Here's a summary of your app so far." },
+  { kind: 'summary', title: "Here's a summary of your product so far." },
   { kind: 'prompts', title: "Pick prompts to tell your app's story", skip: true },
   { kind: 'check', title: "Now we'll ask about you, and the apps you'd be open to trying." },
   { kind: 'work', title: 'What keeps you busy these days?', skip: true },
@@ -439,6 +448,7 @@ export const STEPS: Step[] = [
     max: 10,
     skip: true,
     title: 'What are you good at?',
+    subtitle: 'Pick up to 10 skills',
     opts: SKILLS,
   },
   {
@@ -473,7 +483,7 @@ export const STEPS: Step[] = [
     opts: [...DEVICES, 'Apple Watch'],
   },
   { kind: 'username', title: 'Claim your @username to get started' },
-  { kind: 'auth', title: 'Launch your app on Hey100' },
+  { kind: 'auth', title: 'Get listed on Hey100' },
 ];
 
 export const LAST_STEP = STEPS.length - 1;

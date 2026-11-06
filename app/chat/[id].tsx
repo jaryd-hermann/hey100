@@ -105,6 +105,7 @@ export default function ChatThread() {
   const [actionFor, setActionFor] = useState<Message | null>(null);
   const [groupPreview, setGroupPreview] = useState<CommunityGroup | null>(null);
   const [joiningGroup, setJoiningGroup] = useState(false);
+  const pendingGroup = useRef<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const community = useCommunityHome();
 
@@ -181,8 +182,8 @@ export default function ChatThread() {
   const joinPreviewGroup = async (note?: string) => {
     if (!groupPreview || !userId || joiningGroup) return;
     if (groupPreview.membership === 'active') {
+      pendingGroup.current = groupPreview.id;
       setGroupPreview(null);
-      router.push({ pathname: '/group/[id]', params: { id: groupPreview.id } });
       return;
     }
     setJoiningGroup(true);
@@ -194,7 +195,7 @@ export default function ChatThread() {
       setGroupPreview(null);
       if (status === 'active') {
         captureEvent('group_joined', { group_id: groupPreview.id, join_mode: groupPreview.joinMode });
-        router.push({ pathname: '/group/[id]', params: { id: groupPreview.id } });
+        pendingGroup.current = groupPreview.id;
       } else {
         toast('Request sent. Anyone in the group can let you in.');
       }
@@ -451,6 +452,30 @@ export default function ChatThread() {
                     openGroupPreview(groups.find((group) => group.id === groupId) ?? listingGroup);
                   }}
                   onOpenMedia={(items, at) => setViewer({ items, index: at })}
+                  onPressFeedback={
+                    message.kind === 'feedback' && match
+                      ? () => {
+                          if (message.from === 'me') {
+                            router.push({
+                              pathname: '/feedback-form',
+                              params: { matchId: match.id },
+                            });
+                            return;
+                          }
+                          if (!message.locked) return;
+                          const name = firstName(listing?.builder ?? builder);
+                          toast({
+                            message: `To unlock ${name}'s feedback, share your quick thoughts on theirs`,
+                            action: 'Give feedback',
+                            onAction: () =>
+                              router.push({
+                                pathname: '/feedback-form',
+                                params: { matchId: match.id },
+                              }),
+                          });
+                        }
+                      : undefined
+                  }
                   onLongPress={() => setActionFor(message)}
                   onToggleReaction={(emoji) => void react(message, emoji)}
                 />
@@ -529,6 +554,7 @@ export default function ChatThread() {
           setMenuOpen(false);
           openBrowser(link[0], link[1]);
         }}
+        hasGivenFeedback={match?.mine === 'Feedback sent'}
         onSendFeedback={
           isTeam || !match
             ? undefined
@@ -643,6 +669,11 @@ export default function ChatThread() {
         group={groupPreview}
         busy={joiningGroup}
         onClose={() => setGroupPreview(null)}
+        onClosed={() => {
+          const id = pendingGroup.current;
+          pendingGroup.current = null;
+          if (id) router.push({ pathname: '/group/[id]', params: { id } });
+        }}
         onJoin={(note) => void joinPreviewGroup(note)}
       />
 

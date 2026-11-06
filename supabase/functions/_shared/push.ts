@@ -50,10 +50,12 @@ export function json(body: unknown, status = 200) {
 }
 
 const ENGAGEMENT = new Set(['digest', 'new_group', 'milestones', 'listing_nudge']);
+const ASAP = new Set(['feedback', 'feedback_thanks']);
 
 function prefOn(prefs: Record<string, unknown> | null, event: string): boolean {
   if (!prefs) return true;
-  const value = prefs[event];
+  const key = event === 'feedback_thanks' ? 'feedback' : event;
+  const value = prefs[key];
   return value !== false;
 }
 
@@ -109,12 +111,13 @@ export function decideSend(
     return { action: 'skip', reason: 'pref_off' };
   }
 
-  if (profile.last_active_at) {
+  if (profile.last_active_at && !ASAP.has(row.event)) {
     const age = Date.now() - new Date(profile.last_active_at).getTime();
     if (age >= 0 && age < 60_000) return { action: 'skip', reason: 'active' };
   }
 
   if (inQuietHours(profile.notification_prefs, profile.timezone)) {
+    if (ASAP.has(row.event)) return { action: 'send' };
     if (ENGAGEMENT.has(row.event)) return { action: 'skip', reason: 'quiet_hours' };
     return { action: 'delay', sendAfter: nextQuietEndIso(profile.notification_prefs, profile.timezone) };
   }

@@ -11,6 +11,7 @@ import type {
 import type {
   AppListing,
   FeedbackEntry,
+  GivenFeedback,
   InboxData,
   IncomingHey,
   Match,
@@ -106,6 +107,9 @@ export function cardToListing(card: ListingCard, preferRealName = false): AppLis
     ...((card.builder as { github_commits?: number | null } | null)?.github_commits != null
       ? { githubCommits: (card.builder as { github_commits?: number }).github_commits }
       : {}),
+    ...((card.builder as { karma?: number | null } | null)?.karma != null
+      ? { builderKarma: (card.builder as { karma?: number }).karma }
+      : {}),
   };
 }
 
@@ -190,6 +194,24 @@ export function threadToMatch(row: ThreadRow): Match {
     ...(row.share_theirs_code ? { shareCode: row.share_theirs_code } : {}),
     ...(row.share_mine_url ? { myShareUrl: row.share_mine_url } : {}),
     ...(row.share_mine_code ? { myShareCode: row.share_mine_code } : {}),
+    ...(row.given ? { givenFeedback: givenFromRow(row.given) } : {}),
+  };
+}
+
+function givenFromRow(row: NonNullable<ThreadRow['given']>): GivenFeedback {
+  return {
+    id: row.id,
+    stars: row.stars,
+    summary: row.summary,
+    ...(row.keep ? { keep: row.keep } : {}),
+    ...(row.keep_why ? { keepWhy: row.keep_why } : {}),
+    ...(row.confusion ? { confusion: row.confusion } : {}),
+    ...(row.best_moment ? { bestMoment: row.best_moment } : {}),
+    ...(row.bug ? { bug: row.bug } : {}),
+    ...(row.bug_shot ? { bugShot: row.bug_shot } : {}),
+    ...(row.bug_shots?.length ? { bugShots: row.bug_shots } : {}),
+    ...(row.video_path ? { videoPath: row.video_path } : {}),
+    ...(row.price ? { price: row.price } : {}),
   };
 }
 
@@ -271,18 +293,25 @@ export function messageToMessage(row: MessageEmbed, me: string): Message {
       stars?: number;
       keep?: string;
       price?: string;
+      locked?: boolean;
     };
+    const locked = !!meta.locked && !mine;
     return {
       kind: 'feedback',
       from: mine ? 'me' : 'them',
-      stars: `${meta.stars ?? 0}/5`,
-      body: row.body ?? '',
-      meta: [
-        meta.keep ? `Keep using: ${meta.keep}` : null,
-        meta.price ? `Fair price: ${meta.price}` : null,
-      ]
-        .filter(Boolean)
-        .join(' · '),
+      stars: locked ? '·/5' : `${meta.stars ?? 0}/5`,
+      body: locked
+        ? 'Thanks for the trade — share yours to read this.'
+        : (row.body ?? ''),
+      meta: locked
+        ? 'Keep using: ·  ·  Fair price: ·'
+        : [
+            meta.keep ? `Keep using: ${meta.keep}` : null,
+            meta.price ? `Fair price: ${meta.price}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+      ...(locked ? { locked: true } : {}),
       ...extra,
     };
   }
@@ -328,6 +357,7 @@ function heyRatio(heys: number, views: number): string {
 }
 
 export function feedbackEntry(row: FeedbackRow, appName: string, hue: number): FeedbackEntry {
+  const unlocked = row.unlocked !== false;
   return {
     id: row.id,
     matchId: row.match_id,
@@ -337,12 +367,13 @@ export function feedbackEntry(row: FeedbackRow, appName: string, hue: number): F
     app: appName,
     hue,
     when: shortAgo(row.created_at),
-    stars: `${row.stars}/5`,
-    text: row.summary,
-    confusion: row.confusion ?? '—',
-    keep: row.keep ?? 'Maybe',
-    optIn: row.opt_in,
-    ...(row.helpful ? { helpful: row.helpful } : {}),
+    stars: unlocked ? `${row.stars}/5` : '·/5',
+    text: unlocked ? row.summary : 'Share yours to read this.',
+    confusion: unlocked ? (row.confusion ?? '—') : '·',
+    keep: unlocked ? (row.keep ?? 'Maybe') : 'Maybe',
+    optIn: unlocked ? row.opt_in : false,
+    unlocked,
+    ...(unlocked && row.helpful ? { helpful: row.helpful } : {}),
   };
 }
 
@@ -356,24 +387,27 @@ export function feedbackToInbox(
   appHue: (appId: string) => number,
 ): Record<string, InboxData> {
   return Object.fromEntries(
-    Object.entries(byApp).map(([appId, { heys, views = 0, skips = 0, entries }]) => [
-      appId,
-      {
-        funnel: {
-          views: String(views),
-          skips: String(skips),
-          heys: String(heys),
-          ratio: heyRatio(heys, views),
-        },
-        responses: entries.length,
-        impression: stars(entries),
-        price: commonPrice(entries),
-        yes: share(entries, 'Yes'),
-        maybe: share(entries, 'Maybe'),
-        no: share(entries, 'No'),
-        list: entries.map((entry) => feedbackEntry(entry, appName(appId), appHue(appId))),
-      } satisfies InboxData,
-    ]),
+    Object.entries(byApp).map(([appId, { heys, views = 0, skips = 0, entries }]) => {
+      const open = entries.filter((entry) => entry.unlocked !== false);
+      return [
+        appId,
+        {
+          funnel: {
+            views: String(views),
+            skips: String(skips),
+            heys: String(heys),
+            ratio: heyRatio(heys, views),
+          },
+          responses: entries.length,
+          impression: stars(open),
+          price: commonPrice(open),
+          yes: share(open, 'Yes'),
+          maybe: share(open, 'Maybe'),
+          no: share(open, 'No'),
+          list: entries.map((entry) => feedbackEntry(entry, appName(appId), appHue(appId))),
+        } satisfies InboxData,
+      ];
+    }),
   );
 }
 

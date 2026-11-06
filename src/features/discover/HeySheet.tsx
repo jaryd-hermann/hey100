@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { HandMark } from '@/components/brand/Logo';
+import { Image } from 'expo-image';
+
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
@@ -99,7 +100,13 @@ export function HeySheet({
           variant="accent"
           size="lg"
           full
-          left={<HandMark size={19} />}
+          left={
+            <Image
+              source={require('../../../assets/images/like-light.png')}
+              style={{ width: 22, height: 22 }}
+              contentFit="contain"
+            />
+          }
           onPress={() => {
             onSend(note.trim());
             setNote('');

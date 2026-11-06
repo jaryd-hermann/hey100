@@ -1,4 +1,5 @@
 import { PROMPT_LIBRARY } from '@/data/prompts';
+import { requestPitchTranscript } from '@/data/repo/coach';
 import {
   setListingMedia,
   setListingPrompts,
@@ -112,5 +113,6 @@ export async function persistListing(
       pitch_path: path,
       pitch_seconds: patch.pitchSeconds ?? null,
     });
+    void requestPitchTranscript(appId);
   }
 }

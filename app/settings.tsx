@@ -40,7 +40,7 @@ export default function Settings() {
   const { c, pref, setPref } = useTheme();
   const store = useStore();
   const { isAdmin } = useAuth();
-  const { devMode, setDevMode } = useDevMode();
+  const { devMode, setDevMode, simulateCooldown, setSimulateCooldown } = useDevMode();
 
   const connected = Object.values(store.connections[store.primaryApp.id] ?? {}).filter(
     Boolean,
@@ -248,6 +248,7 @@ export default function Settings() {
         </View>
 
         {isAdmin ? (
+        <View style={{ gap: 16 }}>
         <Pressable
           accessibilityRole="switch"
           accessibilityState={{ checked: devMode }}
@@ -286,6 +287,45 @@ export default function Settings() {
             ) : null}
           </View>
         </Pressable>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: simulateCooldown }}
+          onPress={() => setSimulateCooldown(!simulateCooldown)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            paddingVertical: 6,
+          }}
+        >
+          <View style={{ flex: 1, gap: 3 }}>
+            <Txt size={15} weight={600}>
+              Simulate daily cooldown
+            </Txt>
+            <Txt size={13} muted>
+              Show the yellow views-used banner on your app listings.
+            </Txt>
+          </View>
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              borderWidth: 1.5,
+              borderColor: simulateCooldown ? c.ink : c.muted,
+              backgroundColor: simulateCooldown ? c.ink : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {simulateCooldown ? (
+              <Txt size={13} weight={700} color={c.bg}>
+                ✓
+              </Txt>
+            ) : null}
+          </View>
+        </Pressable>
+        </View>
         ) : null}
 
         {__DEV__ ? <QaPanel /> : null}

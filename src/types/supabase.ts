@@ -257,6 +257,8 @@ export type Database = {
           owner_id: string
           pitch_path: string | null
           pitch_seconds: number | null
+          pitch_transcript: string | null
+          pitch_transcribed_at: string | null
           platform: string
           price_from: string
           pricing_model: string
@@ -295,6 +297,8 @@ export type Database = {
           owner_id: string
           pitch_path?: string | null
           pitch_seconds?: number | null
+          pitch_transcript?: string | null
+          pitch_transcribed_at?: string | null
           platform?: string
           price_from?: string
           pricing_model?: string
@@ -333,6 +337,8 @@ export type Database = {
           owner_id?: string
           pitch_path?: string | null
           pitch_seconds?: number | null
+          pitch_transcript?: string | null
+          pitch_transcribed_at?: string | null
           platform?: string
           price_from?: string
           pricing_model?: string
@@ -1367,6 +1373,19 @@ export type Database = {
       pass_hey: { Args: { p_hey_id: string; p_reason?: string }; Returns: Json }
       redeem_invite: { Args: { p_code: string }; Returns: Json }
       record_profile_view: { Args: { p_listing_id: string }; Returns: undefined }
+      my_listing_coach_context: { Args: { p_app_id: string }; Returns: Json }
+      my_listing_insights: {
+        Args: { p_app_id: string; p_days?: number }
+        Returns: Json
+      }
+      record_pitch_watch: {
+        Args: { p_duration?: number; p_listing_id: string; p_watched: number }
+        Returns: undefined
+      }
+      set_my_pitch_transcript: {
+        Args: { p_app_id: string; p_transcript: string }
+        Returns: Json
+      }
       my_profile_view_count: { Args: never; Returns: number }
       touch_presence: { Args: { p_timezone?: string }; Returns: undefined }
       say_hey: {

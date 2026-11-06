@@ -28,14 +28,16 @@ const PRO_INCLUDES: [string, string][] = [
   ['Unlimited heys', 'Say hey to as many apps as you want each day.'],
   ['Unlimited matches', 'Keep trading past the free match limit.'],
   ['Better visibility', 'Shown to more builders who fit your ideal users.'],
+  ['6 target audiences', 'Free listings keep one.'],
+  ['No daily cooldowns', 'Skip the 6 views per day.'],
+  ['List unlimited products', 'Every product you ship gets its own listing.'],
   ['Full analytics', 'Views, skips, hey ratio and your most-heyed section.'],
-  ['Multiple listed apps', 'Every app you ship gets its own listing.'],
 ];
 
 const FREE_INCLUDES: [string, string][] = [
   [`${FREE_DAILY_HEYS} heys a day`, 'Resets every morning.'],
   [`${FREE_MATCH_LIMIT} matches`, 'Plus +3 for every builder you invite, up to +15.'],
-  ['1 listed app', 'With full feedback on it.'],
+  ['1 listed product', 'With one target audience and 6 views a day.'],
 ];
 
 export default function Subscription() {

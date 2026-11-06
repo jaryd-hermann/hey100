@@ -20,9 +20,14 @@ import {
   type SectionKey,
   type ShotLayout,
 } from '@/data/types';
+import { recordPitchWatch } from '@/data/repo/insights';
 import { recordProfileView } from '@/data/repo/notifications';
+import { deviceMark, splitList } from '@/features/apps/deviceMarks';
 import { MAX_SHOTS } from '@/features/apps/pickShots';
+import { VerifiedBadge } from '@/components/brand/Marks';
 import { ChipRow, VerifiedStatsRow, verifiedMoney } from '@/features/profile/BuilderBits';
+import { KarmaChip } from '@/features/profile/KarmaCard';
+import { isVerified, useMyKarma } from '@/features/profile/karma';
 import { builderFromUser, publicRole } from '@/features/profile/builderCard';
 import { isServerId } from '@/lib/supabase';
 import { useStore, withDefaultSections } from '@/store/AppStore';
@@ -188,6 +193,9 @@ export function AppPage({
                   })
               : undefined
           }
+          onWatchPitch={
+            isOwner ? undefined : (watched, duration) => void recordPitchWatch(listing.id, watched, duration)
+          }
         />
       ) : null}
 
@@ -242,9 +250,22 @@ export function AppPage({
         </Pressable>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
-          {[listing.cat, listing.plat, listing.stage].filter(Boolean).map((value) => (
+          {splitList(listing.cat).map((value) => (
             <Chip key={value} label={value} size="sm" />
           ))}
+          {splitList(listing.plat).map((value) => (
+            <Chip
+              key={value}
+              label={value}
+              size="sm"
+              left={
+                deviceMark(value) ? (
+                  <Ionicons name={deviceMark(value)!} size={12} color={c.ink} />
+                ) : undefined
+              }
+            />
+          ))}
+          {listing.stage ? <Chip label={listing.stage} size="sm" /> : null}
           {listing.storeRating != null ? (
             <Chip
               label={`${listing.storeRating.toFixed(1)}${listing.storeRatingCount ? ` (${listing.storeRatingCount.toLocaleString()})` : ''}`}
@@ -332,6 +353,11 @@ export function AppPage({
                       })
                   : undefined
               }
+              onWatchPitch={
+                isOwner
+                  ? undefined
+                  : (watched, duration) => void recordPitchWatch(listing.id, watched, duration)
+              }
             />
 
             {linksAfter === section ? linkBlock : null}
@@ -345,6 +371,15 @@ export function AppPage({
         index={viewer?.index ?? 0}
         hue={listing.hue}
         layout={viewer?.layout ?? shotLayout}
+        onWatch={
+          isOwner
+            ? undefined
+            : (item, watched, duration) => {
+                if (item.label === 'Quick pitch' || item.uri === listing.pitchUri) {
+                  void recordPitchWatch(listing.id, watched, duration);
+                }
+              }
+        }
         onClose={() => setViewer(null)}
         onHey={
           onHey
@@ -412,6 +447,9 @@ function BuilderPreview({
   const { c } = useTheme();
   const store = useStore();
   const mine = isOwner || store.ownedApps.some((app) => app.id === listing.id);
+  const mineKarma = useMyKarma();
+  const karma = mine ? mineKarma.karma : listing.builderKarma;
+  const hasBadge = mine ? mineKarma.verified : karma != null && isVerified(karma);
   const verified = verifiedMoney(
     listing,
     mine ? store.ownedApps.flatMap((app) => Object.values(store.connections[app.id] ?? {})) : [],
@@ -430,14 +468,18 @@ function BuilderPreview({
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}>
           <Avatar name={card.builder} uri={card.builderPhoto} size={64} />
           <View style={{ flex: 1, gap: 5, paddingTop: 2 }}>
-            <Txt size={18} weight={700} numberOfLines={2}>
-              {card.builder}
-            </Txt>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Txt size={18} weight={700} numberOfLines={2} style={{ flexShrink: 1 }}>
+                {card.builder}
+              </Txt>
+              {hasBadge ? <VerifiedBadge size={16} /> : null}
+            </View>
             {role ? (
               <Txt size={14} muted>
                 {role}
               </Txt>
             ) : null}
+            {karma != null ? <KarmaChip karma={karma} verified={hasBadge} /> : null}
           </View>
           <Ionicons
             name={onEdit ? 'create-outline' : 'chevron-forward'}
@@ -487,6 +529,7 @@ type SectionProps = {
   addPrompt?: boolean;
   onOpenShots: (index: number) => void;
   onOpenPitch?: () => void;
+  onWatchPitch?: (watchedSeconds: number, durationSeconds: number) => void;
   mediaUploading?: boolean;
 };
 
@@ -504,6 +547,7 @@ function Section({
   addPrompt,
   onOpenShots,
   onOpenPitch,
+  onWatchPitch,
   mediaUploading,
 }: SectionProps) {
   const { c } = useTheme();
@@ -748,6 +792,7 @@ function Section({
               layout="vertical"
               radius={14}
               style={{ width: 118, aspectRatio: 3 / 4 }}
+              onWatch={onWatchPitch}
             />
             <View style={{ flex: 1, gap: 6 }}>
               <Label>Quick pitch</Label>
@@ -804,27 +849,45 @@ function Section({
 
   if (section === 'looking') {
     const ideal = listing.ideal;
-    const rows: [string, string][] = [
-      ['Age', ideal?.age ?? ''],
-      ['Gender', ideal?.gender ?? ''],
-      ['Into', ideal?.interests ?? ''],
-      ['On', ideal?.plat ?? ''],
-      ['Wants feedback on', ideal?.wants ?? ''],
+    const blocks: { label: string; items: string[]; tone?: 'blue'; devices?: boolean }[] = [
+      { label: 'Age', items: splitList(ideal?.age) },
+      { label: 'Gender', items: splitList(ideal?.gender) },
+      { label: 'On', items: splitList(ideal?.plat), devices: true },
+      { label: 'Wants feedback on', items: splitList(ideal?.wants) },
+      { label: 'Into', items: splitList(ideal?.interests), tone: 'blue' },
     ];
 
     return (
       <EditTarget label="Edit ideal users" onPress={onEdit}>
-        <Card padding={18} radius={radii.cardLg} style={{ gap: 12 }}>
+        <Card padding={18} radius={radii.cardLg} style={{ gap: 16 }}>
           <Label>Ideal users</Label>
-          <View style={{ gap: 9 }}>
-            {rows.map(([label, value]) => (
-              <View key={label} style={{ flexDirection: 'row', gap: 12 }}>
-                <Txt size={13.5} muted style={{ width: 132 }}>
+          <View style={{ gap: 14 }}>
+            {blocks.map(({ label, items, tone, devices }) => (
+              <View key={label} style={{ gap: 8 }}>
+                <Txt size={13} muted>
                   {label}
                 </Txt>
-                <Txt size={14.5} weight={500} style={{ flex: 1 }}>
-                  {value || '—'}
-                </Txt>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {items.length ? (
+                    items.map((item) => (
+                      <Chip
+                        key={item}
+                        label={item}
+                        size="sm"
+                        tone={tone}
+                        left={
+                          devices && deviceMark(item) ? (
+                            <Ionicons name={deviceMark(item)!} size={12} color={c.ink} />
+                          ) : undefined
+                        }
+                      />
+                    ))
+                  ) : (
+                    <Txt size={14.5} weight={500}>
+                      —
+                    </Txt>
+                  )}
+                </View>
               </View>
             ))}
           </View>

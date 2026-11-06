@@ -35,10 +35,11 @@ export type LightboxProps = {
   layout: ShotLayout;
   onClose: () => void;
   onHey?: (item: MediaItem, index: number) => void;
+  onWatch?: (item: MediaItem, watchedSeconds: number, durationSeconds: number) => void;
 };
 
 /** Full-screen viewer for a listing's carousel: swipe across, swipe down to close. */
-export function Lightbox({ visible, items, index, hue, layout, onClose, onHey }: LightboxProps) {
+export function Lightbox({ visible, items, index, hue, layout, onClose, onHey, onWatch }: LightboxProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   // A percentage can't resolve against the absolutely positioned modal content.
@@ -131,7 +132,17 @@ export function Lightbox({ visible, items, index, hue, layout, onClose, onHey }:
                 style={{ width, alignItems: 'center', justifyContent: 'center' }}
               >
                 {item.video ? (
-                  <InlineVideo item={item} hue={hue} layout={layout} style={box} />
+                  <InlineVideo
+                    item={item}
+                    hue={hue}
+                    layout={layout}
+                    style={box}
+                    onWatch={
+                      onWatch
+                        ? (watched, duration) => onWatch(item, watched, duration)
+                        : undefined
+                    }
+                  />
                 ) : item.uri ? (
                   <Image
                     source={{ uri: item.uri }}

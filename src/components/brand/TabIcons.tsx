@@ -1,10 +1,9 @@
+import { Image } from 'expo-image';
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
 import { useTheme } from '@/theme/ThemeProvider';
-
-import { HandMark } from './Logo';
 
 const STICKER = '#111111';
 
@@ -168,11 +167,15 @@ export function AppsIcon({ size, active }: TabIconProps) {
   );
 }
 
-/** Heys reuses the brand hand rather than a fifth sticker file. */
-export function HeysIcon({ size = 26, active }: TabIconProps) {
-  const fill = useFill(active);
+const HEY_TAB = {
+  idle: require('../../../assets/images/hey-tab.png'),
+  active: require('../../../assets/images/hey-tab-active.png'),
+};
 
-  // The hand is drawn rotated, so it needs the same box height as the others.
+/** Outline heart when idle, lime heart when selected. */
+export function HeysIcon({ size = 26, active }: TabIconProps) {
+  const { isDark } = useTheme();
+
   return (
     <View
       style={{
@@ -182,7 +185,12 @@ export function HeysIcon({ size = 26, active }: TabIconProps) {
         justifyContent: 'center',
       }}
     >
-      <HandMark size={size} fill={fill} />
+      <Image
+        source={active ? HEY_TAB.active : HEY_TAB.idle}
+        style={{ width: size, height: size }}
+        contentFit="contain"
+        tintColor={!active && isDark ? '#FFFFFF' : undefined}
+      />
     </View>
   );
 }

@@ -19,8 +19,10 @@ import { useTeamChat } from '@/features/chat/useTeamChat';
 import { DailyHeyLimitProvider } from '@/features/billing/DailyHeyLimit';
 import { usePurchases } from '@/features/billing/usePurchases';
 import { usePush } from '@/features/push/usePush';
+import { CoachProvider } from '@/features/feedback/CoachHost';
 import { HeyMenuProvider } from '@/features/nav/HeyMenu';
 import { useProfileSync } from '@/features/profile/useProfileSync';
+import { VerifiedUnlockHost } from '@/features/profile/VerifiedUnlock';
 import { getPostHog } from '@/lib/analytics';
 import { isPostHogConfigured, warnOnMissingConfig } from '@/lib/config';
 import { AppStoreProvider } from '@/store/AppStore';
@@ -62,9 +64,11 @@ export default function RootLayout() {
                 <AppStoreProvider>
                   <ToastProvider>
                     <DailyHeyLimitProvider>
-                      <HeyMenuProvider>
-                        <Shell />
-                      </HeyMenuProvider>
+                      <CoachProvider>
+                        <HeyMenuProvider>
+                          <Shell />
+                        </HeyMenuProvider>
+                      </CoachProvider>
                     </DailyHeyLimitProvider>
                   </ToastProvider>
                 </AppStoreProvider>
@@ -126,7 +130,8 @@ function Shell() {
         <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="browser" options={{ presentation: 'modal' }} />
         <Stack.Screen name="feedback-form" options={{ presentation: 'fullScreenModal' }} />
-      </Stack>
+          </Stack>
+      <VerifiedUnlockHost />
     </View>
   );
 }

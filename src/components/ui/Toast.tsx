@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, View } from 'react-native';
+import { Animated, Easing, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -8,17 +8,38 @@ import { radii } from '@/theme/tokens';
 import { Txt } from './Txt';
 
 const DURATION = 1800;
+const ACTION_DURATION = 5200;
 
-const ToastContext = createContext<(message: string) => void>(() => {});
+export type ToastInput =
+  | string
+  | {
+      message: string;
+      action?: string;
+      onAction?: () => void;
+    };
+
+type ToastState = {
+  message: string;
+  action?: string;
+  onAction?: () => void;
+};
+
+const ToastContext = createContext<(input: ToastInput) => void>(() => {});
+
+function toState(input: ToastInput): ToastState {
+  if (typeof input === 'string') return { message: input };
+  return { message: input.message, action: input.action, onAction: input.onAction };
+}
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [message, setMessage] = useState('');
+  const [toast, setToast] = useState<ToastState | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const flash = useCallback((next: string) => {
-    setMessage(next);
+  const flash = useCallback((next: ToastInput) => {
+    const state = toState(next);
+    setToast(state);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setMessage(''), DURATION);
+    timer.current = setTimeout(() => setToast(null), state.action ? ACTION_DURATION : DURATION);
   }, []);
 
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
@@ -28,7 +49,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <ToastPill message={message} />
+      <ToastPill
+        toast={toast}
+        onDismiss={() => {
+          if (timer.current) clearTimeout(timer.current);
+          setToast(null);
+        }}
+      />
     </ToastContext.Provider>
   );
 }
@@ -37,27 +64,27 @@ export function useToast() {
   return useContext(ToastContext);
 }
 
-function ToastPill({ message }: { message: string }) {
+function ToastPill({ toast, onDismiss }: { toast: ToastState | null; onDismiss: () => void }) {
   const { c, shadow } = useTheme();
   const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
-  const [shown, setShown] = useState('');
+  const [shown, setShown] = useState<ToastState | null>(null);
 
   useEffect(() => {
-    if (message) setShown(message);
+    if (toast) setShown(toast);
     Animated.timing(anim, {
-      toValue: message ? 1 : 0,
-      duration: message ? 220 : 180,
+      toValue: toast ? 1 : 0,
+      duration: toast ? 220 : 180,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [anim, message]);
+  }, [anim, toast]);
 
   if (!shown) return null;
 
   return (
     <Animated.View
-      pointerEvents="none"
+      pointerEvents={shown.action ? 'box-none' : 'none'}
       style={{
         position: 'absolute',
         top: insets.top + 8,
@@ -79,13 +106,30 @@ function ToastPill({ message }: { message: string }) {
             paddingHorizontal: 16,
             paddingVertical: 10,
             maxWidth: '88%',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
           },
           shadow,
         ]}
       >
-        <Txt size={14} weight={600} color={c.bg} numberOfLines={2}>
-          {shown}
+        <Txt size={14} weight={600} color={c.bg} style={{ flexShrink: 1 }} numberOfLines={3}>
+          {shown.message}
         </Txt>
+        {shown.action ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              shown.onAction?.();
+              onDismiss();
+            }}
+            hitSlop={8}
+          >
+            <Txt size={14} weight={700} color={c.bg} style={{ textDecorationLine: 'underline' }}>
+              {shown.action}
+            </Txt>
+          </Pressable>
+        ) : null}
       </View>
     </Animated.View>
   );

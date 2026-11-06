@@ -21,6 +21,8 @@ export type ScreenProps = {
   gutter?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   scrollProps?: Partial<ScrollViewProps>;
+  /** Sits above the scroll view, e.g. a floating action button. */
+  overlay?: React.ReactNode;
 };
 
 export function Screen({
@@ -34,6 +36,7 @@ export function Screen({
   gutter = true,
   contentStyle,
   scrollProps,
+  overlay,
 }: ScreenProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -79,6 +82,7 @@ export function Screen({
       ) : (
         <View style={{ flex: 1 }}>{body}</View>
       )}
+      {overlay}
     </View>
   );
 }

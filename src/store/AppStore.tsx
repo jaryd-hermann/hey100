@@ -25,6 +25,7 @@ import {
 } from '@/data/mock';
 import type {
   AppListing,
+  GivenFeedback,
   HeyTargetType,
   IncomingHey,
   InboxData,
@@ -41,6 +42,10 @@ import type {
 
 export const FREE_MATCH_LIMIT = 3;
 export const FREE_DAILY_HEYS = 8;
+export const FREE_LISTING_LIMIT = 1;
+export const FREE_AUDIENCE_LIMIT = 1;
+export const PRO_AUDIENCE_LIMIT = 6;
+export const FREE_DAILY_VIEWS = 6;
 /** One Pro plan: a month, no season pass. */
 export const PRO_PRICE = '$18';
 export const PRO_PRICE_NOTE = 'a month';
@@ -186,6 +191,9 @@ export type FeedbackDraft = {
   bug?: string;
   /** Storage path of the bug screenshot, already uploaded. */
   bugShot?: string;
+  bugShots?: string[];
+  keepWhy?: string;
+  videoPath?: string;
   price?: string;
 };
 
@@ -846,7 +854,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const submitFeedback = useCallback<Store['submitFeedback']>(
     async (matchId, feedback) => {
       if (remote) {
-        await loop.leaveFeedback({ matchId, ...feedback });
+        const result = await loop.leaveFeedback({ matchId, ...feedback });
+        if (result?.status === 'sent') {
+          patch((prev) => ({
+            user: { ...prev.user, feedbackGiven: prev.user.feedbackGiven + 1 },
+          }));
+        }
         await refresh([
           queryKeys.threads(userId),
           queryKeys.messages(matchId),
@@ -862,22 +875,53 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         .filter(Boolean)
         .join(' · ');
 
-      patch((prev) => ({
-        messages: {
-          ...prev.messages,
-          [matchId]: [
-            ...(prev.messages[matchId] ?? []),
-            {
-              kind: 'feedback',
-              from: 'me',
-              stars: `${feedback.stars}/5`,
-              body: feedback.summary,
-              meta,
-            },
-          ],
-        },
-        matches: prev.matches.map((m) => (m.id === matchId ? { ...m, mine: 'Feedback sent' } : m)),
-      }));
+      patch((prev) => {
+        const editing = prev.matches.find((item) => item.id === matchId)?.mine === 'Feedback sent';
+        const nextMessage: Message = {
+          kind: 'feedback',
+          from: 'me',
+          stars: `${feedback.stars}/5`,
+          body: feedback.summary,
+          meta,
+        };
+        const thread = prev.messages[matchId] ?? [];
+        const messages = editing
+          ? thread.some((item) => item.kind === 'feedback' && item.from === 'me')
+            ? thread.map((item) =>
+                item.kind === 'feedback' && item.from === 'me' ? nextMessage : item,
+              )
+            : [...thread, nextMessage]
+          : [...thread, nextMessage];
+        return {
+          user: {
+            ...prev.user,
+            feedbackGiven: editing ? prev.user.feedbackGiven : prev.user.feedbackGiven + 1,
+          },
+          messages: { ...prev.messages, [matchId]: messages },
+          matches: prev.matches.map((item) =>
+            item.id === matchId
+              ? {
+                  ...item,
+                  mine: 'Feedback sent' as const,
+                  givenFeedback: {
+                    id: item.givenFeedback?.id ?? matchId,
+                    stars: feedback.stars,
+                    summary: feedback.summary,
+                    keep: (feedback.keep as GivenFeedback['keep']) ?? item.givenFeedback?.keep,
+                    keepWhy: feedback.keepWhy,
+                    confusion: feedback.confusion,
+                    bestMoment: feedback.bestMoment,
+                    bug: feedback.bug,
+                    bugShot: feedback.bugShot,
+                    bugShots: feedback.bugShots,
+                    videoPath: feedback.videoPath,
+                    price: feedback.price,
+                  },
+                }
+              : item,
+          ),
+        };
+      });
     },
     [patch, refresh, remote, userId],
   );

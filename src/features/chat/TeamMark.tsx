@@ -5,7 +5,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 /** The Hey100 app icon stands in for the Team thread's own icon. */
 const TEAM_ICON = require('../../../assets/images/icon.png');
-const JARYD = require('../../../assets/images/jaryd.png');
+const JARYD = require('../../../assets/images/jaryd.jpg');
 
 /** Jaryd writes the Team thread, so his avatar sits on the app icon. */
 export const TEAM_AVATAR_NAME = 'Jaryd';

@@ -12,19 +12,19 @@ import { requestPushPermission } from '@/lib/onesignal';
 
 const NOTES = [
   {
-    face: require('../../web/public/landing/face-1.jpg'),
+    face: require('../../assets/images/onboarding/face-1.jpg'),
     text: 'Ali said hey to Shipnote',
     when: 'now',
     rotate: '-2deg',
   },
   {
-    face: require('../../web/public/landing/face-2.png'),
+    face: require('../../assets/images/onboarding/face-2.png'),
     text: "It's a match! You and Nina can chat now.",
     when: '2m ago',
     rotate: '1.5deg',
   },
   {
-    face: require('../../web/public/landing/face-3.png'),
+    face: require('../../assets/images/onboarding/face-3.png'),
     text: 'Priya replied: "Sent you feedback on onboarding"',
     when: '1h ago',
     rotate: '-1deg',

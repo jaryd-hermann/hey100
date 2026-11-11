@@ -15,28 +15,28 @@ const POP = Easing.bezier(0.2, 0.9, 0.3, 1.4);
 
 const TILES = [
   {
-    logo: require('../../../../web/public/landing/logo-1.png'),
-    face: require('../../../../web/public/landing/face-1.jpg'),
+    logo: require('../../../../assets/images/onboarding/logo-1.png'),
+    face: require('../../../../assets/images/onboarding/face-1.jpg'),
     ring: '#00FF00',
   },
   {
-    logo: require('../../../../web/public/landing/logo-2.png'),
-    face: require('../../../../web/public/landing/face-2.png'),
+    logo: require('../../../../assets/images/onboarding/logo-2.png'),
+    face: require('../../../../assets/images/onboarding/face-2.png'),
     ring: '#FFFF00',
   },
   {
-    logo: require('../../../../web/public/landing/logo-3.png'),
-    face: require('../../../../web/public/landing/face-3.png'),
+    logo: require('../../../../assets/images/onboarding/logo-3.png'),
+    face: require('../../../../assets/images/onboarding/face-3.png'),
     ring: '#00FFFF',
   },
   {
-    logo: require('../../../../web/public/landing/logo-4.png'),
-    face: require('../../../../web/public/landing/face-4.png'),
+    logo: require('../../../../assets/images/onboarding/logo-4.png'),
+    face: require('../../../../assets/images/onboarding/face-4.png'),
     ring: '#FF00FF',
   },
   {
-    logo: require('../../../../web/public/landing/logo-5.png'),
-    face: require('../../../../web/public/landing/face-5.jpg'),
+    logo: require('../../../../assets/images/onboarding/logo-5.png'),
+    face: require('../../../../assets/images/onboarding/face-5.jpg'),
     ring: '#2E5CFF',
   },
 ];

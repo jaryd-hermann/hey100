@@ -1,0 +1,184 @@
+.login {
+  min-height: 100dvh;
+  display: flex;
+  background: var(--bg);
+  color: var(--ink);
+}
+.login-story {
+  flex: 1;
+  background: #0e100f;
+  color: #e8ece7;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 56px;
+}
+.login .wordmark-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: oklch(0.87 0.18 128);
+  color: #111;
+  font-family: 'Titan One', 'Trebuchet MS', sans-serif;
+  font-size: 15px;
+  line-height: 1;
+}
+.login-story h1 {
+  font: 500 44px/1.15 'JetBrains Mono', monospace;
+  letter-spacing: -0.035em;
+  margin: 0 0 16px;
+}
+.login-story h1 em {
+  font-style: normal;
+  color: #e6532e;
+}
+.login-story p {
+  font-size: 17px;
+  line-height: 1.5;
+  color: #8e968f;
+  max-width: 460px;
+  margin: 0;
+}
+.login-faces {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.login-faces span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #0e100f;
+  margin-left: -8px;
+}
+.login-faces span:first-child {
+  margin-left: 0;
+}
+.login-faces small {
+  font-size: 13px;
+  color: #8e968f;
+}
+.login-panel {
+  width: 560px;
+  max-width: 46%;
+  min-width: 320px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.login-card h2 {
+  font: 500 28px 'JetBrains Mono', monospace;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px;
+}
+.login-card p {
+  font-size: 15px;
+  color: var(--muted);
+  margin: 0;
+}
+.login-error {
+  color: #e6532e !important;
+  font-size: 13px !important;
+}
+.login-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.login .btn-ink,
+.login .btn-line {
+  height: 52px;
+  border-radius: 26px;
+  font: 600 15px Inter, sans-serif;
+  cursor: pointer;
+}
+.login .btn-ink {
+  background: var(--ink);
+  color: var(--bg);
+  border: 0;
+}
+.login .btn-line {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1.5px solid var(--line);
+}
+.login-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 500 11px 'JetBrains Mono', monospace;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.login-or span {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.invite-card {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1.5px dashed var(--line);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.invite-card strong,
+.invite-card span {
+  display: block;
+}
+.invite-card strong {
+  font-size: 14.5px;
+}
+.invite-card span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.invite-go {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 700 13px Inter, sans-serif;
+  border: 0;
+  cursor: pointer;
+}
+.login-input {
+  height: 52px;
+  border-radius: 16px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0 16px;
+  font-size: 15px;
+}
+.login-legal {
+  font-size: 12px !important;
+  line-height: 1.5;
+  text-align: center;
+}
+.login-legal a {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .login-story {
+    display: none;
+  }
+  .login-panel {
+    width: 100%;
+  }
+}

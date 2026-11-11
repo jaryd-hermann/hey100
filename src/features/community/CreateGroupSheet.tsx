@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
@@ -26,6 +26,23 @@ import { isServerId } from '@/lib/supabase';
 import { useStore } from '@/store/AppStore';
 import { useToast } from '@/components/ui/Toast';
 import { useTheme } from '@/theme/ThemeProvider';
+import { layout } from '@/theme/tokens';
+
+/** Name color on background color. The first pair is the default: white on black. */
+const GROUP_LOOKS: { bg: string; fg: string }[] = [
+  { bg: '#000000', fg: '#FFFFFF' },
+  { bg: '#0020A1', fg: '#00FF00' },
+  { bg: '#00FF00', fg: '#0020A1' },
+  { bg: '#FF1C6F', fg: '#FFFF00' },
+  { bg: '#FFFF00', fg: '#FF1C6F' },
+  { bg: '#FF5900', fg: '#FFFFFF' },
+  { bg: '#FFFFFF', fg: '#FF5900' },
+  { bg: '#FF1C6F', fg: '#00FFFF' },
+  { bg: '#00FF00', fg: '#7B00FF' },
+  { bg: '#FFFF00', fg: '#FF00FF' },
+  { bg: '#00FFFF', fg: '#0000EB' },
+  { bg: '#FFFFFF', fg: '#2E5CFF' },
+];
 
 export function CreateGroupForm({
   group,
@@ -52,6 +69,10 @@ export function CreateGroupForm({
   const [criteria, setCriteria] = useState<JoinCriterion[]>(group?.criteria ?? []);
   const [listingId, setListingId] = useState<string | null>(
     group?.listingId ?? listings[0]?.id ?? null,
+  );
+  const [look, setLook] = useState(
+    GROUP_LOOKS.find((item) => item.bg === group?.bannerColor && item.fg === group?.nameColor) ??
+      GROUP_LOOKS[0],
   );
   const [busy, setBusy] = useState(false);
   const listing = listings.find((app) => app.id === listingId) ?? listings[0];
@@ -87,6 +108,8 @@ export function CreateGroupForm({
           joinMode,
           criteria,
           listingId: joinMode === 'match' ? listing?.id : undefined,
+          bannerColor: look.bg,
+          nameColor: look.fg,
         });
         captureEvent('group_updated', { group_id: group.id, join_mode: joinMode });
         onCreated(group.id);
@@ -100,6 +123,8 @@ export function CreateGroupForm({
         joinMode,
         criteria,
         listingId: joinMode === 'match' ? listing?.id : undefined,
+        bannerColor: look.bg,
+        nameColor: look.fg,
       });
       setName('');
       setBio('');
@@ -121,14 +146,32 @@ export function CreateGroupForm({
 
   return (
     <View style={{ gap: 16 }}>
-      {onClose ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Close">
-            <Ionicons name="close" size={24} color={c.ink} />
+      <View
+        style={{
+          marginHorizontal: -layout.gutter,
+          marginTop: -10,
+          height: 168,
+          backgroundColor: look.bg,
+          justifyContent: 'flex-end',
+          paddingHorizontal: layout.gutter,
+          paddingBottom: 62,
+        }}
+      >
+        {onClose ? (
+          <Pressable
+            onPress={onClose}
+            hitSlop={12}
+            accessibilityLabel="Close"
+            style={{ position: 'absolute', top: 12, right: 16 }}
+          >
+            <Ionicons name="close" size={24} color={look.fg} />
           </Pressable>
-        </View>
-      ) : null}
-      <View style={{ alignItems: 'center', gap: 10 }}>
+        ) : null}
+        <Txt font="mono" size={28} weight={700} color={look.fg} numberOfLines={2}>
+          {name.trim() || 'Group name'}
+        </Txt>
+      </View>
+      <View style={{ alignItems: 'center', gap: 10, marginTop: -52 }}>
         <Pressable onPress={() => void pickCover()} accessibilityLabel="Replace group icon">
           <View
             style={{
@@ -185,6 +228,40 @@ export function CreateGroupForm({
             </Pressable>
           )}
         </View>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <Label>Banner color</Label>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {GROUP_LOOKS.map((item) => {
+            const on = item.bg === look.bg && item.fg === look.fg;
+            return (
+              <Pressable
+                key={`${item.fg}-${item.bg}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.fg} on ${item.bg}`}
+                onPress={() => setLook(item)}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  backgroundColor: item.bg,
+                  borderWidth: on ? 2.5 : 1,
+                  borderColor: on ? c.ink : 'rgba(17,17,17,0.25)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Txt size={14} weight={700} color={item.fg}>
+                  Aa
+                </Txt>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        <Txt size={12.5} muted>
+          {look.fg} on {look.bg}
+        </Txt>
       </View>
 
       <Field

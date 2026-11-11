@@ -242,6 +242,7 @@ export function dmsToMessages(
     return {
       kind: (mine ? 'me' : 'them') as 'them' | 'me',
       id: row.id,
+      at: row.created_at,
       ...(row.body ? { body: row.body } : {}),
       ...(media.length ? { media } : {}),
       ...(reply ? { reply } : {}),

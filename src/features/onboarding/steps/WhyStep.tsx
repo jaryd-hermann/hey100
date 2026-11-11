@@ -1,210 +1,171 @@
-import React, { useState } from 'react';
-import { Image, View } from 'react-native';
+import React from 'react';
+import { Image, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Wordmark } from '@/components/brand/Logo';
 import { Txt } from '@/components/ui/Txt';
-import { JarydMark } from '@/features/chat/TeamMark';
-import { useTheme } from '@/theme/ThemeProvider';
-import { layout, radii } from '@/theme/tokens';
 
-import { ConvictionCta, RevealBox, RevealScroll } from './reveal';
+import { FlowButton } from '../FlowButton';
+import { LIME } from '../look';
 
-const YC = require('../../../../assets/images/yc.png');
-const SPEEDRUN = require('../../../../assets/images/speedrun.jpg');
+const PHOTO = require('../../../../assets/images/onboarding-jaryd.jpg');
 
-const COPY = 30;
+const YEL = '#FFFF00';
+const CYAN = '#00FFFF';
+const MAG = '#FF00FF';
 
-const HOW = [
-  'You build a profile for your product. (And you)',
-  "You like apps you'd be down to try.",
-  "When there's a match, you can DM the builder.",
-  'Trade feedback, chat, and find users.',
+const LINES = [
+  { text: 'Accelerators like YC and Speedrun are so good because builders get proximity to other builders.', weight: 600 as const },
+  { text: "Everybody uses each other's products and gives feedback.", weight: 500 as const },
+  { text: "It's a distribution and feedback hub.", weight: 500 as const },
+  { text: "That's why these companies do so well.", weight: 500 as const },
 ];
 
-function StoryTxt({ children, tone }: { children: React.ReactNode; tone?: 'pop' }) {
-  const { c } = useTheme();
-  return (
-    <Txt
-      font="mono"
-      size={COPY}
-      weight={500}
-      lh={1.25}
-      tracking={-0.45}
-      center
-      color={tone === 'pop' ? c.accentText : c.ink}
-    >
-      {children}
-    </Txt>
-  );
-}
+const STEPS = [
+  { n: '1', text: 'You build a profile for your product. (And you).', color: YEL, rot: '-1deg' },
+  { n: '2', text: "You like apps you'd be down to try.", color: CYAN, rot: '1deg' },
+  { n: '3', text: "When there's a match, you can DM the builder.", color: MAG, rot: '-0.5deg' },
+  { n: '4', text: 'Trade feedback, chat, and find users.', color: LIME, rot: '1deg' },
+];
 
-function RoundMark({
-  source,
-  label,
-  size = 28,
-}: {
-  source: number;
-  label: string;
-  size?: number;
-}) {
-  return (
-    <Image
-      source={source}
-      accessibilityLabel={label}
-      style={{ width: size, height: size, borderRadius: size / 2 }}
-    />
-  );
-}
-
-function TagChip({
-  icon,
-  label,
-}: {
-  icon: React.ReactNode;
-  label: string;
-}) {
-  const { c } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingVertical: 2,
-        paddingLeft: 4,
-        paddingRight: 14,
-        borderRadius: radii.pill,
-        borderWidth: 1.5,
-        borderColor: c.ink,
-        backgroundColor: c.surface,
-      }}
-    >
-      {icon}
-      <Txt font="mono" size={COPY} weight={500} lh={1.25} tracking={-0.45}>
-        {label}
-      </Txt>
-    </View>
-  );
-}
-
-function Wrap({ children }: { children: React.ReactNode }) {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'center',
-        columnGap: 8,
-        rowGap: 10,
-      }}
-    >
-      {children}
-    </View>
-  );
-}
+const STROKE = [
+  [2, 0],
+  [-2, 0],
+  [0, 2],
+  [0, -2],
+  [2, 2],
+  [-2, 2],
+  [2, -2],
+  [-2, -2],
+] as const;
 
 export function WhyStep({ onContinue }: { onContinue: () => void }) {
-  const { c } = useTheme();
   const insets = useSafeAreaInsets();
-  const [progress, setProgress] = useState(0);
-  const ctaReserve = insets.bottom + 120;
 
   return (
     <View style={{ flex: 1 }}>
-      <RevealScroll floor={ctaReserve} onProgress={setProgress}>
-        <View style={{ alignItems: 'center', gap: 14, width: '100%', paddingBottom: 20 }}>
-          <Wrap>
-            <StoryTxt>Hey, I'm</StoryTxt>
-            <TagChip icon={<JarydMark size={28} />} label="Jaryd" />
-          </Wrap>
-          <Wrap>
-            <StoryTxt>That's why I made</StoryTxt>
-            <Wordmark size={36} />
-          </Wrap>
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 22, paddingBottom: 28, gap: 16 }}
+      >
+        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+          <Image
+            source={PHOTO}
+            accessibilityLabel="Jaryd"
+            style={{
+              width: 62,
+              height: 62,
+              borderRadius: 31,
+              borderWidth: 2,
+              borderColor: '#111111',
+              backgroundColor: '#111111',
+              transform: [{ rotate: '-4deg' }],
+              shadowColor: '#111111',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 1,
+              shadowRadius: 0,
+            }}
+          />
+          <Txt font="mono" size={23} weight={600} lh={1.15} tracking={-1.15} color="#FFFFFF" style={{ flex: 1 }}>
+            Hey, I'm Jaryd. That's why I made Hey100.
+          </Txt>
         </View>
 
-        <RevealBox space={16}>
-          <Wrap>
-            <StoryTxt>Accelerators like</StoryTxt>
-            <TagChip icon={<RoundMark source={YC} label="YC" />} label="YC" />
-            <TagChip icon={<RoundMark source={SPEEDRUN} label="Speedrun" />} label="Speedrun" />
-            <StoryTxt>and co.</StoryTxt>
-          </Wrap>
-        </RevealBox>
-        <RevealBox space={48}>
-          <StoryTxt>are so good because builders get proximity to other builders.</StoryTxt>
-        </RevealBox>
-
-        <RevealBox space={64}>
-          <StoryTxt>Everybody uses each other's products and gives feedback.</StoryTxt>
-        </RevealBox>
-        <RevealBox space={48}>
-          <StoryTxt>It's a distribution and feedback hub.</StoryTxt>
-        </RevealBox>
-
-        <RevealBox space={48}>
-          <StoryTxt>That's why these companies do so well.</StoryTxt>
-        </RevealBox>
-
-        <RevealBox space={48}>
-          <StoryTxt>Hey100 replicates that.</StoryTxt>
-        </RevealBox>
-
-        {HOW.map((text, index) => (
-          <RevealBox key={text} space={index === HOW.length - 1 ? 28 : 18}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  borderWidth: 1.5,
-                  borderColor: c.ink,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: 4,
-                  flexShrink: 0,
-                }}
-              >
-                <Txt font="mono" size={15} weight={600}>
-                  {index + 1}
-                </Txt>
-              </View>
-              <Txt font="mono" size={COPY} weight={500} lh={1.3} tracking={-0.3} style={{ flex: 1 }}>
-                {text}
-              </Txt>
-            </View>
-          </RevealBox>
+        {LINES.map((line) => (
+          <Txt key={line.text} size={17} weight={line.weight} lh={1.45} color="#FFFFFF">
+            {line.text}
+          </Txt>
         ))}
 
-        <RevealBox space={48}>
-          <StoryTxt>
-            You can also make and join groups, because sharing ideas and building with others is how
-            we grow.
-          </StoryTxt>
-        </RevealBox>
+        <View style={{ alignSelf: 'flex-start', transform: [{ rotate: '-2deg' }] }}>
+          <View
+            style={{
+              paddingVertical: 9,
+              paddingHorizontal: 15,
+              borderRadius: 14,
+              backgroundColor: '#111111',
+            }}
+          >
+            <Txt font="mono" size={20} weight={600} tracking={-0.8} color={LIME}>
+              Hey100 replicates that.
+            </Txt>
+          </View>
+        </View>
 
-        <RevealBox space={8}>
-          <StoryTxt tone="pop">Hey! And welcome</StoryTxt>
-        </RevealBox>
-      </RevealScroll>
+        <View style={{ gap: 10 }}>
+          {STEPS.map((step) => (
+            <View key={step.n} style={{ transform: [{ rotate: step.rot }] }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 12,
+                  alignItems: 'center',
+                  paddingVertical: 13,
+                  paddingHorizontal: 14,
+                  borderRadius: 18,
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 2,
+                  borderColor: '#111111',
+                  shadowColor: '#111111',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 1,
+                  shadowRadius: 0,
+                }}
+              >
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    backgroundColor: step.color,
+                    borderWidth: 2,
+                    borderColor: '#111111',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Txt font="logo" size={17} color="#111111">
+                    {step.n}
+                  </Txt>
+                </View>
+                <Txt size={15} weight={600} lh={1.35} color="#111111" style={{ flex: 1 }}>
+                  {step.text}
+                </Txt>
+              </View>
+            </View>
+          ))}
+        </View>
 
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          paddingHorizontal: layout.gutter,
-          paddingBottom: insets.bottom + 16,
-          paddingTop: 28,
-          backgroundColor: c.bg,
-        }}
-      >
-        <ConvictionCta progress={progress} onPress={onContinue} label="I want to list my product" />
+        <Txt size={17} lh={1.45} color="#FFFFFF">
+          You can also make and join groups, because sharing ideas and building with others is how we grow.
+        </Txt>
+
+        <View style={{ paddingTop: 6, alignSelf: 'flex-start' }}>
+          {STROKE.map(([x, y]) => (
+            <Txt
+              key={`${x}${y}`}
+              font="logo"
+              size={38}
+              color="#111111"
+              style={{ position: 'absolute', left: x, top: 6 + y }}
+            >
+              Hey! And welcome.
+            </Txt>
+          ))}
+          <Txt font="logo" size={38} color="#FFFFFF" style={{ textShadowColor: '#111111', textShadowOffset: { width: 0, height: 5 }, textShadowRadius: 0 }}>
+            Hey! And welcome.
+          </Txt>
+        </View>
+      </ScrollView>
+
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 16 }}>
+        <FlowButton
+          label="I want to list my product"
+          bg={LIME}
+          fg="#111111"
+          shadow="#000000"
+          onPress={onContinue}
+        />
       </View>
     </View>
   );

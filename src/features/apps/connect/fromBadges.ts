@@ -32,6 +32,7 @@ function providerFromBadge(badge: string): IntegrationKey | null {
   if (lower.includes('github')) return 'github';
   if (lower.includes('revenuecat') || lower.includes('rev cat')) return 'revenuecat';
   if (lower.includes('stripe')) return 'stripe';
+  if (lower.includes('posthog')) return 'posthog';
   if (lower.includes('app store') || lower.includes('download')) return 'asc';
   return null;
 }

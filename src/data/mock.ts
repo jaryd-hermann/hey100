@@ -499,6 +499,15 @@ export const INTEGRATIONS: Integration[] = [
     on: '$100–1k MRR',
     badge: 'Stripe · $100–1k MRR',
   },
+  {
+    key: 'posthog',
+    name: 'PostHog',
+    letter: 'P',
+    desc: 'Verify active users',
+    on: '1k+ monthly active',
+    detail: '500+ weekly active · 30%+ D7 retention',
+    badge: 'PostHog · 1k+ monthly active',
+  },
 ];
 
 export const DECK_IDS = ['brew', 'ship', 'lullo'];
@@ -729,6 +738,11 @@ export const INBOX: Record<string, InboxData> = {
         text: 'Calm and clear. I wanted to invite my partner sooner.',
         confusion: 'Partner invite is buried in settings',
         keep: 'Yes',
+        keepWhy: 'The Sunday summary is enough reason to stay.',
+        bestMoment: 'Reading the Sunday summary out loud.',
+        bug: 'The invite button did nothing the first time.',
+        bugShots: ['demo'],
+        videoPath: 'demo',
         optIn: true,
         helpful: 'yes',
       },

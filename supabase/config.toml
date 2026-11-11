@@ -36,6 +36,11 @@ verify_jwt = false
 enabled = true
 verify_jwt = true
 
+# The waitlist site calls this with x-welcome-secret. No user JWT.
+[functions.waitlist-welcome]
+enabled = true
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.

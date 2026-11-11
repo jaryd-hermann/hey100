@@ -123,6 +123,23 @@ export function connectStripe(appId: string, apiKey: string) {
   return invoke<AppConnectionSnapshot>({ action: 'stripe_connect', appId, apiKey });
 }
 
+export function startPosthog(appId: string) {
+  return invoke<{ url: string }>({ action: 'posthog_start', appId });
+}
+
+export function listPosthogProjects(appId: string) {
+  return invoke<{ projects: RcProject[] }>({ action: 'posthog_projects', appId });
+}
+
+export function connectPosthog(appId: string, projectId: string, projectName: string) {
+  return invoke<AppConnectionSnapshot>({
+    action: 'posthog_connect',
+    appId,
+    projectId,
+    projectName,
+  });
+}
+
 export function disconnectProvider(appId: string, provider: IntegrationKey) {
   return invoke<{ ok: boolean }>({ action: 'disconnect', appId, provider });
 }
@@ -135,6 +152,22 @@ export type AppConnectionSnapshot = {
   snapshot?: {
     rating?: number | null;
     rating_count?: number | null;
+    mrr?: number | null;
+    revenue?: number | null;
+    revenue_30d?: number | null;
+    subscriptions?: number | null;
+    customers?: number | null;
+    commits_30d?: number;
+    commits_total?: number;
+    mau?: number;
+    wau?: number;
+    dau?: number;
+    sessions?: number;
+    d7?: number;
+    stickiness?: number;
+    repo?: string;
+    project_name?: string;
+    badges?: string[];
   };
 };
 

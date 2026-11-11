@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { Screen } from '@/components/layout/Screen';
-import { CoachFab } from '@/features/feedback/CoachHost';
 import { Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
@@ -13,6 +13,7 @@ import { Label, Txt } from '@/components/ui/Txt';
 import { MILESTONES } from '@/data/mock';
 import type { OwnedApp } from '@/data/types';
 import { AppCard } from '@/features/apps/AppCard';
+import { milestoneGlyph } from '@/features/apps/milestones';
 import { BadgesSheet } from '@/features/apps/BadgesSheet';
 import { ShareListingSheet } from '@/features/apps/ShareListingSheet';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -33,12 +34,10 @@ export default function AppsScreen() {
 
   return (
     <Screen
-      title="My apps"
-      overlay={<CoachFab />}
       headerRight={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <Pressable onPress={() => router.push('/settings')} hitSlop={8} accessibilityLabel="Settings">
-            <Ionicons name="settings-outline" size={22} color={c.ink} />
+            <Glyph source={glyphs.cog} size={22} color={c.ink} />
           </Pressable>
           <Pressable onPress={() => router.push('/profile')} hitSlop={8} accessibilityLabel="Profile">
             <Avatar name={store.user.realName} seed={store.user.username} uri={store.user.photo} size={30} />
@@ -108,7 +107,7 @@ export default function AppsScreen() {
                   key={milestone.id}
                   title={milestone.title}
                   sub={milestone.sub}
-                  badge={milestone.badge}
+                  icon={milestoneGlyph(milestone.id)}
                   onShare={() =>
                     router.push({
                       pathname: '/share',
@@ -122,14 +121,14 @@ export default function AppsScreen() {
                   <LockedMilestone
                     title="First match"
                     sub="You and another builder agreed to trade apps"
-                    badge="🎉"
+                    icon={glyphs.milestoneH1}
                     caption="Unlocks after your first match"
                     dim={isDark}
                   />
                   <LockedMilestone
                     title="First completed trade"
                     sub="Both of you sent feedback"
-                    badge="🤝"
+                    icon={glyphs.handshake}
                     caption="Unlocks after your first completed trade"
                     dim={isDark}
                   />
@@ -147,19 +146,19 @@ export default function AppsScreen() {
 function LockedMilestone({
   title,
   sub,
-  badge,
+  icon,
   caption,
   dim,
 }: {
   title: string;
   sub: string;
-  badge: string;
+  icon: React.ComponentProps<typeof Glyph>['source'];
   caption: string;
   dim: boolean;
 }) {
   return (
     <View style={{ borderRadius: radii.cardLg, overflow: 'hidden' }}>
-      <MilestoneCard title={title} sub={sub} badge={badge} />
+      <MilestoneCard title={title} sub={sub} icon={icon} />
       <BlurView
         intensity={26}
         tint="dark"
@@ -182,12 +181,12 @@ function LockedMilestone({
 function MilestoneCard({
   title,
   sub,
-  badge,
+  icon,
   onShare,
 }: {
   title: string;
   sub: string;
-  badge: string;
+  icon: React.ComponentProps<typeof Glyph>['source'];
   onShare?: () => void;
 }) {
   const { c } = useTheme();
@@ -205,7 +204,7 @@ function MilestoneCard({
             justifyContent: 'center',
           }}
         >
-          <Txt size={19}>{badge}</Txt>
+          <Glyph source={icon} size={22} color={c.ink} />
         </View>
         <View style={{ flex: 1 }}>
           <Txt size={14.5} weight={600} lh={1.3}>

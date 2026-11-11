@@ -351,6 +351,16 @@ function share(entries: FeedbackRow[], answer: 'Yes' | 'Maybe' | 'No'): number {
   );
 }
 
+function mediaUrl(path: string): string {
+  return path.startsWith('http') ? path : publicUrl('listing-media', path);
+}
+
+function shotUrls(row: FeedbackRow): string[] | undefined {
+  const paths = [...(row.bug_shots ?? []), ...(row.bug_shot ? [row.bug_shot] : [])].filter(Boolean);
+  const unique = [...new Set(paths)];
+  return unique.length ? unique.map(mediaUrl) : undefined;
+}
+
 function heyRatio(heys: number, views: number): string {
   if (views <= 0) return '0%';
   return `${Math.round((heys / views) * 100)}%`;
@@ -371,6 +381,13 @@ export function feedbackEntry(row: FeedbackRow, appName: string, hue: number): F
     text: unlocked ? row.summary : 'Share yours to read this.',
     confusion: unlocked ? (row.confusion ?? '—') : '·',
     keep: unlocked ? (row.keep ?? 'Maybe') : 'Maybe',
+    ...(unlocked && row.keep_why ? { keepWhy: row.keep_why } : {}),
+    ...(unlocked && row.best_moment ? { bestMoment: row.best_moment } : {}),
+    ...(unlocked && row.bug ? { bug: row.bug } : {}),
+    ...(unlocked ? { bugShots: shotUrls(row) } : {}),
+    ...(unlocked && row.video_path ? { videoPath: mediaUrl(row.video_path) } : {}),
+    ...(unlocked && row.price ? { price: row.price } : {}),
+    createdAt: row.created_at,
     optIn: unlocked ? row.opt_in : false,
     unlocked,
     ...(unlocked && row.helpful ? { helpful: row.helpful } : {}),

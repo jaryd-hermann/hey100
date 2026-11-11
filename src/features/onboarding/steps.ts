@@ -32,6 +32,8 @@ export type Step = {
   /** Caps a multi-select, so the answer stays a priority rather than a list. */
   max?: number;
   subtitle?: string;
+  /** Small caps line under the title, from the onboarding prototype. */
+  meta?: string;
 };
 
 /**
@@ -111,6 +113,129 @@ export const DEPARTMENTS = [
   'Student',
   'Other',
 ];
+
+/**
+ * Canonical titles. A pick is stored as this exact string, so people who chose
+ * the same role group together. Abbreviations find the canonical title.
+ */
+export const JOB_TITLES = [
+  'Founder',
+  'Co-founder',
+  'CEO',
+  'Indie hacker',
+  'Solopreneur',
+  'Software Engineer',
+  'Senior Software Engineer',
+  'Staff Software Engineer',
+  'Founding Engineer',
+  'Engineering Manager',
+  'Director of Engineering',
+  'VP of Engineering',
+  'Head of Engineering',
+  'CTO',
+  'Frontend Engineer',
+  'Backend Engineer',
+  'Full Stack Engineer',
+  'Mobile Engineer',
+  'iOS Engineer',
+  'Android Engineer',
+  'Product Manager',
+  'Senior Product Manager',
+  'Staff Product Manager',
+  'Group Product Manager',
+  'Principal Product Manager',
+  'Associate Product Manager',
+  'Technical Product Manager',
+  'Product Owner',
+  'Director of Product',
+  'VP of Product',
+  'Head of Product',
+  'CPO',
+  'Product Designer',
+  'Senior Product Designer',
+  'UX Designer',
+  'UI Designer',
+  'Design Manager',
+  'Head of Design',
+  'Director of Design',
+  'Brand Designer',
+  'Product Marketing Manager',
+  'Marketing Manager',
+  'Growth Marketer',
+  'Head of Growth',
+  'Head of Marketing',
+  'Content Marketer',
+  'Brand Manager',
+  'Account Executive',
+  'Sales Manager',
+  'Head of Sales',
+  'Business Development',
+  'Data Analyst',
+  'Data Scientist',
+  'Data Engineer',
+  'Analytics Engineer',
+  'Head of Data',
+  'Customer Success Manager',
+  'Support Lead',
+  'Head of Customer Success',
+  'Operations Manager',
+  'Chief of Staff',
+  'Head of Operations',
+  'COO',
+  'Finance Manager',
+  'Head of Finance',
+  'CFO',
+  'Recruiter',
+  'People Partner',
+  'Head of People',
+  'Researcher',
+  'Writer',
+  'Student',
+];
+
+const JOB_TITLE_ALIASES: Record<string, string[]> = {
+  'Product Manager': ['pm'],
+  'Software Engineer': ['swe'],
+  'Engineering Manager': ['em'],
+  'Technical Product Manager': ['tpm'],
+  'Product Marketing Manager': ['pmm'],
+  'Customer Success Manager': ['csm'],
+  'UX Designer': ['ux'],
+  'UI Designer': ['ui'],
+};
+
+/** The list's own spelling when the query is that title or a known abbreviation. */
+export function canonicalJobTitle(query: string): string | null {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return null;
+  return (
+    JOB_TITLES.find((title) => title.toLowerCase() === needle) ??
+    JOB_TITLES.find((title) => (JOB_TITLE_ALIASES[title] ?? []).some((alias) => alias === needle)) ??
+    null
+  );
+}
+
+/** Titles a typed role could mean, best match first. An empty query returns the full list. */
+export function matchJobTitles(options: string[], query: string): string[] {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return options;
+
+  const ranked = options.flatMap((title) => {
+    const hay = title.toLowerCase();
+    const aliases = JOB_TITLE_ALIASES[title] ?? [];
+    const tokens = hay.split(/[^a-z0-9+]+/).filter(Boolean);
+    const hit = (word: string) =>
+      tokens.some((token) => token.startsWith(word)) || aliases.some((alias) => alias.startsWith(word));
+    const hits = words.filter(hit).length;
+    const phrase = hay.includes(words.join(' '));
+    if (!hits && !phrase) return [];
+    const score = hits * 12 + (hits === words.length ? 24 : 0) + (phrase ? 20 : 0) + (hay.startsWith(words[0]) ? 6 : 0);
+    return [{ title, score }];
+  });
+
+  ranked.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+  return ranked.slice(0, 18).map((row) => row.title);
+}
 
 export const COMPANY_SIZES = ['Just me', '2–10', '11–50', '51–200', '201–1,000', '1,000+'];
 
@@ -383,8 +508,16 @@ export const STEPS: Step[] = [
     title:
       "Let's start with your product's profile. The stronger your profile the better we can match you to users",
   },
-  { kind: 'link', title: 'Add your product' },
-  { kind: 'media', title: 'Add up to 10 screenshots or videos', skip: true },
+  {
+    kind: 'link',
+    title: 'Add your product',
+  },
+  {
+    kind: 'media',
+    title: 'Add up to 10 screenshots or videos',
+    subtitle: 'The first is the cover.',
+    skip: true,
+  },
   {
     kind: 'problem',
     title: 'This solves the problem of',
@@ -396,6 +529,7 @@ export const STEPS: Step[] = [
     single: true,
     vis: true,
     title: 'What stage is your app at?',
+    meta: 'PICK ONE · SHOWN ON THE PROFILE',
     opts: [...STAGE_OPTIONS],
   },
   {
@@ -404,6 +538,7 @@ export const STEPS: Step[] = [
     own: true,
     max: 3,
     title: 'What do you want feedback on?',
+    meta: 'UP TO 3, OR WRITE YOUR OWN',
     opts: FEEDBACK_AREAS,
   },
   {
@@ -417,15 +552,24 @@ export const STEPS: Step[] = [
     search: true,
     max: 6,
     title: 'Who are your ideal users?',
+    meta: 'UP TO 6 · SEARCH OR WRITE YOUR OWN',
     opts: IDEAL_USERS,
   },
-  { kind: 'pick', group: 'ia', vis: true, title: 'How old are they?', opts: AGES },
+  {
+    kind: 'pick',
+    group: 'ia',
+    vis: true,
+    title: 'How old are they?',
+    meta: 'ANY COMBINATION · SHOWN ON THE PROFILE',
+    opts: AGES,
+  },
   {
     kind: 'pick',
     group: 'ig',
     single: true,
     vis: true,
     title: 'Any gender focus?',
+    meta: 'PICK ONE · SHOWN ON THE PROFILE',
     opts: ['Anyone', 'Mostly women', 'Mostly men'],
   },
   {
@@ -433,10 +577,16 @@ export const STEPS: Step[] = [
     group: 'ip',
     vis: true,
     title: 'What devices are they on?',
+    meta: 'ANY COMBINATION · SHOWN ON THE PROFILE',
     opts: DEVICES,
   },
   { kind: 'summary', title: "Here's a summary of your product so far." },
-  { kind: 'prompts', title: "Pick prompts to tell your app's story", skip: true },
+  {
+    kind: 'prompts',
+    title: "Pick prompts to tell your app's story.",
+    subtitle: 'Specific answers get more heys than clever ones.',
+    skip: true,
+  },
   { kind: 'check', title: "Now we'll ask about you, and the apps you'd be open to trying." },
   { kind: 'work', title: 'What keeps you busy these days?', skip: true },
   { kind: 'role', title: 'What do you do there?', skip: true },
@@ -448,7 +598,7 @@ export const STEPS: Step[] = [
     max: 10,
     skip: true,
     title: 'What are you good at?',
-    subtitle: 'Pick up to 10 skills',
+    subtitle: 'Pick up to 10 skills.',
     opts: SKILLS,
   },
   {
@@ -457,6 +607,7 @@ export const STEPS: Step[] = [
     own: true,
     vis: true,
     title: 'What are you looking for as a developer?',
+    meta: 'ANY COMBINATION · SHOWN ON THE PROFILE',
     opts: [
       '🧪 Early users for my app',
       '🗣️ Honest feedback',
@@ -473,6 +624,7 @@ export const STEPS: Step[] = [
     own: true,
     search: true,
     title: 'What apps would interest you?',
+    meta: 'ANY COMBINATION · SEARCH OR WRITE YOUR OWN',
     opts: APP_INTERESTS,
   },
   {
@@ -480,10 +632,15 @@ export const STEPS: Step[] = [
     group: 'd',
     vis: true,
     title: 'Which devices can you test on?',
+    meta: 'ANY COMBINATION · SHOWN ON THE PROFILE',
     opts: [...DEVICES, 'Apple Watch'],
   },
-  { kind: 'username', title: 'Claim your @username to get started' },
-  { kind: 'auth', title: 'Get listed on Hey100' },
+  { kind: 'username', title: 'Claim your @username to get started.' },
+  {
+    kind: 'auth',
+    title: 'Get listed on Hey100',
+    subtitle: 'Sign in to save your details and get started.',
+  },
 ];
 
 export const LAST_STEP = STEPS.length - 1;

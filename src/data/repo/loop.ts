@@ -100,6 +100,9 @@ export type FeedbackRow = {
   best_moment: string | null;
   bug: string | null;
   bug_shot: string | null;
+  bug_shots?: string[] | null;
+  video_path?: string | null;
+  keep_why?: string | null;
   price: string | null;
   created_at: string;
   from: BuilderRow | null;

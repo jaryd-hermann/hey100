@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, Share, Switch, View } from 'react-native';
 
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { Wordmark } from '@/components/brand/Logo';
 import { AiMark } from '@/components/brand/Marks';
 import { Sheet } from '@/components/ui/Sheet';
@@ -59,10 +59,7 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
           }}
           style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
-          <LinearGradient
-            colors={isDark ? [c.accent, c.mid] : [c.accent, '#B7E86A']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -71,28 +68,42 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
               paddingVertical: 14,
               minHeight: 62,
               borderRadius: 16,
+              backgroundColor: '#0020A1',
             }}
           >
-            <Txt size={16} weight={700} color={c.accentInk} style={{ flex: 1 }} numberOfLines={2}>
+            <Txt size={16} weight={700} color="#00FF00" style={{ flex: 1, fontFamily: 'Inter_700Bold' }} numberOfLines={2}>
               Optimization & Growth Assistant
             </Txt>
-            <AiMark size={28} />
-          </LinearGradient>
+            <AiMark size={28} color="#00FF00" />
+          </View>
         </Pressable>
 
         {!store.isPro ? (
-          <MenuRow
-            icon="diamond-outline"
-            label="Get Builder Pro"
+          <Pressable
+            accessibilityRole="button"
             onPress={() => {
               onClose();
               router.push('/paywall?from=menu');
             }}
-          />
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              minHeight: 54,
+              borderRadius: 16,
+              backgroundColor: '#00FF00',
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Txt size={16} weight={700} color="#111111" style={{ flex: 1, fontFamily: 'Inter_700Bold' }}>
+              Get Builder Pro
+            </Txt>
+            <Glyph source={glyphs.pro} size={22} color="#111111" />
+          </Pressable>
         ) : null}
 
         <MenuRow
-          icon="eye-outline"
+          glyph={glyphs.eye}
           label="Preview my app"
           onPress={() => {
             if (!store.primaryApp) {
@@ -165,10 +176,12 @@ function HeyMenuSheet({ visible, onClose }: { visible: boolean; onClose: () => v
 
 function MenuRow({
   icon,
+  glyph,
   label,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  glyph?: React.ComponentProps<typeof Glyph>['source'];
   label: string;
   onPress: () => void;
 }) {
@@ -190,7 +203,11 @@ function MenuRow({
       <Txt size={16} weight={600} style={{ flex: 1 }}>
         {label}
       </Txt>
-      <Ionicons name={icon} size={20} color={c.ink} />
+      {glyph ? (
+        <Glyph source={glyph} size={22} color={c.ink} />
+      ) : icon ? (
+        <Ionicons name={icon} size={20} color={c.ink} />
+      ) : null}
     </Pressable>
   );
 }

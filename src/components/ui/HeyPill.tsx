@@ -1,19 +1,10 @@
-import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { useTheme } from '@/theme/ThemeProvider';
-
-const LIKE = {
-  light: require('../../../assets/images/like-light.png'),
-  dark: require('../../../assets/images/like-dark.png'),
-};
-
-const PASS = {
-  light: require('../../../assets/images/pass-light.png'),
-  dark: require('../../../assets/images/pass-dark.png'),
-};
 
 export type HeyPillProps = {
   onPress: () => void;
@@ -24,9 +15,9 @@ export type HeyPillProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** Lime circle with the heart. Replaces the old waving-hand mark. */
+/** Lime circle with the solid heart. */
 export function HeyPill({ onPress, size = 40, label, style }: HeyPillProps) {
-  const { name } = useTheme();
+  const { c } = useTheme();
 
   return (
     <Pressable
@@ -38,7 +29,20 @@ export function HeyPill({ onPress, size = 40, label, style }: HeyPillProps) {
       }}
       style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }, style]}
     >
-      <Image source={LIKE[name]} style={{ width: size, height: size }} contentFit="contain" />
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: c.accent,
+          borderWidth: 2,
+          borderColor: '#111111',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Glyph source={glyphs.heartSolid} size={size * 0.5} color="#111111" />
+      </View>
     </Pressable>
   );
 }
@@ -50,10 +54,8 @@ export type PassPillProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** Outlined circle with the X. */
+/** Solid white circle with an orange X. */
 export function PassPill({ onPress, size = 58, label, style }: PassPillProps) {
-  const { name } = useTheme();
-
   return (
     <Pressable
       accessibilityRole="button"
@@ -64,7 +66,18 @@ export function PassPill({ onPress, size = 58, label, style }: PassPillProps) {
       }}
       style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }, style]}
     >
-      <Image source={PASS[name]} style={{ width: size, height: size }} contentFit="contain" />
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name="close" size={Math.round(size * 0.62)} color="#FF5900" />
+      </View>
     </Pressable>
   );
 }

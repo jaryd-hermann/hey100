@@ -1011,6 +1011,7 @@ export type Database = {
           looking_for: string[]
           notification_prefs: Json
           onboarded_at: string | null
+          onboarding_blocks: number
           own_words: Json
           photo_url: string | null
           plan: string
@@ -1050,6 +1051,7 @@ export type Database = {
           looking_for?: string[]
           notification_prefs?: Json
           onboarded_at?: string | null
+          onboarding_blocks?: number
           own_words?: Json
           photo_url?: string | null
           plan?: string
@@ -1089,6 +1091,7 @@ export type Database = {
           looking_for?: string[]
           notification_prefs?: Json
           onboarded_at?: string | null
+          onboarding_blocks?: number
           own_words?: Json
           photo_url?: string | null
           plan?: string
@@ -1372,6 +1375,7 @@ export type Database = {
       my_threads: { Args: never; Returns: Json }
       pass_hey: { Args: { p_hey_id: string; p_reason?: string }; Returns: Json }
       redeem_invite: { Args: { p_code: string }; Returns: Json }
+      record_onboarding_blocks: { Args: { p_blocks: number }; Returns: undefined }
       record_profile_view: { Args: { p_listing_id: string }; Returns: undefined }
       my_listing_coach_context: { Args: { p_app_id: string }; Returns: Json }
       my_listing_insights: {

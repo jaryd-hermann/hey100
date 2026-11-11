@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { oklch } from './oklch';
 
 export type ThemeName = 'dark' | 'light';
@@ -67,12 +69,14 @@ export const palettes: Record<ThemeName, Palette> = {
 /** The splash screen is the one place that breaks the palette. */
 export const SPLASH_BG = { light: '#F0D7FF', dark: '#0E100F' } as const;
 
+const monoFace = (ios: string, android: string) => (Platform.OS === 'ios' ? ios : android);
+
 export const fonts = {
   logo: 'TitanOne_400Regular',
-  mono: 'JetBrainsMono_400Regular',
-  monoMedium: 'JetBrainsMono_500Medium',
-  monoSemi: 'JetBrainsMono_600SemiBold',
-  monoBold: 'JetBrainsMono_700Bold',
+  mono: monoFace('JetBrainsMono-Regular', 'JetBrainsMono_400Regular'),
+  monoMedium: monoFace('JetBrainsMono-Medium', 'JetBrainsMono_500Medium'),
+  monoSemi: monoFace('JetBrainsMono-SemiBold', 'JetBrainsMono_600SemiBold'),
+  monoBold: monoFace('JetBrainsMono-Bold', 'JetBrainsMono_700Bold'),
   body: 'Inter_400Regular',
   bodyMedium: 'Inter_500Medium',
   bodySemi: 'Inter_600SemiBold',
@@ -92,8 +96,8 @@ export const layout = {
   /** Horizontal page padding used across screens. */
   gutter: 20,
   /** Clearance so content scrolls out from under the floating tab bar. */
-  tabBarSpacer: 110,
-  tabBarHeight: 66,
+  tabBarSpacer: 96,
+  tabBarHeight: 52,
   tabBarInset: 14,
   tabBarBottom: 24,
 } as const;

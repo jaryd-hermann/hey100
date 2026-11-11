@@ -4,12 +4,14 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
 import { Label, Txt } from '@/components/ui/Txt';
 import { queryKeys } from '@/data/repo/keys';
 import { fetchListingCooldowns } from '@/data/repo/insights';
 import type { OwnedApp } from '@/data/types';
+import { ConnectSheets, useIntegrationActions } from '@/features/apps/connect/ConnectSheets';
 import { listingStrength, verifiedListingStats } from '@/features/apps/listingStrength';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useDevMode } from '@/lib/devMode';
@@ -38,11 +40,13 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
   });
   const cooldown = cooldowns?.find((row) => row.listingId === app.id);
   const onCooldown =
-    !store.isPro && (simulateCooldown || (cooldown != null && cooldown.viewsToday >= FREE_DAILY_VIEWS));
+    simulateCooldown ||
+    (!store.isPro && cooldown != null && cooldown.viewsToday >= FREE_DAILY_VIEWS);
   const resetsAt = simulateCooldown
     ? new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString()
     : cooldown?.resetsAt;
-  const connections = store.connections[app.id] ?? {};
+  const integrations = useIntegrationActions(app.id);
+  const connections = integrations.connected;
   const strength = listingStrength(app, connections);
   const verified = verifiedListingStats(app, connections);
   const inbox = store.inbox[app.id];
@@ -65,17 +69,18 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
             marginTop: -16,
             paddingHorizontal: 16,
             paddingVertical: 10,
-            backgroundColor: '#F5C84C',
+            backgroundColor: '#FF0000',
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
           }}
         >
+          <Glyph source={glyphs.flame} size={16} color="#FFFF00" />
           <CooldownTick resetsAt={resetsAt} active={onCooldown} />
-          <Txt size={12.5} weight={700} color="#1A1608" style={{ flex: 1 }}>
+          <Txt size={12.5} weight={700} color="#FFFF00" style={{ flex: 1 }}>
             Daily views used · back in {countdownLabel(resetsAt)}
           </Txt>
-          <Txt size={12.5} weight={700} color="#1A1608">
+          <Txt size={12.5} weight={700} color="#FFFF00">
             Get visible now
           </Txt>
         </Pressable>
@@ -134,7 +139,40 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
             </View>
           </View>
         </View>
-      </Pressable>
+        </Pressable>
+
+      <View style={{ gap: 8 }}>
+        {(
+          [
+            ['stripe', 'Stripe', 'Verify revenue'],
+            ['revenuecat', 'RevenueCat', 'Verify customers'],
+            ['github', 'GitHub', 'Verify commits'],
+            ['posthog', 'PostHog', 'Verify usage'],
+          ] as const
+        ).map(([key, label, detail]) => {
+          const on = !!connections[key];
+          return (
+            <Pressable
+              key={key}
+              accessibilityRole="button"
+              onPress={() => void integrations.run(key)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
+              <Ionicons
+                name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                size={18}
+                color={on ? c.accentText : c.muted}
+              />
+              <Txt size={13.5} weight={600} style={{ flex: 1 }}>
+                {label}
+              </Txt>
+              <Txt size={12.5} muted>
+                {on ? 'Verified' : detail}
+              </Txt>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {(
@@ -165,6 +203,15 @@ export function AppCard({ app, onShare, onBadges, onEdit }: AppCardProps) {
           </Pressable>
         ))}
       </View>
+      <ConnectSheets
+        appId={app.id}
+        appName={app.name}
+        storeUrl={app.storeUrl}
+        appIcon={app.icon}
+        appHue={app.hue}
+        sheet={integrations.sheet}
+        onClose={() => integrations.setSheet(null)}
+      />
     </Card>
   );
 }

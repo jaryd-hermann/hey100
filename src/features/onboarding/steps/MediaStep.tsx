@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { Chip } from '@/components/ui/Chip';
+import { Txt } from '@/components/ui/Txt';
 import type { PickedShot, ShotLayout } from '@/data/types';
 import { MAX_SHOTS, pickShots } from '@/features/apps/pickShots';
 import { ShotGrid } from '@/features/apps/ShotGrid';
@@ -60,20 +60,48 @@ export function MediaStep({
 
   return (
     <View style={{ gap: 14 }}>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          padding: 4,
+          borderRadius: 16,
+          backgroundColor: '#FFFFFF',
+          borderWidth: 2,
+          borderColor: '#111111',
+          shadowColor: '#111111',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 1,
+          shadowRadius: 0,
+        }}
+      >
         {(
           [
             ['vertical', 'Vertical · phone'],
             ['horizontal', 'Horizontal · web'],
           ] as const
-        ).map(([value, label]) => (
-          <Chip
-            key={value}
-            label={label}
-            selected={shotLayout === value}
-            onPress={() => onChangeShotLayout(value)}
-          />
-        ))}
+        ).map(([value, label]) => {
+          const on = shotLayout === value;
+          return (
+            <Pressable
+              key={value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              onPress={() => onChangeShotLayout(value)}
+              style={{
+                flex: 1,
+                height: 40,
+                borderRadius: 11,
+                backgroundColor: on ? '#111111' : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Txt size={13.5} weight={700} color={on ? '#FFFFFF' : '#111111'}>
+                {label}
+              </Txt>
+            </Pressable>
+          );
+        })}
       </View>
 
       <ShotGrid

@@ -117,7 +117,7 @@ export type AppListing = {
   storeUrl?: string;
   /** Public GitHub commit total for this builder, across their repos. */
   githubCommits?: number;
-  /** Public community karma for this builder. */
+  /** Public Block Points for this builder. */
   builderKarma?: number;
   /** Vertical elevator-pitch video from the builder. */
   pitchUri?: string;
@@ -293,6 +293,14 @@ export type FeedbackEntry = {
   text: string;
   confusion: string;
   keep: 'Yes' | 'Maybe' | 'No';
+  keepWhy?: string;
+  bestMoment?: string;
+  bug?: string;
+  bugShots?: string[];
+  videoPath?: string;
+  price?: string;
+  /** ISO time, used to filter a date range. Missing on bundled samples. */
+  createdAt?: string;
   /** Whether the giver agreed to their quote being used as a testimonial. */
   optIn: boolean;
   helpful?: 'yes' | 'no';
@@ -311,7 +319,7 @@ export type InboxData = {
   list: FeedbackEntry[];
 };
 
-export type IntegrationKey = 'github' | 'asc' | 'revenuecat' | 'stripe';
+export type IntegrationKey = 'github' | 'asc' | 'revenuecat' | 'stripe' | 'posthog';
 
 export type Integration = {
   key: IntegrationKey;

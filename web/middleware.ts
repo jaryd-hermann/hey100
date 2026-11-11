@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { updateSession } from '@/lib/supabase/middleware';
+
 /** Serve the static marketing and legal pages. Listing/invite/group routes stay in the App Router. */
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (pathname === '/' || pathname.startsWith('/w/')) {
     return NextResponse.rewrite(new URL('/landing.html', req.url));
@@ -11,9 +13,31 @@ export function middleware(req: NextRequest) {
   if (pathname === '/privacy' || pathname === '/terms') {
     return NextResponse.rewrite(new URL(`${pathname}.html`, req.url));
   }
-  return NextResponse.next();
+  const res = await updateSession(req);
+  res.headers.set('x-pathname', pathname);
+  return res;
 }
 
 export const config = {
-  matcher: ['/', '/w/:code', '/privacy', '/terms'],
+  matcher: [
+    '/',
+    '/w/:code*',
+    '/privacy',
+    '/terms',
+    '/login',
+    '/auth/:path*',
+    '/discover',
+    '/heys',
+    '/chat',
+    '/chat/:path*',
+    '/community',
+    '/community/:path*',
+    '/feedback',
+    '/assistant',
+    '/apps',
+    '/pro',
+    '/profile',
+    '/settings',
+    '/tools',
+  ],
 };

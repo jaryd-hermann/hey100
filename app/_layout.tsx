@@ -24,6 +24,7 @@ import { HeyMenuProvider } from '@/features/nav/HeyMenu';
 import { useProfileSync } from '@/features/profile/useProfileSync';
 import { VerifiedUnlockHost } from '@/features/profile/VerifiedUnlock';
 import { getPostHog } from '@/lib/analytics';
+import { restoreAppIcon } from '@/lib/appIcon';
 import { isPostHogConfigured, warnOnMissingConfig } from '@/lib/config';
 import { AppStoreProvider } from '@/store/AppStore';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
@@ -102,6 +103,10 @@ function AnalyticsGate({ children }: { children: React.ReactNode }) {
 
 function Shell() {
   const { c, isDark } = useTheme();
+
+  useEffect(() => {
+    void restoreAppIcon().catch(() => {});
+  }, []);
 
   // Hydrates the store from the signed-in user's rows; no-ops when signed out.
   useProfileSync();

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -7,7 +8,47 @@ import { Btn } from '@/components/ui/Btn';
 import { Txt } from '@/components/ui/Txt';
 import { radii } from '@/theme/tokens';
 
-const ink = '#111111';
+const ICON = 72;
+const BADGE = 26;
+
+const TILES = [
+  {
+    logo: require('../../../../web/public/landing/logo-1.png'),
+    face: require('../../../../web/public/landing/face-1.jpg'),
+    rotate: '-8deg',
+    ring: '#00FF00',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-2.png'),
+    face: require('../../../../web/public/landing/face-2.png'),
+    rotate: '6deg',
+    ring: '#FFFF00',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-3.png'),
+    face: require('../../../../web/public/landing/face-3.png'),
+    rotate: '9deg',
+    ring: '#00FFFF',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-4.png'),
+    face: require('../../../../web/public/landing/face-4.png'),
+    rotate: '7deg',
+    ring: '#FF00FF',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-5.png'),
+    face: require('../../../../web/public/landing/face-5.jpg'),
+    rotate: '-5deg',
+    ring: '#2E5CFF',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-6.png'),
+    face: require('../../../../web/public/landing/face-6.jpg'),
+    rotate: '-10deg',
+    ring: '#FF5900',
+  },
+];
 
 export function WelcomeStep({
   onContinue,
@@ -32,36 +73,65 @@ export function WelcomeStep({
           height: 34,
           borderRadius: radii.pill,
           borderWidth: 1.5,
-          borderColor: ink,
+          borderColor: '#FFFFFF',
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <Ionicons name="log-in-outline" size={16} color={ink} />
-        <Txt size={13.5} weight={600} color={ink}>
+        <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
+        <Txt size={13.5} weight={600} color="#FFFFFF">
           Log in
         </Txt>
       </Pressable>
 
       <View style={{ flex: 1, justifyContent: 'center', gap: 22 }}>
-        <View style={{ gap: 10 }}>
-          <HeroLogo onLight />
-          <Txt
-            font="system"
-            size={22}
-            weight={700}
-            lh={1.25}
-            color="#000000"
-            style={{ fontFamily: 'Inter-Bold' }}
-          >
-            the &quot;product dating app&quot; for founders and indie makers
-          </Txt>
+        <View style={{ height: 176, marginBottom: 8 }}>
+          {TILES.map((tile, index) => (
+            <View
+              key={index}
+              style={{
+                position: 'absolute',
+                left: 8 + (index % 3) * 108,
+                top: index < 3 ? 0 : 86,
+                width: ICON,
+                height: ICON,
+                transform: [{ rotate: tile.rotate }],
+              }}
+            >
+              <Image
+                source={tile.logo}
+                contentFit="cover"
+                style={{ width: ICON, height: ICON, borderRadius: 18, backgroundColor: '#111111' }}
+              />
+              <View
+                style={{
+                  position: 'absolute',
+                  right: -5,
+                  bottom: -5,
+                  borderRadius: BADGE,
+                  borderWidth: 3,
+                  borderColor: tile.ring,
+                  backgroundColor: tile.ring,
+                }}
+              >
+                <Image
+                  source={tile.face}
+                  contentFit="cover"
+                  style={{ width: BADGE, height: BADGE, borderRadius: BADGE / 2 }}
+                />
+              </View>
+            </View>
+          ))}
         </View>
-
-        <Txt size={22} weight={400} lh={1.35} tracking={-0.2} color={ink}>
-          <Txt size={22} weight={700} lh={1.35} tracking={-0.2} color={ink}>
-            Find people to try your product.{' '}
-          </Txt>
-          DM users, get feedback, and chat with other builders.
+        <HeroLogo />
+        <Txt font="mono" size={27} weight={600} lh={1.2} tracking={-1.35} color="#FFFFFF">
+          the{' '}
+          <Txt font="mono" size={27} weight={600} color="#111111" style={{ backgroundColor: '#C6F24E' }}>
+            {' '}‘product dating app’{' '}
+          </Txt>{' '}
+          for founders and indie makers.
+        </Txt>
+        <Txt size={16} lh={1.5} color="rgba(255,255,255,0.82)">
+          Find people to try your product. DM users, get feedback, and chat with other builders.
         </Txt>
       </View>
 
@@ -85,8 +155,8 @@ export function WelcomeStep({
         />
       </View>
 
-      <Txt size={12.5} color={ink} center style={{ marginTop: 16 }}>
-        For builders &amp; devs with real products
+      <Txt size={12.5} color="rgba(255,255,255,0.7)" center style={{ marginTop: 16 }}>
+        For builders & devs with real products.
       </Txt>
     </View>
   );

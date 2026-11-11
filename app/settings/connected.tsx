@@ -158,6 +158,9 @@ export default function ConnectedAccounts() {
 
       <ConnectSheets
         appId={app.id}
+        appName={app.name}
+        appIcon={app.icon}
+        appHue={app.hue}
         storeUrl={app.links?.find(([kind]) => kind === 'App Store')?.[1]}
         sheet={connect.sheet}
         onClose={() => connect.setSheet(null)}

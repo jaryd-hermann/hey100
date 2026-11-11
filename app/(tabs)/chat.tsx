@@ -5,20 +5,25 @@ import { Pressable, View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
+import { PageTabs } from '@/components/ui/PageTabs';
 import { Txt } from '@/components/ui/Txt';
 import { MATCH_APPS, shortName } from '@/data/mock';
 import type { Match } from '@/data/types';
-import { Segmented } from '@/components/ui/Segmented';
+import { useCommunityHome } from '@/data/repo/community';
 import { AdminInbox } from '@/features/chat/AdminInbox';
 import { firstName, TEAM_ID, threadPreview, timeRank } from '@/features/chat/chatMeta';
+import { teamUnreadCount, useTeamReadAt } from '@/features/chat/teamUnread';
 import { JarydMark } from '@/features/chat/TeamMark';
 import { CommunityHome } from '@/features/community/CommunityHome';
+import { seedHome } from '@/features/community/seed';
 import { OfficialMark } from '@/features/community/OfficialMark';
 import { useDevLoop } from '@/features/dev/useDevLoop';
 import { CommunityPromoCard } from '@/features/marketing/CommunityPromoCard';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
+import { layout } from '@/theme/tokens';
 
 const HEY100_ICON = require('../../assets/images/icon.png');
 
@@ -32,10 +37,24 @@ export default function ChatScreen() {
   const router = useRouter();
   const store = useStore();
   const loop = useDevLoop();
-  const { isAdmin } = useAuth();
+  const { isAdmin, userId } = useAuth();
+  const { devMode } = useDevMode();
+  const { data: community } = useCommunityHome();
   const { desk: deskParam } = useLocalSearchParams<{ desk?: string }>();
   const [desk, setDesk] = useState<ChatDesk>('dms');
   const deleted = store.deletedChats;
+  const teamMessages = loop.messages(TEAM_ID);
+  const teamReadAt = useTeamReadAt(userId);
+  const teamUnread = deleted.includes(TEAM_ID) ? 0 : teamUnreadCount(teamMessages, teamReadAt);
+  const dmUnread =
+    teamUnread +
+    loop.matches
+      .filter((match) => !deleted.includes(match.id))
+      .reduce((sum, match) => sum + (match.unread ?? 0), 0);
+  const communityUnread = useMemo(() => {
+    const seeded = isAdmin && devMode ? seedHome().mine : [];
+    return [...(community?.mine ?? []), ...seeded].filter((group) => group.unread).length;
+  }, [community, devMode, isAdmin]);
 
   useEffect(() => {
     if (deskParam === 'community' || deskParam === 'admin' || deskParam === 'dms') {
@@ -63,24 +82,25 @@ export default function ChatScreen() {
 
   return (
     <Screen
-      title="Chat"
-      headerRight={
-        <Segmented
-          value={desk}
-          onChange={setDesk}
-          options={
-            isAdmin
-              ? [
-                  { id: 'dms', label: 'DMs' },
-                  { id: 'community', label: 'Community' },
-                  { id: 'admin', label: 'Admin' },
-                ]
-              : [
-                  { id: 'dms', label: 'DMs' },
-                  { id: 'community', label: 'Community' },
-                ]
-          }
-        />
+      header={
+        <View style={{ paddingHorizontal: layout.gutter, paddingTop: 8, paddingBottom: 14 }}>
+          <PageTabs
+            value={desk}
+            onChange={setDesk}
+            options={
+              isAdmin
+                ? [
+                    { id: 'dms', label: 'DMs', count: dmUnread },
+                    { id: 'community', label: 'Community', count: communityUnread },
+                    { id: 'admin', label: 'Admin' },
+                  ]
+                : [
+                    { id: 'dms', label: 'DMs', count: dmUnread },
+                    { id: 'community', label: 'Community', count: communityUnread },
+                  ]
+            }
+          />
+        </View>
       }
     >
       {desk === 'admin' && isAdmin ? (
@@ -91,7 +111,13 @@ export default function ChatScreen() {
         <View style={{ gap: 4 }}>
           {rows.map((row) =>
             row.kind === 'team' ? (
-              <TeamRow key={row.id} last={row.last} time={row.time} onPress={() => open(row.id)} />
+              <TeamRow
+                key={row.id}
+                last={row.last}
+                time={row.time}
+                unread={teamUnread}
+                onPress={() => open(row.id)}
+              />
             ) : (
               <MatchRow key={row.id} match={row.match} onPress={() => open(row.id)} />
             ),
@@ -114,15 +140,27 @@ export default function ChatScreen() {
   );
 }
 
-function TeamRow({ last, time, onPress }: { last: string; time: string; onPress: () => void }) {
+function TeamRow({
+  last,
+  time,
+  unread,
+  onPress,
+}: {
+  last: string;
+  time: string;
+  unread: number;
+  onPress: () => void;
+}) {
   const { c } = useTheme();
   const badgeSize = Math.round(58 * 0.4);
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={unread ? `Jaryd from Hey100, ${unread} unread` : 'Jaryd from Hey100'}
       onPress={onPress}
       style={({ pressed }) => ({
+        position: 'relative',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 14,
@@ -130,6 +168,18 @@ function TeamRow({ last, time, onPress }: { last: string; time: string; onPress:
         opacity: pressed ? 0.8 : 1,
       })}
     >
+      {unread ? (
+        <View
+          style={{
+            position: 'absolute',
+            left: -14,
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: c.accentText,
+          }}
+        />
+      ) : null}
       <View style={{ width: 58, height: 58 }}>
         <JarydMark size={58} />
         <View
@@ -156,12 +206,12 @@ function TeamRow({ last, time, onPress }: { last: string; time: string; onPress:
             <OfficialMark size={15} />
           </View>
           {time ? (
-            <Txt size={13} muted>
+            <Txt size={13} muted={!unread} color={unread ? c.accentText : undefined}>
               {time}
             </Txt>
           ) : null}
         </View>
-        <Txt size={14.5} muted numberOfLines={1}>
+        <Txt size={14.5} muted={!unread} numberOfLines={1}>
           {last}
         </Txt>
       </View>

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 
-import { countAll, db, notifySignup, positionOf, REFERRAL_BOOST_MS } from '@/lib/waitlist';
+import { countAll, db, notifySignup, positionOf, REFERRAL_BOOST_MS, welcomeSignup } from '@/lib/waitlist';
 
 export const runtime = 'nodejs';
 
@@ -32,6 +32,18 @@ function cleanCode(v: unknown) {
     .slice(0, 32);
 }
 
+function cleanProduct(v: unknown) {
+  const s = String(v || '')
+    .trim()
+    .replace(/[\u0000-\u001f\u007f]/g, '');
+  if (s.length < 4 || s.length > 500 || !/\w+\.\w{2,}/.test(s)) return null;
+  return s;
+}
+
+function flag(v: unknown, fallback = true) {
+  return typeof v === 'boolean' ? v : fallback;
+}
+
 export async function GET(req: Request) {
   try {
     const sql = db();
@@ -59,6 +71,12 @@ export async function POST(req: Request) {
     if (email.length > 254 || !EMAIL_RE.test(email)) {
       return json(400, { error: 'Enter a valid email address.' });
     }
+    const productUrl = cleanProduct(body.productUrl);
+    if (!productUrl) {
+      return json(400, { error: 'Add a link to your product or App Store page.' });
+    }
+    const okVideo = flag(body.okVideo);
+    const okNewsletter = flag(body.okNewsletter);
 
     const sql = db();
     const ip =
@@ -76,6 +94,11 @@ export async function POST(req: Request) {
 
     const [existing] = await sql`SELECT id, code, score FROM waitlist WHERE email = ${email}`;
     if (existing) {
+      await sql`
+        UPDATE waitlist
+        SET product_url = ${productUrl}, ok_video = ${okVideo}, ok_newsletter = ${okNewsletter}
+        WHERE id = ${existing.id}
+      `;
       return json(200, {
         ok: true,
         existing: true,
@@ -95,20 +118,29 @@ export async function POST(req: Request) {
     const joinedAt = Date.now();
     const base = (email.split('@')[0] || '').replace(/[^a-z0-9]/g, '').slice(0, 14) || 'you';
     let row: { id: number; code: string; score: number } | null = null;
+    let created = false;
     for (let attempt = 0; attempt < 6 && !row; attempt++) {
       const code = attempt === 0 ? base : attempt < 5 ? base.slice(0, 10) + random(4) : random(10);
       try {
         const rows = await sql`
-          INSERT INTO waitlist (email, code, referred_by, score)
-          VALUES (${email}, ${code}, ${referrer ? ref : null}, ${joinedAt})
+          INSERT INTO waitlist (email, code, referred_by, score, product_url, ok_video, ok_newsletter)
+          VALUES (${email}, ${code}, ${referrer ? ref : null}, ${joinedAt}, ${productUrl}, ${okVideo}, ${okNewsletter})
           ON CONFLICT (email) DO NOTHING
           RETURNING id, code, score
         `;
         if (rows.length) {
           row = { id: Number(rows[0].id), code: String(rows[0].code), score: Number(rows[0].score) };
+          created = true;
         } else {
           const [dup] = await sql`SELECT id, code, score FROM waitlist WHERE email = ${email}`;
-          if (dup) row = { id: Number(dup.id), code: String(dup.code), score: Number(dup.score) };
+          if (dup) {
+            row = { id: Number(dup.id), code: String(dup.code), score: Number(dup.score) };
+            await sql`
+              UPDATE waitlist
+              SET product_url = ${productUrl}, ok_video = ${okVideo}, ok_newsletter = ${okNewsletter}
+              WHERE id = ${dup.id}
+            `;
+          }
           referrer = null;
         }
       } catch (err) {
@@ -134,7 +166,9 @@ export async function POST(req: Request) {
       count,
       code: row.code,
       referredBy: referrer ? ref : null,
+      productUrl,
     });
+    if (created) await welcomeSignup(email);
 
     return json(200, { ok: true, code: row.code, position, count });
   } catch (err) {

@@ -36,7 +36,8 @@ export async function GET(req: Request) {
 
     const sql = db();
     const rows = await sql`
-      SELECT email, code, referred_by, referrals, joined_at FROM waitlist ORDER BY score, id
+      SELECT email, code, referred_by, referrals, joined_at, product_url, ok_video, ok_newsletter
+      FROM waitlist ORDER BY score, id
     `;
     const out = rows.map((r, i) => ({
       position: i + 1,
@@ -45,13 +46,16 @@ export async function GET(req: Request) {
       joinedAt: new Date(String(r.joined_at)).toISOString(),
       referredBy: r.referred_by ? String(r.referred_by) : '',
       referrals: Number(r.referrals || 0),
+      productUrl: r.product_url ? String(r.product_url) : '',
+      okVideo: r.ok_video === false ? 'no' : 'yes',
+      okNewsletter: r.ok_newsletter === false ? 'no' : 'yes',
     }));
 
     if (url.searchParams.get('format') === 'json') {
       return json(200, { count: out.length, rows: out });
     }
 
-    const header = ['position', 'email', 'code', 'joinedAt', 'referredBy', 'referrals'] as const;
+    const header = ['position', 'email', 'productUrl', 'okVideo', 'okNewsletter', 'code', 'joinedAt', 'referredBy', 'referrals'] as const;
     const csv =
       [header.join(','), ...out.map((row) => header.map((k) => csvCell(row[k])).join(','))].join(
         '\r\n',

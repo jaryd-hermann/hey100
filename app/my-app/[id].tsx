@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
@@ -43,7 +44,7 @@ export default function OwnerAppPage() {
   const [editLayout, setEditLayout] = useState(false);
   const [editSection, setEditSection] = useState<EditSectionKey | null>(null);
   const [mediaUploading, setMediaUploading] = useState(false);
-  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(true);
 
   /**
    * The store already has the edit, so a failure here means the screen and the
@@ -161,7 +162,7 @@ export default function OwnerAppPage() {
           accessibilityLabel="Preview on Discover"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}
         >
-          <Ionicons name="eye-outline" size={20} color={c.ink} />
+          <Glyph source={glyphs.eye} size={20} color={c.ink} />
           <Txt size={14} weight={600}>
             Preview
           </Txt>
@@ -259,6 +260,8 @@ export default function OwnerAppPage() {
       <PitchGate
         visible={editSection === 'pitch'}
         builder={app.builder || store.user.realName}
+        photo={store.user.photo}
+        appName={app.name}
         onClose={() => setEditSection(null)}
         onPublish={async (uri, seconds) => {
           const patch = { pitchUri: uri, pitchSeconds: seconds };
@@ -279,6 +282,9 @@ export default function OwnerAppPage() {
 
       <ConnectSheets
         appId={app.id}
+        appName={app.name}
+        appIcon={app.icon}
+        appHue={app.hue}
         storeUrl={app.links?.find(([kind]) => kind === 'App Store')?.[1]}
         sheet={connect.sheet}
         onClose={() => connect.setSheet(null)}

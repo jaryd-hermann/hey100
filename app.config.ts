@@ -34,7 +34,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   newArchEnabled: false,
-  icon: './assets/images/icon.png',
+  icon: './assets/images/app-icons/lime.png',
   assetBundlePatterns: ['assets/**/*'],
 
   ios: {
@@ -136,8 +136,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: BUNDLE_ID,
     edgeToEdgeEnabled: true,
     adaptiveIcon: {
-      foregroundImage: './assets/images/adaptive-icon.png',
-      backgroundColor: '#B2EA5C',
+      foregroundImage: './assets/images/app-icons/lime.png',
+      backgroundColor: '#00FF00',
     },
     intentFilters: [
       {
@@ -206,6 +206,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     './plugins/withIosBuildFixes',
+    [
+      'expo-alternate-app-icons',
+      [
+        { name: 'Navy', ios: './assets/images/app-icons/navy.png', android: { foregroundImage: './assets/images/app-icons/navy.png', backgroundColor: '#0020A1' } },
+        { name: 'Yellow', ios: './assets/images/app-icons/yellow.png', android: { foregroundImage: './assets/images/app-icons/yellow.png', backgroundColor: '#FFFF00' } },
+        { name: 'White', ios: './assets/images/app-icons/white.png', android: { foregroundImage: './assets/images/app-icons/white.png', backgroundColor: '#FFFFFF' } },
+        { name: 'Orange', ios: './assets/images/app-icons/orange.png', android: { foregroundImage: './assets/images/app-icons/orange.png', backgroundColor: '#FF5900' } },
+        { name: 'Cyan', ios: './assets/images/app-icons/cyan.png', android: { foregroundImage: './assets/images/app-icons/cyan.png', backgroundColor: '#00FFFF' } },
+        { name: 'Violet', ios: './assets/images/app-icons/violet.png', android: { foregroundImage: './assets/images/app-icons/violet.png', backgroundColor: '#7B00FF' } },
+        { name: 'Red', ios: './assets/images/app-icons/red.png', android: { foregroundImage: './assets/images/app-icons/red.png', backgroundColor: '#FF0000' } },
+        { name: 'Magenta', ios: './assets/images/app-icons/magenta.png', android: { foregroundImage: './assets/images/app-icons/magenta.png', backgroundColor: '#FF00FF' } },
+        { name: 'Indigo', ios: './assets/images/app-icons/indigo.png', android: { foregroundImage: './assets/images/app-icons/indigo.png', backgroundColor: '#0000EB' } },
+        { name: 'Blue', ios: './assets/images/app-icons/blue.png', android: { foregroundImage: './assets/images/app-icons/blue.png', backgroundColor: '#2E5CFF' } },
+        { name: 'Ink', ios: './assets/images/app-icons/ink.png', android: { foregroundImage: './assets/images/app-icons/ink.png', backgroundColor: '#0E100F' } },
+      ],
+    ],
   ],
 
   experiments: {

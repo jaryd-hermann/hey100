@@ -21,7 +21,11 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
+import { useCommunityHome } from '@/data/repo/community';
 import { streamListingCoach } from '@/data/repo/coach';
+import { IntegrationFlow } from '@/features/apps/connect/IntegrationFlow';
+import type { FlowId } from '@/features/apps/connect/flows';
+import { useStore } from '@/store/AppStore';
 import { CoachMarkdown } from '@/features/feedback/CoachMarkdown';
 import type { OwnedApp } from '@/data/types';
 import type { UserProfile } from '@/store/AppStore';
@@ -51,7 +55,12 @@ export function ListingCoachSheet({
   onRecordPitch?: () => void;
 }) {
   const { c, isDark } = useTheme();
+  const store = useStore();
+  const groups = useCommunityHome();
   const router = useRouter();
+  const [connect, setConnect] = useState<FlowId | null>(null);
+  const connections = store.connections[app.id] ?? {};
+  const missing = (['stripe', 'revenuecat', 'github', 'posthog'] as const).filter((key) => !connections[key]);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const scroll = useRef<ScrollView>(null);
@@ -164,6 +173,26 @@ export function ListingCoachSheet({
     router.push('/paywall');
   };
 
+  const coachFacts = () => {
+    const inbox = store.inbox[app.id];
+    const funnel = inbox?.funnel;
+    const room = [...(groups.data?.mine ?? []), ...(groups.data?.discover ?? [])]
+      .slice(0, 12)
+      .map((group) => `${group.name} (${group.memberCount} members): ${group.bio || group.audience || 'no bio'}`)
+      .join('; ');
+    return [
+      `Connected integrations: ${
+        (['stripe', 'revenuecat', 'github', 'posthog'] as const).filter((key) => connections[key]).join(', ') || 'none'
+      }.`,
+      `Missing integrations: ${missing.join(', ') || 'none'}.`,
+      'Stripe verifies web revenue with a read-only restricted key (rk_). RevenueCat verifies mobile subscriptions and customers with a secret key (sk_). GitHub verifies commits after sign-in and a repo pick. PostHog verifies unique people who sent any event, after the builder signs in and picks a project.',
+      'When integrations are missing and the question is about verifying, end with one line per missing provider using exactly [[connect:stripe]], [[connect:revenuecat]], [[connect:github]], or [[connect:posthog]].',
+      `Basic analytics: ${funnel?.views ?? 0} views, ${funnel?.skips ?? 0} skips, ${funnel?.heys ?? 0} heys, hey ratio ${funnel?.ratio ?? '—'}. Responses ${inbox?.responses ?? 0}. Impression ${inbox?.impression ?? '—'}. Fair price ${inbox?.price ?? '—'}. Would keep ${inbox?.yes ?? 0}% yes, ${inbox?.maybe ?? 0}% maybe, ${inbox?.no ?? 0}% no.`,
+      'Advanced analytics are computed from people who opened the listing, overlapped with their profile interests, devices, and job, plus hey, pass, scroll, and pitch rows. A dash means that count is empty. Do not invent those numbers.',
+      `Groups: open groups join instantly, request groups need approval, criteria groups join when the builder matches, private match groups are only for people who matched the listing. Visible groups: ${room || 'none yet'}. Suggest a fit from this list only.`,
+    ].join('\n');
+  };
+
   const send = async (text: string) => {
     const next = text.trim();
     if (!next || busy) return;
@@ -181,13 +210,19 @@ export function ListingCoachSheet({
     setThinking(true);
     setStreamText('');
     try {
-      const reply = await streamListingCoach(
+      const replyRaw = await streamListingCoach(
         app.id,
         history
           .filter((turn, index) => !(index === 0 && turn.role === 'assistant'))
-          .map((turn) => ({
+          .map((turn, index, all) => ({
             role: turn.role,
-            content: turn.text.replace(/\[\[\s*action\s*:\s*record_pitch\s*\]\]/gi, '').trim(),
+            content:
+              (index === all.length - 1 && turn.role === 'user'
+                ? `${turn.text}\n\n${coachFacts()}`
+                : turn.text
+              )
+                .replace(/\[\[\s*action\s*:\s*record_pitch\s*\]\]/gi, '')
+                .trim(),
           }))
           .filter((turn) => turn.content),
         (full) => {
@@ -196,6 +231,10 @@ export function ListingCoachSheet({
           requestAnimationFrame(() => scroll.current?.scrollToEnd({ animated: false }));
         },
       );
+      const reply =
+        /verify my app/i.test(next) && missing.length && !/\[\[\s*connect\s*:/i.test(replyRaw)
+          ? `${replyRaw}\n\n${missing.map((id) => `[[connect:${id}]]`).join('\n')}`
+          : replyRaw;
       const done = [...history, { role: 'assistant' as const, text: reply }];
       setTurns(done);
       setStreamText('');
@@ -267,6 +306,32 @@ export function ListingCoachSheet({
             </ChipThumb>
           ),
         },
+    ...(missing.length
+      ? [
+          {
+            key: 'verify',
+            title: 'How to verify my app',
+            body: 'Stripe, RevenueCat, and GitHub, and what is still missing.',
+            prompt: 'How to verify my app',
+            media: (
+              <ChipThumb>
+                <Ionicons name="checkmark-circle-outline" size={22} color={c.ink} />
+              </ChipThumb>
+            ),
+          },
+        ]
+      : []),
+    {
+      key: 'groups',
+      title: 'Which groups fit me',
+      body: 'How groups work, and which ones match this app.',
+      prompt: 'How do groups work, which groups exist, and which might be a fit for me?',
+      media: (
+        <ChipThumb>
+          <Ionicons name="people-outline" size={22} color={c.ink} />
+        </ChipThumb>
+      ),
+    },
     {
       key: 'audience',
       title: `Brainstorm ways to reach ${audience}`,
@@ -314,6 +379,7 @@ export function ListingCoachSheet({
   const empty = turns.length <= 1 && !thinking && !streamText;
 
   return (
+    <>
     <Sheet visible={visible} onClose={onClose} full scroll={false} flush>
       <View style={{ flex: 1, overflow: 'hidden', backgroundColor: drawerBg }}>
         <View
@@ -426,6 +492,7 @@ export function ListingCoachSheet({
                     key={`${turn.role}-${index}`}
                     text={turn.text}
                     onRecordPitch={onRecordPitch}
+                    onConnect={setConnect}
                   />
                 )
               ) : (
@@ -448,7 +515,7 @@ export function ListingCoachSheet({
             )}
             {thinking ? <ThinkingMark /> : null}
             {streamText ? (
-              <AssistantReply text={streamText} streaming onRecordPitch={onRecordPitch} />
+              <AssistantReply text={streamText} streaming onRecordPitch={onRecordPitch} onConnect={setConnect} />
             ) : null}
           </ScrollView>
 
@@ -505,53 +572,80 @@ export function ListingCoachSheet({
               paddingTop: 4,
             }}
           >
-            <Pressable
-              onPress={locked ? gate : undefined}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-                borderRadius: radii.pill,
-                backgroundColor: c.raised,
-                paddingLeft: 18,
-                paddingRight: 6,
-                minHeight: 52,
-              }}
-            >
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="Ask me anything..."
-                placeholderTextColor={c.muted}
-                editable={!locked && !busy}
-                onFocus={locked ? gate : undefined}
-                onSubmitEditing={() => void send(draft)}
-                style={{
-                  flex: 1,
-                  color: c.ink,
-                  fontFamily: fonts.body,
-                  fontSize: 16,
-                  paddingVertical: 14,
-                }}
-              />
+            {locked ? (
               <Pressable
-                onPress={() => (locked ? gate() : void send(draft))}
+                accessibilityRole="button"
+                accessibilityLabel="Ask me anything"
+                onPress={gate}
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: draft.trim() && !locked ? c.ink : 'transparent',
+                  gap: 10,
+                  borderRadius: radii.pill,
+                  backgroundColor: c.raised,
+                  paddingLeft: 18,
+                  paddingRight: 6,
+                  minHeight: 52,
                 }}
               >
-                <Ionicons
-                  name="arrow-up"
-                  size={18}
-                  color={draft.trim() && !locked ? c.bg : c.muted}
-                />
+                <Txt size={16} color={c.muted} style={{ flex: 1, paddingVertical: 14 }}>
+                  Ask me anything...
+                </Txt>
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="arrow-up" size={18} color={c.muted} />
+                </View>
               </Pressable>
-            </Pressable>
+            ) : (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  borderRadius: radii.pill,
+                  backgroundColor: c.raised,
+                  paddingLeft: 18,
+                  paddingRight: 6,
+                  minHeight: 52,
+                }}
+              >
+                <TextInput
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder="Ask me anything..."
+                  placeholderTextColor={c.muted}
+                  editable={!busy}
+                  onSubmitEditing={() => void send(draft)}
+                  style={{
+                    flex: 1,
+                    color: c.ink,
+                    fontFamily: fonts.body,
+                    fontSize: 16,
+                    paddingVertical: 14,
+                  }}
+                />
+                <Pressable
+                  onPress={() => void send(draft)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: draft.trim() ? c.ink : 'transparent',
+                  }}
+                >
+                  <Ionicons name="arrow-up" size={18} color={draft.trim() ? c.bg : c.muted} />
+                </Pressable>
+              </View>
+            )}
           </View>
         </Animated.View>
 
@@ -563,6 +657,16 @@ export function ListingCoachSheet({
         ) : null}
       </View>
     </Sheet>
+    <IntegrationFlow
+      visible={!!connect}
+      provider={connect}
+      appId={app.id}
+      appName={app.name}
+      appIcon={app.icon}
+      appHue={app.hue}
+      onClose={() => setConnect(null)}
+    />
+    </>
   );
 }
 
@@ -624,22 +728,62 @@ function pluralAudience(value: string): string {
   return `${value}s`;
 }
 
+const CONNECT_CARD: Record<FlowId, { title: string; body: string }> = {
+  stripe: { title: 'Connect Stripe', body: 'Verify web revenue with a read-only key.' },
+  revenuecat: { title: 'Connect RevenueCat', body: 'Verify subscriptions and customers.' },
+  github: { title: 'Connect GitHub', body: 'Verify commits from a repo.' },
+  posthog: { title: 'Connect PostHog', body: 'Verify active users with a read-only sign-in.' },
+};
+
 function AssistantReply({
   text,
   streaming,
   onRecordPitch,
+  onConnect,
 }: {
   text: string;
   streaming?: boolean;
   onRecordPitch?: () => void;
+  onConnect?: (id: FlowId) => void;
 }) {
   const { c } = useTheme();
   const recordPitch = /\[\[\s*action\s*:\s*record_pitch\s*\]\]/i.test(text);
-  const body = text.replace(/\[\[\s*action\s*:\s*record_pitch\s*\]\]/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+  const connects: FlowId[] = [];
+  const body = text
+    .replace(/\[\[\s*action\s*:\s*record_pitch\s*\]\]/gi, '')
+    .replace(/\[\[\s*connect\s*:\s*(stripe|revenuecat|github|posthog)\s*\]\]/gi, (_match, id: string) => {
+      const key = id as FlowId;
+      if (!connects.includes(key)) connects.push(key);
+      return '';
+    })
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 
   return (
     <View style={{ gap: 12 }}>
       {body ? <CoachMarkdown text={body} /> : null}
+      {connects.map((id) => (
+        <Pressable
+          key={id}
+          accessibilityRole="button"
+          onPress={() => onConnect?.(id)}
+          style={{
+            borderWidth: 1.5,
+            borderColor: c.ink,
+            borderRadius: 18,
+            backgroundColor: c.raised,
+            padding: 14,
+            gap: 4,
+          }}
+        >
+          <Txt size={15} weight={700}>
+            {CONNECT_CARD[id].title}
+          </Txt>
+          <Txt size={12.5} muted>
+            {CONNECT_CARD[id].body}
+          </Txt>
+        </Pressable>
+      ))}
       {recordPitch && onRecordPitch && !streaming ? (
         <View
           style={{

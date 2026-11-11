@@ -2,105 +2,128 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Glass } from '@/components/ui/Glass';
 import { Txt } from '@/components/ui/Txt';
-import { useTheme } from '@/theme/ThemeProvider';
-import { radii } from '@/theme/tokens';
+import { LIME } from '@/features/onboarding/look';
+import { appHueColor } from '@/theme/oklch';
 
-export type SummaryRow = {
-  /** Optional: most rows read better as plain lines. */
+export type SummaryStepProps = {
+  name: string;
+  subtitle: string;
   icon?: string;
-  text: string;
-  /** Sits above the value, when the value needs saying what it answers. */
-  label?: string;
-  /** A quieter line under the value, e.g. the listing's subtitle. */
-  sub?: string;
-  /** Takes the glyph's place, for a row that has a picture of its own. */
-  image?: string;
-  /** Shown under the value, e.g. the screenshots a listing carries. */
-  thumbs?: string[];
-  /** Shape of those thumbnails, so they match the listing's own carousel. */
-  ratio?: number;
-  /** Greyed with an eye-off icon: still to come, not yet shared. */
-  pending?: boolean;
+  hue: number;
+  stage: string;
+  devices: string;
+  shotLabel: string;
+  looking: string;
+  ageGender: string;
+  feedback: string;
 };
 
-export function SummaryStep({ rows }: { rows: SummaryRow[] }) {
-  const { c } = useTheme();
+const ROWS: { key: keyof Pick<SummaryStepProps, 'devices' | 'shotLabel' | 'looking' | 'ageGender' | 'feedback'>; label: string }[] = [
+  { key: 'devices', label: 'DEVICES' },
+  { key: 'shotLabel', label: 'SCREENSHOTS' },
+  { key: 'looking', label: 'LOOKING FOR' },
+  { key: 'ageGender', label: 'AGE · GENDER' },
+  { key: 'feedback', label: 'FEEDBACK ON' },
+];
+
+/** The tilted white card from the onboarding prototype. */
+export function SummaryStep(props: SummaryStepProps) {
+  const letter = (props.name || 'A').trim().charAt(0).toUpperCase();
 
   return (
-    <Glass radius={radii.cardLg} intensity={30}>
-      <View style={{ padding: 6 }}>
-        {rows.map((row, index) => (
+    <View style={{ marginBottom: 8, transform: [{ rotate: '-1deg' }] }}>
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 6,
+          bottom: -6,
+          borderRadius: 24,
+          backgroundColor: LIME,
+        }}
+      />
+      <View
+        style={{
+          padding: 18,
+          borderRadius: 24,
+          backgroundColor: '#FFFFFF',
+          borderWidth: 2,
+          borderColor: '#111111',
+          gap: 12,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View
-            key={`${row.text}-${index}`}
             style={{
-              flexDirection: 'row',
+              width: 56,
+              height: 56,
+              borderRadius: 15,
+              borderWidth: 2,
+              borderColor: '#111111',
+              backgroundColor: appHueColor(props.hue),
+              overflow: 'hidden',
               alignItems: 'center',
-              gap: 14,
-              paddingVertical: 14,
-              paddingHorizontal: 12,
-              borderTopWidth: index === 0 ? 0 : 1,
-              borderColor: c.line,
+              justifyContent: 'center',
             }}
           >
-            {/* No column: a row without a mark starts where the icon starts, so
-                the card has one left edge rather than two. */}
-            {row.image ? (
-              <Image
-                source={{ uri: row.image }}
-                style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: c.raised }}
-                contentFit="cover"
-              />
-            ) : row.pending || row.icon ? (
-              <Txt font="mono" size={15} color={row.pending ? c.muted : c.accentText}>
-                {row.pending ? '⊘' : row.icon}
+            {props.icon ? (
+              <Image source={{ uri: props.icon }} style={{ width: 56, height: 56 }} contentFit="cover" />
+            ) : (
+              <Txt font="logo" size={26} color="#111111">
+                {letter}
+              </Txt>
+            )}
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt font="mono" size={18} weight={700} color="#111111" tracking={-0.5} numberOfLines={2}>
+              {props.name || 'Your app'}
+            </Txt>
+            {props.subtitle ? (
+              <Txt size={13.5} color="#111111" numberOfLines={2}>
+                {props.subtitle}
               </Txt>
             ) : null}
+          </View>
+        </View>
 
-            <View style={{ flex: 1, gap: 5 }}>
-              {row.label ? (
-                <Txt size={12.5} muted>
-                  {row.label}
-                </Txt>
-              ) : null}
+        <View
+          style={{
+            alignSelf: 'flex-start',
+            paddingVertical: 5,
+            paddingHorizontal: 10,
+            borderRadius: 9,
+            backgroundColor: LIME,
+            borderWidth: 1.5,
+            borderColor: '#111111',
+          }}
+        >
+          <Txt font="mono" size={11} weight={700} color="#111111">
+            {props.stage.toUpperCase()}
+          </Txt>
+        </View>
 
-              <Txt
-                size={15}
-                weight={row.pending ? 400 : 500}
-                color={row.pending ? c.muted : c.ink}
-                numberOfLines={2}
-              >
-                {row.text}
-              </Txt>
-
-              {row.sub ? (
-                <Txt size={12.5} lh={1.35} muted numberOfLines={2}>
-                  {row.sub}
-                </Txt>
-              ) : null}
-
-              {row.thumbs?.length ? (
-                <View style={{ flexDirection: 'row', gap: 5, marginTop: 1 }}>
-                  {row.thumbs.map((uri) => (
-                    <Image
-                      key={uri}
-                      source={{ uri }}
-                      style={{
-                        width: 26,
-                        aspectRatio: row.ratio ?? 1,
-                        borderRadius: 5,
-                        backgroundColor: c.raised,
-                      }}
-                      contentFit="cover"
-                    />
-                  ))}
-                </View>
-              ) : null}
-            </View>
+        {ROWS.map((row) => (
+          <View
+            key={row.label}
+            style={{
+              gap: 4,
+              paddingTop: 11,
+              borderTopWidth: 1.5,
+              borderTopColor: 'rgba(17,17,17,0.1)',
+            }}
+          >
+            <Txt font="mono" size={10.5} weight={700} color="#5B625C" tracking={1.05}>
+              {row.label}
+            </Txt>
+            <Txt size={15} weight={600} lh={1.4} color="#111111">
+              {props[row.key] || 'Not set'}
+            </Txt>
           </View>
         ))}
       </View>
-    </Glass>
+    </View>
   );
 }

@@ -150,24 +150,23 @@ export function CommunityHome() {
           mine.map((group) => <GroupRow key={group.id} group={group} onPress={() => openGroup(group)} />)
         ) : (
           <Txt size={14.5} muted>
-            You have not joined a group yet. Create one, or pick from Find new groups.
+            {discover.length
+              ? 'You have not joined a group yet. Create one, or pick from Find new groups.'
+              : 'You have not joined a group yet. Create one to get started.'}
           </Txt>
         )}
       </View>
 
-      <View style={{ gap: 12 }}>
-        <Label>Find new groups</Label>
-        {discover.length ? (
-          discover.map((group) => (
+      {discover.length ? (
+        <View style={{ gap: 12 }}>
+          <Label>Find new groups</Label>
+          {discover.map((group) => (
             <DiscoverCard key={group.id} group={group} onPress={() => openGroup(group)} />
-          ))
-        ) : (
-          <Txt size={14.5} muted>
-            No other groups yet. Yours will show up here for everyone else.
-          </Txt>
-        )}
-        <CreateGroupPromo onPress={() => setCreating(true)} />
-      </View>
+          ))}
+        </View>
+      ) : null}
+
+      <CreateGroupPromo onPress={() => setCreating(true)} />
 
       <Sheet
         visible={creating}

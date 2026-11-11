@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { Image } from 'expo-image';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +14,7 @@ import { queryKeys } from '@/data/repo/keys';
 import { demoFeedback, demoHeyMe, demoReply, type DemoResult } from '@/data/repo/loop';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { signOut } from '@/features/auth/signIn';
+import { APP_ICONS, chooseAppIcon, savedAppIcon } from '@/lib/appIcon';
 import { openLegal } from '@/lib/legal';
 import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
@@ -41,6 +43,12 @@ export default function Settings() {
   const store = useStore();
   const { isAdmin } = useAuth();
   const { devMode, setDevMode, simulateCooldown, setSimulateCooldown } = useDevMode();
+  const toast = useToast();
+  const [appIcon, setAppIcon] = useState<string | null>(null);
+
+  useEffect(() => {
+    void savedAppIcon().then(setAppIcon);
+  }, []);
 
   const connected = Object.values(store.connections[store.primaryApp.id] ?? {}).filter(
     Boolean,
@@ -163,6 +171,41 @@ export default function Settings() {
               );
             })}
           </View>
+
+          <Label>App icon</Label>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 10, paddingVertical: 2 }}
+          >
+            {APP_ICONS.map((icon) => {
+              const active = appIcon === icon.native;
+              return (
+                <Pressable
+                  key={icon.label}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={`${icon.label} app icon`}
+                  onPress={() => {
+                    setAppIcon(icon.native);
+                    void chooseAppIcon(icon.native).catch((error) => {
+                      toast(error instanceof Error ? error.message : 'Could not change the app icon');
+                    });
+                  }}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    borderWidth: active ? 2.5 : 1,
+                    borderColor: active ? c.ink : c.line,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Image source={icon.source} style={{ width: '100%', height: '100%' }} />
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
 
         <Card padding={4} radius={radii.cardLg}>

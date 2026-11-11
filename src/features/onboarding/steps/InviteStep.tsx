@@ -1,98 +1,110 @@
 import React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 
-import { Btn } from '@/components/ui/Btn';
-import { Card } from '@/components/ui/Card';
 import { Txt } from '@/components/ui/Txt';
-import { useTheme } from '@/theme/ThemeProvider';
-import { fonts, radii } from '@/theme/tokens';
+import { fonts } from '@/theme/tokens';
+
+import { INK, LIME } from '../look';
 
 export type InviteStepProps = {
   code: string;
   onChangeCode: (code: string) => void;
   redeemed: boolean;
   invitedBy: string | null;
-  /** The server decides whether a code is valid, so the step only reports the press. */
-  onRedeem: () => void;
   checking?: boolean;
-  onWaitlist?: () => void;
-  title?: string;
-  body?: string;
-  waitlistLabel?: string;
 };
 
-export function InviteStep({
-  code,
-  onChangeCode,
-  redeemed,
-  invitedBy,
-  onRedeem,
-  checking = false,
-  onWaitlist,
-  title,
-  body = 'Paste the code so you both get free matches.',
-  waitlistLabel,
-}: InviteStepProps) {
-  const { c } = useTheme();
-
+/** The HTML invite card: a white sticker with a dashed code field. */
+export function InviteStep({ code, onChangeCode, redeemed, invitedBy, checking = false }: InviteStepProps) {
   return (
-    <View style={{ gap: 18 }}>
-      {title ? (
-        <Txt font="mono" size={22} weight={500} lh={1.25}>
-          {title}
-        </Txt>
-      ) : null}
-      <Txt size={15.5} lh={1.5} muted>
-        {body}
-      </Txt>
-
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <TextInput
-          value={code}
-          onChangeText={(next) => onChangeCode(next.toUpperCase())}
-          placeholder="INVITE CODE"
-          placeholderTextColor={c.muted}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={16}
-          editable={!redeemed && !checking}
+    <View style={{ gap: 16 }}>
+      <View>
+        <View
+          pointerEvents="none"
           style={{
-            flex: 1,
-            height: 58,
-            borderRadius: radii.input,
-            backgroundColor: c.surface,
-            borderWidth: 1.5,
-            borderColor: redeemed ? c.accent : c.line,
-            paddingHorizontal: 16,
-            color: c.ink,
-            fontFamily: fonts.monoMedium,
-            fontSize: 17,
-            letterSpacing: 2.5,
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 5,
+            bottom: -5,
+            borderRadius: 22,
+            backgroundColor: INK,
           }}
         />
-        <Btn
-          label={redeemed ? 'Redeemed' : checking ? 'Checking…' : 'Redeem'}
-          variant={redeemed ? 'surface' : 'ink'}
-          size="lg"
-          disabled={redeemed || checking || !code.trim()}
-          onPress={onRedeem}
-        />
+        <View
+          style={{
+            paddingVertical: 20,
+            paddingHorizontal: 18,
+            borderRadius: 22,
+            backgroundColor: '#FFFFFF',
+            borderWidth: 2,
+            borderColor: INK,
+            gap: 10,
+          }}
+        >
+          <Txt font="mono" size={10.5} weight={700} color="#5B625C" tracking={1.05}>
+            INVITE CODE
+          </Txt>
+          <TextInput
+            value={code}
+            onChangeText={(next) => onChangeCode(next.toUpperCase())}
+            placeholder="ABCD-123"
+            placeholderTextColor="rgba(17,17,17,0.42)"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={16}
+            editable={!redeemed && !checking}
+            style={{
+              height: 56,
+              borderRadius: 15,
+              borderWidth: 2,
+              borderStyle: 'dashed',
+              borderColor: INK,
+              backgroundColor: '#F4F5F1',
+              paddingHorizontal: 16,
+              color: INK,
+              fontFamily: fonts.monoBold,
+              fontSize: 22,
+              letterSpacing: 1.76,
+            }}
+          />
+        </View>
       </View>
 
       {redeemed ? (
-        <Card tone="soft" padding={14}>
-          <Txt size={14.5} weight={600} color={c.accentText}>
-            Invited by {invitedBy} · you both get +3 matches
-          </Txt>
-        </Card>
-      ) : null}
-
-      {onWaitlist ? (
-        <Pressable onPress={onWaitlist} style={{ paddingVertical: 6 }}>
-          <Txt size={14.5} weight={600} style={{ textDecorationLine: 'underline' }}>
-            {waitlistLabel ?? 'No code? Ask me (Jaryd) for one'}
-          </Txt>
-        </Pressable>
+        <View style={{ transform: [{ rotate: '-1.5deg' }] }}>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 5,
+              bottom: -5,
+              borderRadius: 20,
+              backgroundColor: INK,
+            }}
+          />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 14,
+              borderRadius: 20,
+              backgroundColor: LIME,
+              borderWidth: 2,
+              borderColor: INK,
+            }}
+          >
+            <Txt font="logo" size={30} color={INK}>
+              +3
+            </Txt>
+            <Txt size={15} weight={700} lh={1.35} color={INK} style={{ flex: 1 }}>
+              Invited by {invitedBy || 'a builder'} · you both get +3 matches.
+            </Txt>
+          </View>
+        </View>
       ) : null}
     </View>
   );

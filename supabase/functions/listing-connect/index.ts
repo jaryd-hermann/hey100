@@ -8,6 +8,7 @@
  * App Store is a public iTunes lookup (live only; downloads come later).
  * RevenueCat is a v2 secret key the builder pastes.
  * Stripe is Connect OAuth with read_only.
+ * PostHog is OAuth with project:read and query:read, then a project pick.
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -20,7 +21,7 @@ const CORS = {
 
 const APP_REDIRECT = 'hey100://connect';
 
-type Provider = 'github' | 'asc' | 'revenuecat' | 'stripe';
+type Provider = 'github' | 'asc' | 'revenuecat' | 'stripe' | 'posthog';
 
 type Snapshot = {
   badge: string;
@@ -131,11 +132,18 @@ async function refreshBadges(db: SupabaseClient, appId: string) {
   await db.from('apps').update({ badges }).eq('id', appId);
 }
 
-async function saveState(db: SupabaseClient, userId: string, appId: string | null, provider: Provider) {
+async function saveState(
+  db: SupabaseClient,
+  userId: string,
+  appId: string | null,
+  provider: Provider,
+  codeVerifier?: string,
+) {
   const { data, error } = await db.from('app_oauth_states').insert({
     user_id: userId,
     app_id: appId,
     provider,
+    ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
   }).select('id').single();
   if (error || !data) throw new Error(error?.message ?? 'Could not start OAuth');
   return data.id as string;
@@ -147,7 +155,13 @@ async function takeState(db: SupabaseClient, id: string) {
   await db.from('app_oauth_states').delete().eq('id', id);
   const age = Date.now() - new Date(data.created_at).getTime();
   if (age > 15 * 60 * 1000) return null;
-  return data as { id: string; user_id: string; app_id: string | null; provider: string };
+  return data as {
+    id: string;
+    user_id: string;
+    app_id: string | null;
+    provider: string;
+    code_verifier?: string | null;
+  };
 }
 
 function redirectApp(params: Record<string, string>) {
@@ -704,6 +718,416 @@ async function connectStripe(apiKey: string): Promise<Snapshot> {
 }
 
 /* ---------------------------------------------------------------- */
+/* PostHog                                                           */
+/* ---------------------------------------------------------------- */
+
+const POSTHOG_CLIENT_ID = 'https://hey100.com/oauth/posthog';
+const POSTHOG_OAUTH = 'https://oauth.posthog.com';
+
+function posthogRedirect(): string {
+  return `${functionUrl()}/posthog/callback`;
+}
+
+function base64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+async function posthogChallenge(verifier: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return base64Url(new Uint8Array(digest));
+}
+
+async function posthogStart(db: SupabaseClient, userId: string, appId: string) {
+  const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+  const state = await saveState(db, userId, appId, 'posthog', verifier);
+  const url = new URL(`${POSTHOG_OAUTH}/oauth/authorize/`);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('client_id', POSTHOG_CLIENT_ID);
+  url.searchParams.set('redirect_uri', posthogRedirect());
+  url.searchParams.set('scope', 'project:read query:read');
+  url.searchParams.set('state', state);
+  url.searchParams.set('code_challenge', await posthogChallenge(verifier));
+  url.searchParams.set('code_challenge_method', 'S256');
+  return { url: url.toString() };
+}
+
+type PosthogToken = {
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  error?: string;
+  error_description?: string;
+  scoped_teams?: Array<number | string> | null;
+  scoped_organizations?: string[] | null;
+  posthog_base_url?: string;
+};
+
+type PosthogProject = { id: string; name: string };
+
+async function posthogTokenRequest(body: URLSearchParams): Promise<PosthogToken> {
+  const res = await fetch(`${POSTHOG_OAUTH}/oauth/token/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+    body,
+  });
+  return (await res.json().catch(() => ({}))) as PosthogToken;
+}
+
+async function posthogCallback(db: SupabaseClient, url: URL) {
+  const oauthError = url.searchParams.get('error_description') || url.searchParams.get('error');
+  if (oauthError) return redirectApp({ status: 'error', reason: oauthError, provider: 'posthog' });
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  if (!code || !state) return redirectApp({ status: 'error', reason: 'missing_code', provider: 'posthog' });
+  const row = await takeState(db, state);
+  if (!row?.app_id || !row.code_verifier) {
+    return redirectApp({ status: 'error', reason: 'expired', provider: 'posthog' });
+  }
+
+  const tokenJson = await posthogTokenRequest(new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: posthogRedirect(),
+    client_id: POSTHOG_CLIENT_ID,
+    code_verifier: row.code_verifier,
+  }));
+  if (!tokenJson.access_token) {
+    return redirectApp({
+      status: 'error',
+      reason: tokenJson.error_description || tokenJson.error || 'token',
+      provider: 'posthog',
+    });
+  }
+
+  let host = posthogOrigin(tokenJson.posthog_base_url) ?? '';
+  try {
+    const found = await posthogSession(tokenJson.access_token, tokenJson, host || undefined);
+    host = found.host;
+  } catch (error) {
+    return redirectApp({
+      status: 'error',
+      reason: error instanceof Error ? error.message : 'projects',
+      provider: 'posthog',
+    });
+  }
+  await upsertConnection(
+    db,
+    row.app_id,
+    'posthog',
+    {
+      badge: 'PostHog · pick a project',
+      label: 'Signed in · pick a project',
+      snapshot: { pending: true },
+    },
+    posthogSecret(tokenJson, host),
+  );
+  return redirectApp({ status: 'ok', provider: 'posthog', app_id: row.app_id, next: 'projects' });
+}
+
+function posthogSecret(token: PosthogToken, host: string, projectId?: string) {
+  const expiresIn = typeof token.expires_in === 'number' ? token.expires_in : 3600;
+  return {
+    access_token: token.access_token,
+    refresh_token: token.refresh_token,
+    expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+    host,
+    scoped_teams: posthogIds(token.scoped_teams),
+    scoped_organizations: (token.scoped_organizations ?? []).filter((id) => typeof id === 'string' && id),
+    ...(projectId ? { project_id: projectId } : {}),
+  };
+}
+
+function posthogIds(values: Array<number | string> | null | undefined): string[] {
+  return (values ?? []).map((id) => String(id)).filter((id) => id && id !== 'undefined');
+}
+
+function posthogOrigin(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || !url.hostname.endsWith('posthog.com')) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+function posthogMessage(body: unknown, status: number): string {
+  if (body && typeof body === 'object') {
+    const row = body as { detail?: unknown; error_description?: unknown; error?: unknown };
+    const text = [row.detail, row.error_description, row.error].find((item) => typeof item === 'string' && item.trim());
+    if (typeof text === 'string') return text.trim();
+  }
+  return `PostHog returned ${status}`;
+}
+
+function posthogRows(body: unknown): PosthogProject[] {
+  const rows = Array.isArray(body)
+    ? body
+    : body && typeof body === 'object' && Array.isArray((body as { results?: unknown[] }).results)
+      ? (body as { results: unknown[] }).results
+      : body && typeof body === 'object' && 'id' in body
+        ? [body]
+        : [];
+  return rows.flatMap((row) => {
+    if (!row || typeof row !== 'object' || !('id' in row)) return [];
+    const item = row as { id: number | string; name?: string };
+    return [{ id: String(item.id), name: item.name || `Project ${item.id}` }];
+  });
+}
+
+/** A project-scoped approval cannot list every project, so read the approved ids from the token. */
+async function posthogSession(
+  token: string,
+  granted: PosthogToken,
+  hintedHost?: string,
+): Promise<{ host: string; projects: PosthogProject[] }> {
+  const hosts = hintedHost ? [hintedHost] : ['https://us.posthog.com', 'https://eu.posthog.com'];
+  const teams = posthogIds(granted.scoped_teams);
+  const orgs = (granted.scoped_organizations ?? []).filter(Boolean);
+  let detail = '';
+  for (const host of hosts) {
+    const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
+    if (teams.length) {
+      const projects: PosthogProject[] = [];
+      let sawAuth = false;
+      for (const id of teams) {
+        const res = await fetch(`${host}/api/projects/${id}/`, { headers });
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          sawAuth = false;
+          break;
+        }
+        sawAuth = true;
+        if (!res.ok) {
+          detail = posthogMessage(body, res.status);
+          continue;
+        }
+        projects.push(...posthogRows(body));
+      }
+      if (projects.length) return { host, projects };
+      if (sawAuth) continue;
+      continue;
+    }
+    if (orgs.length) {
+      const projects: PosthogProject[] = [];
+      let sawAuth = false;
+      for (const org of orgs) {
+        const res = await fetch(`${host}/api/organizations/${org}/projects/?limit=100`, { headers });
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          sawAuth = false;
+          break;
+        }
+        sawAuth = true;
+        if (!res.ok) {
+          detail = posthogMessage(body, res.status);
+          continue;
+        }
+        projects.push(...posthogRows(body));
+      }
+      if (projects.length) return { host, projects };
+      if (!sawAuth) continue;
+      continue;
+    }
+    const res = await fetch(`${host}/api/projects/?limit=100`, { headers });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 401) continue;
+    if (!res.ok) {
+      detail = posthogMessage(body, res.status);
+      continue;
+    }
+    return { host, projects: posthogRows(body) };
+  }
+  throw new Error(detail || 'PostHog did not accept that sign-in.');
+}
+
+async function posthogSecretRow(db: SupabaseClient, appId: string) {
+  const { data: conn } = await db
+    .from('app_connections')
+    .select('id')
+    .eq('app_id', appId)
+    .eq('provider', 'posthog')
+    .maybeSingle();
+  if (!conn) return null;
+  const { data } = await db.from('app_connection_secrets').select('payload').eq('connection_id', conn.id).maybeSingle();
+  const payload = (data?.payload ?? null) as {
+    access_token?: string;
+    refresh_token?: string;
+    expires_at?: string;
+    host?: string;
+    project_id?: string;
+    scoped_teams?: string[];
+    scoped_organizations?: string[];
+  } | null;
+  if (!payload?.access_token || !payload.host) return null;
+  return { connectionId: conn.id as string, payload };
+}
+
+async function posthogAccess(db: SupabaseClient, appId: string): Promise<{ token: string; host: string }> {
+  const row = await posthogSecretRow(db, appId);
+  if (!row) throw new Error('Sign in with PostHog first');
+  const fresh = row.payload.expires_at && Date.parse(row.payload.expires_at) - Date.now() > 60_000;
+  if (fresh) return { token: row.payload.access_token as string, host: row.payload.host as string };
+
+  if (!row.payload.refresh_token) throw new Error('PostHog sign-in expired. Sign in again.');
+  const next = await posthogTokenRequest(new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: row.payload.refresh_token,
+    client_id: POSTHOG_CLIENT_ID,
+  }));
+  if (!next.access_token) throw new Error('PostHog sign-in expired. Sign in again.');
+  const host = posthogOrigin(next.posthog_base_url) ?? (row.payload.host as string);
+  const kept: PosthogToken = {
+    ...next,
+    scoped_teams: next.scoped_teams ?? row.payload.scoped_teams,
+    scoped_organizations: next.scoped_organizations ?? row.payload.scoped_organizations,
+  };
+  await db.from('app_connection_secrets').upsert({
+    connection_id: row.connectionId,
+    payload: posthogSecret(kept, host, row.payload.project_id),
+    updated_at: new Date().toISOString(),
+  });
+  return { token: next.access_token, host };
+}
+
+async function posthogProjects(db: SupabaseClient, appId: string) {
+  const { token, host } = await posthogAccess(db, appId);
+  const stored = await posthogSecretRow(db, appId);
+  const found = await posthogSession(token, {
+    access_token: token,
+    scoped_teams: stored?.payload.scoped_teams,
+    scoped_organizations: stored?.payload.scoped_organizations,
+    posthog_base_url: host,
+  }, host);
+  return found.projects;
+}
+
+function hogNumber(value: unknown): number {
+  const n = typeof value === 'string' ? Number(value) : value;
+  return typeof n === 'number' && Number.isFinite(n) ? n : 0;
+}
+
+async function posthogQuery(host: string, token: string, projectId: string, query: string): Promise<unknown[]> {
+  const res = await fetch(`${host}/api/projects/${projectId}/query/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ query: { kind: 'HogQLQuery', query } }),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    results?: unknown[];
+    detail?: string;
+    error?: string;
+  };
+  if (!res.ok) {
+    throw new Error(body.detail || body.error || 'PostHog rejected the usage query. The key needs Query: Read.');
+  }
+  const row = body.results?.[0];
+  return Array.isArray(row) ? row : [];
+}
+
+async function connectPosthog(db: SupabaseClient, appId: string, projectId: string, projectName: string) {
+  const { token, host } = await posthogAccess(db, appId);
+  const [usage, daily, retention] = await Promise.all([
+    posthogQuery(
+      host,
+      token,
+      projectId,
+      `SELECT
+        count(DISTINCT person_id) AS mau,
+        count(DISTINCT if(timestamp >= now() - INTERVAL 7 day, person_id, NULL)) AS wau,
+        count(DISTINCT properties.$session_id) AS sessions
+      FROM events
+      WHERE timestamp >= now() - INTERVAL 30 day`,
+    ),
+    posthogQuery(
+      host,
+      token,
+      projectId,
+      `SELECT if(count() = 0, 0, avg(users))
+      FROM (
+        SELECT count(DISTINCT person_id) AS users
+        FROM events
+        WHERE timestamp >= now() - INTERVAL 30 day
+        GROUP BY toDate(timestamp)
+      )`,
+    ),
+    posthogQuery(
+      host,
+      token,
+      projectId,
+      `SELECT round(100 * countIf(came_back) / greatest(count(), 1))
+      FROM (
+        SELECT person_id, d0, countIf(day > d0 AND day <= d0 + 7) > 0 AS came_back
+        FROM (
+          SELECT
+            person_id,
+            toDate(timestamp) AS day,
+            min(toDate(timestamp)) OVER (PARTITION BY person_id) AS d0
+          FROM events
+          WHERE timestamp >= now() - INTERVAL 21 day
+        )
+        GROUP BY person_id, d0
+        HAVING d0 <= today() - 7 AND d0 >= today() - 14
+      )`,
+    ),
+  ]);
+
+  const mau = Math.round(hogNumber(usage[0]));
+  const wau = Math.round(hogNumber(usage[1]));
+  const sessions = Math.round(hogNumber(usage[2]));
+  const dau = Math.round(hogNumber(daily[0]));
+  const d7 = Math.max(0, Math.min(100, Math.round(hogNumber(retention[0]))));
+  const stickiness = mau > 0 ? Math.round((100 * dau) / mau) : 0;
+  const account = `${projectName} · project ${projectId}`;
+  const mauLine = mau > 0 ? `${countBand(mau)} monthly active` : 'connected';
+  const badges = [
+    `PostHog · ${mauLine}`,
+    wau > 0 ? `PostHog · ${countBand(wau)} weekly active` : '',
+    mau > 0 ? `PostHog · ${percentBand(d7)} D7 retention` : '',
+  ].filter(Boolean);
+
+  const snap: Snapshot = {
+    badge: badges[0],
+    badges,
+    label: mauLine,
+    detail: account,
+    snapshot: {
+      project_id: projectId,
+      project_name: projectName,
+      mau,
+      wau,
+      dau,
+      sessions,
+      d7,
+      stickiness,
+      badges,
+    },
+  };
+  const stored = await posthogSecretRow(db, appId);
+  await upsertConnection(db, appId, 'posthog', snap, {
+    access_token: token,
+    refresh_token: stored?.payload.refresh_token,
+    expires_at: stored?.payload.expires_at,
+    host,
+    project_id: projectId,
+  });
+  return snap;
+}
+
+function percentBand(n: number): string {
+  if (n <= 0) return '0%';
+  if (n < 10) return 'under 10%';
+  return `${Math.floor(n / 10) * 10}%+`;
+}
+
+/* ---------------------------------------------------------------- */
 /* HTTP                                                              */
 /* ---------------------------------------------------------------- */
 
@@ -727,6 +1151,12 @@ Deno.serve(async (request) => {
       (action === 'stripe_callback' || path.endsWith('/stripe/callback'))
     ) {
       return await stripeCallback(db, url);
+    }
+    if (
+      request.method === 'GET' &&
+      (action === 'posthog_callback' || path.endsWith('/posthog/callback'))
+    ) {
+      return await posthogCallback(db, url);
     }
 
     if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -853,6 +1283,15 @@ Deno.serve(async (request) => {
     }
 
     if (act === 'stripe_start') return json(await stripeStart(db, user.id, body.appId));
+
+    if (act === 'posthog_start') return json(await posthogStart(db, user.id, body.appId));
+
+    if (act === 'posthog_projects') return json({ projects: await posthogProjects(db, body.appId) });
+
+    if (act === 'posthog_connect') {
+      if (!body.projectId) return json({ error: 'projectId is required' }, 400);
+      return json(await connectPosthog(db, body.appId, body.projectId, body.projectName || body.projectId));
+    }
 
     return json({ error: 'Unknown action' }, 400);
   } catch (error) {

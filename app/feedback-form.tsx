@@ -442,7 +442,7 @@ export default function FeedbackForm() {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 10 }}>
             <KarmaMark size={22} />
             <Txt size={15} weight={600} color={KARMA_PEACH_TEXT}>
-              Earn +{karmaPoints} Karma
+              Earn +{karmaPoints} Block Points
             </Txt>
           </View>
         </View>
@@ -451,7 +451,7 @@ export default function FeedbackForm() {
         <View style={{ gap: 14, alignItems: 'center', paddingTop: 8 }}>
           <KarmaMark size={44} />
           <Txt font="mono" size={36} weight={500} color={c.accentText}>
-            +{earned} karma
+            +{earned} Block Points
           </Txt>
           <Txt size={20} weight={700} center>
             You just shared your insight with {firstName}

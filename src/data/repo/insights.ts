@@ -6,23 +6,40 @@ export type ListingCooldown = {
   resetsAt: string;
 };
 
+export type AudienceSlice = { label: string; pct: number };
+
 export type ListingInsights = {
   periodDays: number;
   views: number;
   likes: number;
   skips: number;
+  viewers: number;
   fit: {
-    interests: number;
-    age: number;
-    gender: number;
-    overall: number;
+    interests: number | null;
+    devices: number | null;
+    age: number | null;
+    gender: number | null;
+    overall: number | null;
   };
   likedElement: string;
-  scrollDepth: number;
+  scrollDepth: number | null;
   pitchSeconds: number;
   pitchWatches: number;
-  pitchAvgSeconds: number;
-  pitchCompletion: number;
+  pitchAvgSeconds: number | null;
+  pitchCompletion: number | null;
+  audience: {
+    viewers: number;
+    interests: AudienceSlice[];
+    jobs: AudienceSlice[];
+    devices: AudienceSlice[];
+  };
+  series: {
+    views: number[];
+    heys: number[];
+    skips: number[];
+    scroll: number[];
+    pitch: number[];
+  };
 };
 
 export async function fetchListingCooldowns(): Promise<ListingCooldown[]> {
@@ -50,24 +67,64 @@ export async function fetchListingInsights(
   if (error || !data || typeof data !== 'object') return null;
   const row = data as Record<string, unknown>;
   const fit = (row.fit ?? {}) as Record<string, unknown>;
+  const audience = (row.audience ?? {}) as Record<string, unknown>;
+  const series = (row.series ?? {}) as Record<string, unknown>;
   return {
     periodDays: Number(row.period_days ?? days),
     views: Number(row.views ?? 0),
     likes: Number(row.likes ?? 0),
     skips: Number(row.skips ?? 0),
+    viewers: Number(row.viewers ?? audience.viewers ?? 0),
     fit: {
-      interests: Number(fit.interests ?? 0),
-      age: Number(fit.age ?? 0),
-      gender: Number(fit.gender ?? 0),
-      overall: Number(fit.overall ?? 0),
+      interests: rate(fit.interests),
+      devices: rate(fit.devices),
+      age: rate(fit.age),
+      gender: rate(fit.gender),
+      overall: rate(fit.overall),
     },
     likedElement: String(row.liked_element ?? 'Not enough data yet'),
-    scrollDepth: Number(row.scroll_depth ?? 0),
+    scrollDepth: rate(row.scroll_depth),
     pitchSeconds: Number(row.pitch_seconds ?? 0),
     pitchWatches: Number(row.pitch_watches ?? 0),
-    pitchAvgSeconds: Number(row.pitch_avg_seconds ?? 0),
-    pitchCompletion: Number(row.pitch_completion ?? 0),
+    pitchAvgSeconds: rate(row.pitch_avg_seconds),
+    pitchCompletion: rate(row.pitch_completion),
+    audience: {
+      viewers: Number(audience.viewers ?? 0),
+      interests: slices(audience.interests),
+      jobs: slices(audience.jobs),
+      devices: slices(audience.devices),
+    },
+    series: {
+      views: numbers(series.views),
+      heys: numbers(series.heys),
+      skips: numbers(series.skips),
+      scroll: numbers(series.scroll),
+      pitch: numbers(series.pitch),
+    },
   };
+}
+
+function rate(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function numbers(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => Number(item)).filter((item) => Number.isFinite(item));
+}
+
+function slices(value: unknown): AudienceSlice[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as { label?: unknown; pct?: unknown };
+    const label = String(row.label ?? '').trim();
+    const pct = Number(row.pct);
+    if (!label || !Number.isFinite(pct)) return [];
+    return [{ label, pct }];
+  });
 }
 
 export async function recordListingScroll(listingId: string, depth: number): Promise<void> {

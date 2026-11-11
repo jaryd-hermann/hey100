@@ -1,17 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
-import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
 import { Field } from '@/components/ui/Field';
 import { Txt } from '@/components/ui/Txt';
 import { emailLooksOk, passwordLooksOk, type AuthProviderId } from '@/features/auth/signIn';
-import { LegalLink } from '@/features/legal/LegalLinks';
-import { useTheme } from '@/theme/ThemeProvider';
+import { LIME } from '@/features/onboarding/look';
+import { openLegal } from '@/lib/legal';
+import { ThemeOverride, useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
+
+const COIN = require('../../../../assets/images/block-coin.png');
+const INK = '#111111';
 
 /** Aliased so the buttons and the sign-in calls cannot drift apart. */
 export type AuthProvider = AuthProviderId;
@@ -170,7 +173,7 @@ export function EmailAuthForm({
       ) : null}
       <Btn
         label={pending ? (signingUp ? 'Creating account…' : 'Logging in…') : signingUp ? 'Create account' : 'Log in'}
-        variant="surface"
+        variant={signingUp ? 'accent' : 'surface'}
         size="lg"
         full
         disabled={pending}
@@ -230,6 +233,8 @@ export type AuthStepProps = {
   username: string;
   realName?: string;
   photo?: string;
+  /** Block Points already earned. Signing in is what keeps them. */
+  blocks?: number;
   pending?: boolean;
   /** Set when a session already exists, e.g. the app was killed mid-flow. */
   signedIn?: boolean;
@@ -237,17 +242,6 @@ export type AuthStepProps = {
   onEmail: (email: string, password: string) => void;
   onPublish: () => void;
 };
-
-function ReadyTag({ label }: { label: string }) {
-  const { c } = useTheme();
-  return (
-    <Chip
-      size="sm"
-      label={label}
-      right={<Ionicons name="checkmark-circle" size={14} color={c.accentText} />}
-    />
-  );
-}
 
 /** Sign-in comes last, once the user has put the work in. */
 export function AuthStep({
@@ -259,59 +253,119 @@ export function AuthStep({
   username,
   realName,
   photo,
+  blocks = 0,
   pending = false,
   signedIn = false,
   onSignIn,
   onEmail,
   onPublish,
 }: AuthStepProps) {
-  const { c } = useTheme();
   const [emailOpen, setEmailOpen] = useState(false);
+  const shots = `${mediaCount} screenshot${mediaCount === 1 ? '' : 's'}`;
+  const prompts = `${promptCount} prompt${promptCount === 1 ? '' : 's'}`;
 
   return (
-    <View style={{ gap: 18 }}>
-      <Txt size={15.5} lh={1.5} muted>
-        {signedIn
-          ? "You're signed in. Publishing puts this listing in Discover."
-          : 'Sign in to save your details and get started'}
-      </Txt>
-
-      <Card padding={16} style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          <AppIcon hue={appHue} name={appName || 'A'} uri={appIcon} size={52} />
-          <View style={{ flex: 1, gap: 8, paddingTop: 2 }}>
-            <Txt font="mono" size={15} weight={500} numberOfLines={1}>
-              {appName || 'Your app'}
-            </Txt>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              <ReadyTag label={`${mediaCount} pic${mediaCount === 1 ? '' : 's'}`} />
-              <ReadyTag label={`${promptCount} prompt${promptCount === 1 ? '' : 's'}`} />
-              <ReadyTag label="Info" />
-            </View>
-          </View>
-        </View>
-
+    <View style={{ gap: 12 }}>
+      <View style={{ marginBottom: 8, transform: [{ rotate: '-1.2deg' }] }}>
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 5,
+            bottom: -5,
+            borderRadius: 22,
+            backgroundColor: LIME,
+          }}
+        />
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
+            padding: 16,
+            borderRadius: 22,
+            backgroundColor: '#3C3C3B',
+            borderWidth: 2,
+            borderColor: INK,
             gap: 12,
-            borderTopWidth: 1,
-            borderColor: c.line,
-            paddingTop: 13,
           }}
         >
-          <Avatar name={realName || username || 'Y'} seed={username} uri={photo} size={52} />
-          <View style={{ flex: 1 }}>
-            <Txt size={15} weight={600} numberOfLines={1}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 13,
+                borderWidth: 2,
+                borderColor: INK,
+                overflow: 'hidden',
+              }}
+            >
+              <AppIcon hue={appHue} name={appName || 'A'} uri={appIcon} size={48} />
+            </View>
+            <View style={{ flex: 1, gap: 1 }}>
+              <Txt font="mono" size={16} weight={700} color="#FFFFFF" numberOfLines={1}>
+                {appName || 'Your app'}
+              </Txt>
+              <Txt font="mono" size={11.5} weight={500} color="rgba(255,255,255,0.62)" numberOfLines={1}>
+                {shots} · {prompts}
+              </Txt>
+            </View>
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              paddingTop: 11,
+              borderTopWidth: 1.5,
+              borderTopColor: 'rgba(255,255,255,0.14)',
+            }}
+          >
+            <View style={{ width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: '#FFFFFF', overflow: 'hidden' }}>
+              <Avatar name={realName || username || 'You'} seed={username} uri={photo} size={32} />
+            </View>
+            <Txt size={14} weight={700} color="#FFFFFF" numberOfLines={1}>
               {realName || 'You'}
             </Txt>
-            <Txt font="mono" size={12.5} muted numberOfLines={1} style={{ marginTop: 2 }}>
-              AKA @{username || 'you'}
+            <Txt font="mono" size={12.5} weight={500} color="rgba(255,255,255,0.62)" numberOfLines={1}>
+              @{username || 'you'}
             </Txt>
           </View>
+          {blocks > 0 ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                paddingTop: 11,
+                borderTopWidth: 1.5,
+                borderTopColor: 'rgba(255,255,255,0.14)',
+              }}
+            >
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: LIME,
+                  borderWidth: 2,
+                  borderColor: INK,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Image source={COIN} style={{ width: 22, height: 22 }} contentFit="contain" />
+              </View>
+              <Txt font="mono" size={16} weight={700} color="#FFFFFF">
+                {blocks.toLocaleString()}
+              </Txt>
+              <Txt font="mono" size={11} weight={600} color="rgba(255,255,255,0.62)" tracking={0.6} style={{ flex: 1 }}>
+                BLOCKS · SIGN IN TO KEEP THEM
+              </Txt>
+            </View>
+          ) : null}
         </View>
-      </Card>
+      </View>
 
       {signedIn ? (
         <Pressable
@@ -319,35 +373,130 @@ export function AuthStep({
           disabled={pending}
           onPress={onPublish}
           style={({ pressed }) => ({
-            height: 56,
-            borderRadius: radii.pill,
-            backgroundColor: c.ink,
+            height: 54,
+            borderRadius: 27,
+            backgroundColor: LIME,
+            borderWidth: 2,
+            borderColor: INK,
             alignItems: 'center',
             justifyContent: 'center',
-            opacity: pending ? 0.5 : pressed ? 0.8 : 1,
+            opacity: pending ? 0.5 : pressed ? 0.85 : 1,
           })}
         >
-          <Txt size={15.5} weight={600} color={c.bg}>
+          <Txt size={16} weight={700} color={INK}>
             {pending ? 'Publishing…' : 'Publish my listing'}
           </Txt>
         </Pressable>
       ) : (
-        <View style={{ gap: 14 }}>
-          <ProviderButtons onPress={onSignIn} pending={pending} />
-          {emailOpen ? (
-            <View style={{ gap: 12 }}>
-              <OrRule />
-              <EmailAuthForm mode="sign-up" pending={pending} onSubmit={onEmail} />
+        <View style={{ gap: 10 }}>
+          {PROVIDERS.map((provider) => (
+            <View key={provider.id}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={pending}
+                onPress={() => onSignIn(provider.id)}
+                style={({ pressed }) => ({
+                  height: 54,
+                  borderRadius: 27,
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  opacity: pending ? 0.5 : pressed ? 0.85 : 1,
+                })}
+              >
+                <Ionicons name={provider.icon} size={20} color={INK} />
+                <Txt size={16} weight={700} color={INK}>
+                  Continue with {provider.id}
+                </Txt>
+              </Pressable>
+              {provider.id === 'Apple' ? (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: -8,
+                    right: 18,
+                    paddingHorizontal: 7,
+                    height: 18,
+                    borderRadius: 9,
+                    backgroundColor: '#FFFF00',
+                    borderWidth: 1.5,
+                    borderColor: INK,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Txt font="mono" size={9} weight={700} color={INK} tracking={0.4}>
+                    MOST USED
+                  </Txt>
+                </View>
+              ) : null}
             </View>
+          ))}
+          {emailOpen ? (
+            <ThemeOverride
+              isDark={false}
+              c={{
+                bg: '#FFFFFF',
+                surface: '#FFFFFF',
+                raised: '#F2F3EF',
+                ink: INK,
+                muted: 'rgba(17,17,17,0.62)',
+                line: 'rgba(17,17,17,0.2)',
+                accent: LIME,
+                accentInk: INK,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 18,
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                  padding: 14,
+                }}
+              >
+                <EmailAuthForm mode="sign-up" pending={pending} onSubmit={onEmail} />
+              </View>
+            </ThemeOverride>
           ) : (
-            <EmailOption pending={pending} onPress={() => setEmailOpen(true)} />
+            <Pressable
+              accessibilityRole="button"
+              disabled={pending}
+              onPress={() => setEmailOpen(true)}
+              style={({ pressed }) => ({
+                height: 54,
+                borderRadius: 27,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderColor: 'rgba(255,255,255,0.4)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pending ? 0.5 : pressed ? 0.85 : 1,
+              })}
+            >
+              <Txt size={16} weight={700} color="#FFFFFF">
+                or Continue with Email
+              </Txt>
+            </Pressable>
           )}
         </View>
       )}
 
-      <Txt size={12} lh={1.5} muted center>
-        By continuing you agree to the <LegalLink page="terms" size={12} /> and{' '}
-        <LegalLink page="privacy" size={12} />.
+      <Txt size={12.5} lh={1.45} color="rgba(255,255,255,0.8)" center style={{ paddingTop: 10 }}>
+        By continuing you agree to the{' '}
+        <Txt size={12.5} color="rgba(255,255,255,0.8)" accessibilityRole="link" onPress={() => openLegal('terms')} style={{ textDecorationLine: 'underline' }}>
+          Terms
+        </Txt>{' '}
+        and{' '}
+        <Txt size={12.5} color="rgba(255,255,255,0.8)" accessibilityRole="link" onPress={() => openLegal('privacy')} style={{ textDecorationLine: 'underline' }}>
+          Privacy Policy
+        </Txt>
+        .
       </Txt>
     </View>
   );

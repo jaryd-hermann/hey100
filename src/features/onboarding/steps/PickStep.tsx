@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { OptionRow } from '@/components/ui/OptionRow';
-import { SearchField } from '@/components/ui/SearchField';
 import { Txt } from '@/components/ui/Txt';
 import { stripEmoji } from '@/data/mock';
+import { INK, LIME } from '@/features/onboarding/look';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radii } from '@/theme/tokens';
 
@@ -84,100 +84,174 @@ export function PickStep({
   const custom =
     typed && !opts.some((label) => words(label) === typed) && !selected.includes(query.trim());
 
+  const dark = c.ink === '#FFFFFF';
+
   return (
-    <View style={{ gap: 10 }}>
-      {subtitle ? (
-        <Txt size={15} lh={1.45} muted style={{ marginBottom: 4 }}>
-          {subtitle}
-        </Txt>
-      ) : null}
-
+    <View style={{ gap: 12 }}>
       {search ? (
-        <SearchField
-          value={query}
-          onChangeText={setQuery}
-          placeholder={`Search ${opts.length} options`}
-        />
-      ) : null}
-
-      {shown.map((label) => (
-        <OptionRow
-          key={label}
-          label={label}
-          selected={selected.includes(label)}
-          single={single}
-          icon={MARKS[label]}
-          onPress={() => onToggle(label)}
-        />
-      ))}
-
-      {custom && search ? (
-        <OptionRow
-          label={`Add “${query.trim()}”`}
-          selected={false}
-          onPress={() => {
-            onToggle(query.trim());
-            setQuery('');
-          }}
-        />
-      ) : null}
-
-      {!shown.length && !custom ? (
-        <Txt size={15} lh={1.45} muted style={{ paddingVertical: 6 }}>
-          Nothing matches &ldquo;{query.trim()}&rdquo;.
-          {own ? ' Add it in your own words below.' : ''}
-        </Txt>
-      ) : null}
-
-      {own ? (
-        ownOpen ? (
-          <TextInput
-            value={ownText}
-            onChangeText={onChangeOwn}
-            placeholder="In your own words"
-            placeholderTextColor={c.muted}
-            multiline
-            autoFocus
+        <View style={{ marginBottom: 3 }}>
+          <View
+            pointerEvents="none"
             style={{
-              minHeight: 92,
-              marginTop: 6,
-              borderRadius: radii.option,
-              backgroundColor: c.surface,
-              borderWidth: 1.5,
-              borderColor: c.line,
-              padding: 15,
-              color: c.ink,
-              fontFamily: fonts.body,
-              fontSize: 15.5,
-              lineHeight: 22,
-              textAlignVertical: 'top',
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 3,
+              bottom: -3,
+              borderRadius: 16,
+              backgroundColor: dark ? '#000000' : INK,
             }}
           />
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onOpenOwn}
-            style={({ pressed }) => ({
-              marginTop: 6,
-              minHeight: 58,
-              borderRadius: radii.option,
-              borderWidth: 1.5,
-              borderStyle: 'dashed',
-              borderColor: c.muted,
-              paddingHorizontal: 16,
+          <View
+            style={{
+              height: 50,
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: INK,
+              backgroundColor: '#FFFFFF',
               flexDirection: 'row',
               alignItems: 'center',
               gap: 10,
-              opacity: pressed ? 0.7 : 1,
-            })}
+              paddingHorizontal: 16,
+            }}
           >
-            <Ionicons name="add" size={18} color={c.muted} />
-            <Txt size={14.5} muted style={{ flex: 1 }}>
-              Share more in your own words
-            </Txt>
-          </Pressable>
-        )
+            <Ionicons name="search" size={18} color={INK} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search"
+              placeholderTextColor="rgba(17,17,17,0.4)"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={{
+                flex: 1,
+                height: 46,
+                color: INK,
+                fontFamily: fonts.bodyMedium,
+                fontSize: 15.5,
+              }}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {shown.map((label) => {
+          const on = selected.includes(label);
+          return (
+            <StickerChip
+              key={label}
+              label={stripEmoji(label)}
+              selected={on}
+              dark={dark}
+              icon={MARKS[label]}
+              onPress={() => onToggle(label)}
+            />
+          );
+        })}
+        {custom && search ? (
+          <StickerChip
+            label={`Add “${query.trim()}”`}
+            selected={false}
+            dark={dark}
+            onPress={() => {
+              onToggle(query.trim());
+              setQuery('');
+            }}
+          />
+        ) : null}
+        {own && !ownOpen ? (
+          <StickerChip label="Your own" selected={false} dark={dark} onPress={onOpenOwn} />
+        ) : null}
+      </View>
+
+      {!shown.length && !custom ? (
+        <Txt size={15} lh={1.45} color={c.muted}>
+          Nothing matches “{query.trim()}”.
+        </Txt>
+      ) : null}
+
+      {own && ownOpen ? (
+        <TextInput
+          value={ownText}
+          onChangeText={onChangeOwn}
+          placeholder="In your own words"
+          placeholderTextColor="rgba(17,17,17,0.4)"
+          autoFocus
+          style={{
+            minHeight: 52,
+            borderRadius: 14,
+            backgroundColor: '#FFFFFF',
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            color: INK,
+            fontFamily: fonts.body,
+            fontSize: 16,
+          }}
+        />
       ) : null}
     </View>
+  );
+}
+
+function StickerChip({
+  label,
+  selected,
+  dark,
+  dim,
+  icon,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  dark: boolean;
+  dim?: boolean;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  onPress: () => void;
+}) {
+  const bg = selected ? (dark ? LIME : INK) : '#FFFFFF';
+  const fg = selected ? (dark ? INK : '#FFFFFF') : INK;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={() => {
+        Haptics.selectionAsync().catch(() => {});
+        onPress();
+      }}
+      style={{ opacity: dim ? 0.45 : 1 }}
+    >
+      <View style={{ marginBottom: 3 }}>
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 3,
+            bottom: -3,
+            borderRadius: radii.pill,
+            backgroundColor: INK,
+          }}
+        />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderRadius: radii.pill,
+            backgroundColor: bg,
+          }}
+        >
+          {icon ? <Ionicons name={icon} size={14} color={fg} /> : null}
+          <Txt size={15} weight={600} color={fg}>
+            {selected ? '✓ ' : ''}
+            {label}
+          </Txt>
+        </View>
+      </View>
+    </Pressable>
   );
 }

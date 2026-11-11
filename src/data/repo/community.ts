@@ -105,6 +105,8 @@ export type CommunityGroup = {
   listingName?: string;
   listingIcon?: string;
   listingHue?: number;
+  bannerColor?: string;
+  nameColor?: string;
 };
 
 export function isMatchGroup(group?: Pick<CommunityGroup, 'joinMode'> | null): boolean {
@@ -264,6 +266,8 @@ function mapGroup(row: {
   listing_name?: string | null;
   listing_icon?: string | null;
   listing_hue?: number | null;
+  banner_color?: string | null;
+  name_color?: string | null;
 }): CommunityGroup {
   const cover = parseGroupCover(row.cover_path);
   return {
@@ -303,6 +307,8 @@ function mapGroup(row: {
     listingName: row.listing_name ?? undefined,
     listingIcon: row.listing_icon ? coverUrl(row.listing_icon) : undefined,
     listingHue: row.listing_hue ?? undefined,
+    bannerColor: row.banner_color ?? undefined,
+    nameColor: row.name_color ?? undefined,
   };
 }
 
@@ -603,6 +609,8 @@ export async function createCommunityGroup(input: {
   joinMode: JoinMode;
   criteria?: JoinCriterion[];
   listingId?: string;
+  bannerColor?: string;
+  nameColor?: string;
 }): Promise<string> {
   const db = getSupabase();
   if (!db) throw new Error('Not signed in');
@@ -617,6 +625,12 @@ export async function createCommunityGroup(input: {
     p_listing_id: input.joinMode === 'match' ? (input.listingId ?? null) : null,
   });
   if (error || typeof data !== 'string') throw new Error(error?.message ?? 'Could not create the group');
+  if (input.bannerColor) {
+    await (db as unknown as AnyClient)
+      .from('community_groups')
+      .update({ banner_color: input.bannerColor, name_color: input.nameColor ?? '#FFFFFF' })
+      .eq('id', data);
+  }
   return data;
 }
 
@@ -630,6 +644,8 @@ export async function updateCommunityGroup(
     joinMode: JoinMode;
     criteria?: JoinCriterion[];
     listingId?: string;
+    bannerColor?: string;
+    nameColor?: string;
   },
 ): Promise<void> {
   const db = getSupabase();
@@ -644,6 +660,10 @@ export async function updateCommunityGroup(
     listing_id: input.joinMode === 'match' ? (input.listingId ?? null) : null,
   };
   if (input.coverPath !== undefined) patch.cover_path = input.coverPath;
+  if (input.bannerColor) {
+    patch.banner_color = input.bannerColor;
+    patch.name_color = input.nameColor ?? '#FFFFFF';
+  }
   const { error } = await db.from('community_groups').update(patch).eq('id', groupId);
   if (error) throw new Error(error.message);
 }

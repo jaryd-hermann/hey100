@@ -1,15 +1,20 @@
 import { useMemo } from 'react';
 
 import { useCommunityHome } from '@/data/repo/community';
+import { useMyProfile } from '@/data/repo/profile';
 import type { OwnedApp } from '@/data/types';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useStore } from '@/store/AppStore';
 
-export const VERIFIED_KARMA = 100;
+/**
+ * Completing onboarding pays at most 325 Block Points. The badge sits above
+ * that, so listing a product is not enough on its own.
+ */
+export const VERIFIED_KARMA = 500;
 
 export const FEEDBACK_FIELD_POINTS = 2;
 
-/** Soft peach used on karma chips and the feedback earn line. */
+/** Soft peach used on Block Points chips and the feedback earn line. */
 export const KARMA_PEACH = '#F4C9B0';
 export const KARMA_PEACH_TEXT = '#C45C2A';
 
@@ -82,6 +87,8 @@ export function useMyKarma() {
   const store = useStore();
   const { isAdmin } = useAuth();
   const { data } = useCommunityHome();
+  const profile = useMyProfile();
+  const onboarded = profile.data?.onboarding_blocks ?? 0;
   const replies = Object.values(store.messages).reduce(
     (sum, thread) => sum + thread.filter((message) => message.kind === 'me').length,
     0,
@@ -91,7 +98,7 @@ export function useMyKarma() {
       sum + thread.filter((message) => message.kind === 'feedback' && message.from === 'me').length,
     0,
   );
-  const karma = useMemo(
+  const activity = useMemo(
     () =>
       computeKarma({
         user: store.user,
@@ -104,6 +111,7 @@ export function useMyKarma() {
       }),
     [data?.mine, feedbackGiven, replies, store.matches.length, store.ownedApps, store.user],
   );
+  const karma = activity + onboarded;
 
-  return { karma, verified: isVerified(karma, isAdmin) };
+  return { karma, activity, verified: isVerified(karma, isAdmin) };
 }

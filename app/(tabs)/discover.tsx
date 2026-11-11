@@ -53,7 +53,16 @@ export default function DiscoverScreen() {
   const [badgesOpen, setBadgesOpen] = useState(false);
   const discoverHint = useFirstHint('discover', !store.previewAppId);
 
-  const deck = useMemo(() => {
+  const viewer = useMemo(
+    () => ({
+      cat: store.primaryApp?.cat ?? '',
+      interests: store.primaryApp?.ideal?.interests ?? '',
+      plat: store.primaryApp?.plat ?? '',
+    }),
+    [store.primaryApp],
+  );
+
+  const pool = useMemo(() => {
     if (store.previewAppId) {
       const mine = store.listing(store.previewAppId) ?? store.primaryApp;
       return mine ? [mine] : [];
@@ -63,23 +72,15 @@ export default function DiscoverScreen() {
     const source = store.deckIds
       ? store.deckIds.map((id) => store.listing(id))
       : DECK_IDS.map((id) => LISTINGS[id]);
-
-    const listings = source.filter(
+    return source.filter(
       (listing): listing is AppListing => !!listing && !store.passed.includes(listing.id),
     );
+  }, [store]);
 
-    const mine = store.primaryApp;
-    return applyFilters(
-      listings,
-      filters,
-      {
-        cat: mine?.cat ?? '',
-        interests: mine?.ideal?.interests ?? '',
-        plat: mine?.plat ?? '',
-      },
-      { resort: !store.deckIds },
-    );
-  }, [filters, store, store.previewAppId]);
+  const deck = useMemo(() => {
+    if (store.previewAppId) return pool;
+    return applyFilters(pool, filters, viewer, { resort: !store.deckIds });
+  }, [filters, pool, store.deckIds, store.previewAppId, viewer]);
 
   useEffect(() => {
     setDeckSort(filters.sort);
@@ -187,7 +188,12 @@ export default function DiscoverScreen() {
           paddingHorizontal: layout.gutter,
         }}
       >
-        <DiscoverHeader filters={filters} onChange={setFilters} inset={false} />
+        <DiscoverHeader
+          filters={filters}
+          onChange={setFilters}
+          countResults={(next) => applyFilters(pool, next, viewer, { resort: false }).length}
+          inset={false}
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
@@ -254,7 +260,11 @@ export default function DiscoverScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
-      <DiscoverHeader filters={filters} onChange={setFilters} />
+      <DiscoverHeader
+        filters={filters}
+        onChange={setFilters}
+        countResults={(next) => applyFilters(pool, next, viewer, { resort: false }).length}
+      />
 
       {store.previewAppId ? (
         <View
@@ -382,10 +392,12 @@ export default function DiscoverScreen() {
 function DiscoverHeader({
   filters,
   onChange,
+  countResults,
   inset = true,
 }: {
   filters: FilterState;
   onChange: (next: FilterState) => void;
+  countResults: (next: FilterState) => number;
   /** Off when the parent already applies the page gutter. */
   inset?: boolean;
 }) {
@@ -394,21 +406,17 @@ function DiscoverHeader({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         gap: 10,
         paddingHorizontal: inset ? layout.gutter : 0,
         paddingTop: 6,
         minHeight: 48,
       }}
     >
-      <View style={{ flexShrink: 0 }}>
+      <View style={{ flexShrink: 1 }}>
         <HeaderLogo hand />
       </View>
-      {/* The chips scroll out under the right edge of the screen. */}
-      <FilterBar
-        filters={filters}
-        onChange={onChange}
-        style={{ flex: 1, marginRight: inset ? -layout.gutter : 0 }}
-      />
+      <FilterBar filters={filters} onChange={onChange} countResults={countResults} />
     </View>
   );
 }

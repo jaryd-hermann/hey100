@@ -39,6 +39,7 @@ export async function notifySignup({
   count,
   code,
   referredBy,
+  productUrl,
 }: {
   id: number;
   email: string;
@@ -46,6 +47,7 @@ export async function notifySignup({
   count: number;
   code: string;
   referredBy: string | null;
+  productUrl: string;
 }) {
   const key = process.env.NOTIFY_RESEND_KEY || process.env.RESEND_API_KEY;
   const to = process.env.NOTIFY_TO;
@@ -53,6 +55,7 @@ export async function notifySignup({
 
   const lines = [
     `Email: ${email}`,
+    `Product: ${productUrl}`,
     `Position: #${position} of ${count}`,
     `Referral code: ${code}`,
     referredBy ? `Referred by: ${referredBy}` : null,
@@ -78,5 +81,29 @@ export async function notifySignup({
     if (!res.ok) console.error('notify failed', res.status, await res.text().catch(() => ''));
   } catch (err) {
     console.error('notify error', err);
+  }
+}
+
+/** Confirmation to the person who just joined. A failure must not undo the signup. */
+export async function welcomeSignup(email: string) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const secret = process.env.WAITLIST_WELCOME_SECRET;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!base || !secret) return;
+
+  try {
+    const res = await fetch(`${base}/functions/v1/waitlist-welcome`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-welcome-secret': secret,
+        ...(anon ? { apikey: anon, Authorization: `Bearer ${anon}` } : {}),
+      },
+      body: JSON.stringify({ email }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) console.error('welcome failed', res.status, await res.text().catch(() => ''));
+  } catch (err) {
+    console.error('welcome error', err);
   }
 }

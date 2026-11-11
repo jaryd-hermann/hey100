@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Keyboard, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Progress } from '@/components/ui/Progress';
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
 import { useToast } from '@/components/ui/Toast';
@@ -14,7 +14,7 @@ import { promptLabel } from '@/data/prompts';
 import { checkInviteCode, redeemInvite } from '@/data/repo/invites';
 import { queryKeys } from '@/data/repo/keys';
 import { createListing, isListingLimitError } from '@/data/repo/listings';
-import { updateMyProfile } from '@/data/repo/profile';
+import { recordOnboardingBlocks, updateMyProfile } from '@/data/repo/profile';
 import { toListingInsert } from '@/features/apps/mapListing';
 import { uploadAsset, uploadShots } from '@/features/apps/uploadShots';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -22,22 +22,33 @@ import { SignInError, signIn, signInWithPassword, signUpWithPassword } from '@/f
 import { pickAvatar, uploadAvatar } from '@/features/profile/avatar';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
-import { useTheme } from '@/theme/ThemeProvider';
-import { SPLASH_BG, layout, radii } from '@/theme/tokens';
-import { SHOT_RATIO, type OwnedApp, type ShotLayout } from '@/data/types';
-
+import { ThemeOverride } from '@/theme/ThemeProvider';
+import { layout } from '@/theme/tokens';
+import {
+  BRIDGES,
+  INK,
+  LIME,
+  segmentCounter,
+  segmentProgress,
+  showsChromeTitle,
+  stepLook,
+  stepPalette,
+} from './look';
+import { type OwnedApp, type ShotLayout } from '@/data/types';
+import { blockGain, blocksThrough } from './blocks';
+import { EarnToast } from './EarnToast';
+import { FlowButton } from './FlowButton';
 import { ADD_APP_RANGE, LAST_STEP, STEPS } from './steps';
 import { useOnboardingDraft } from './useOnboardingDraft';
 import { useUsernameState } from './useUsernameState';
 import { AddAppStep } from './steps/AddAppStep';
 import { ProblemStep } from './steps/ProblemStep';
 import { AuthStep, EmailAuthForm, EmailOption, OrRule, ProviderButtons, type AuthProvider } from './steps/AuthStep';
-import { CheckStep } from './steps/CheckStep';
 import { InviteStep } from './steps/InviteStep';
-import { MediaStep, shotTally } from './steps/MediaStep';
+import { MediaStep } from './steps/MediaStep';
 import { PickStep } from './steps/PickStep';
 import { PromptPicker, PromptsStep, WriteAnswer } from './steps/PromptsStep';
-import { SummaryStep, type SummaryRow } from './steps/SummaryStep';
+import { SummaryStep } from './steps/SummaryStep';
 import { RoleStep, WorkStep } from './steps/WorkStep';
 import { UsernameStep } from './steps/UsernameStep';
 import { WelcomeStep } from './steps/WelcomeStep';
@@ -49,10 +60,16 @@ export type OnboardingMode = 'full' | 'addApp';
 
 const DRAFT_KEY = 'hey100.onboarding-draft';
 
+/** Part 1 keeps the Discover heart. Matching uses heart-eyes. Part 2 uses the handshake. */
+function bridgeMark(step: number) {
+  if (step === 16) return glyphs.handshake;
+  if (step === 9) return glyphs.heartEyes;
+  return glyphs.heartSolid;
+}
+
 export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { c } = useTheme();
   const toast = useToast();
   const store = useStore();
   const { userId } = useAuth();
@@ -67,6 +84,9 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
   const [logIn, setLogIn] = useState(false);
   const [emailLogIn, setEmailLogIn] = useState(false);
   const [checkingCode, setCheckingCode] = useState(false);
+  const [earn, setEarn] = useState<{ from: number; to: number; gain: number; key: number } | null>(null);
+  const earnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reachedRef = useRef(0);
   const [authPending, setAuthPending] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [picker, setPicker] = useState<number | null>(null);
@@ -204,6 +224,32 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       return;
     }
     update((prev) => ({ step: prev.step - 1 }));
+  };
+
+  reachedRef.current = draft.blocksReached ?? draft.step;
+
+  const showEarn = (from: number, gain: number) => {
+    setEarn({ from, to: from + gain, gain, key: Date.now() });
+    if (earnTimer.current) clearTimeout(earnTimer.current);
+    earnTimer.current = setTimeout(() => setEarn(null), 2300);
+  };
+
+  /**
+   * Moves to a step. Continue pays for the step being left, the first time.
+   * Skip passes `pay: false`, so a skipped step adds nothing.
+   */
+  const goTo = (step: number, options?: { pay?: boolean }) => {
+    const leaving = draft.step;
+    const reached = reachedRef.current;
+    if (options?.pay !== false && !addApp && leaving > reached && leaving > 0) {
+      const from = draft.blocks ?? blocksThrough(reached);
+      const gain = blockGain(leaving);
+      reachedRef.current = leaving;
+      if (gain > 0) showEarn(from, gain);
+      update({ step, blocks: from + gain, blocksReached: leaving });
+      return;
+    }
+    update({ step });
   };
 
   /** Everything the listing steps collected, in the shape the app renders. */
@@ -476,6 +522,24 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       await updateMyProfile(userId, fields);
       toast('That username was taken. Pick another in Profile.');
     }
+
+    // Signing in completes the step you're on. Continue already paid the earlier ones.
+    const reached = reachedRef.current;
+    const base = draft.blocks ?? blocksThrough(reached);
+    const earned =
+      !addApp && draft.step > reached && draft.step > 0 ? base + blockGain(draft.step) : base;
+    if (earned !== base) {
+      reachedRef.current = draft.step;
+      update({ blocks: earned, blocksReached: draft.step });
+    }
+    if (earned > 0) {
+      try {
+        await recordOnboardingBlocks(earned);
+        await queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      } catch {
+        toast('Signed in, but your blocks could not be saved.');
+      }
+    }
   };
 
   const completeSignUp = async (
@@ -583,77 +647,93 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       void finish();
       return;
     }
-    update((prev) => ({ step: prev.step + 1 }));
+    goTo(draft.step + 1);
   };
 
-  const summaryRows = (): SummaryRow[] => {
-    const gender = stripEmoji(picked('ig')[0] ?? '').toLowerCase();
-    const stage = stripEmoji(picked('stage')[0] ?? 'Stage not set');
-    const devices = picked('ip').join(', ');
-
-    return [
-      {
-        icon: '▣',
-        text: draft.appName || 'Your app',
-        sub: draft.appSub || undefined,
-        image: draft.appIcon || undefined,
-      },
-      { text: devices ? `${stage} — on ${devices}` : stage },
-      {
-        text: `${draft.shots.length} screenshot${draft.shots.length === 1 ? '' : 's'}`,
-        thumbs: draft.shots.slice(0, 5).map((shot) => shot.uri),
-        ratio: SHOT_RATIO[shotLayout],
-      },
-      {
-        label: "You're looking for",
-        text: picked('ii').map(stripEmoji).join(', ') || 'Ideal users',
-      },
-      {
-        label: 'Who are',
-        text: [picked('ia').join(', '), gender].filter(Boolean).join(' · ') || 'Any age',
-      },
-      {
-        label: 'From users, you want feedback on',
-        text: picked('f').join(', ') || draft.own.f || 'Anything',
-      },
-      { icon: '⊘', text: 'Next → Matching Prompts', pending: true },
-      { icon: '⊘', text: 'Next → Your builder profile', pending: true },
-    ];
+  const summary = () => {
+    const age = picked('ia').map(stripEmoji).join(', ');
+    const gender = stripEmoji(picked('ig')[0] ?? '');
+    return {
+      name: draft.appName || 'Your app',
+      subtitle: draft.appSub,
+      icon: draft.appIcon || undefined,
+      hue: draft.appHue,
+      stage: stripEmoji(picked('stage')[0] ?? 'Stage not set'),
+      devices: picked('ip').map(stripEmoji).join(', '),
+      shotLabel: `${draft.shots.length} · ${shotLayout}`,
+      looking: picked('ii').map(stripEmoji).join(', '),
+      ageGender: [age, gender].filter(Boolean).join(' · '),
+      feedback: picked('f').map(stripEmoji).join(', ') || draft.own.f || '',
+    };
   };
 
-  const background = isWelcome ? SPLASH_BG.light : c.bg;
+  const look = stepLook(draft.step);
+  const background = look.bg;
+  const inviteCodeReady = /^(?:[A-Z0-9]{2,12}-[A-Z0-9]{2,6}|[A-Z0-9]{6,16})$/.test(
+    draft.inviteCode.trim().toUpperCase(),
+  );
+  const segments = segmentProgress(addApp ? Math.max(draft.step, 3) : draft.step);
+  const counter = segmentCounter(draft.step);
 
   if (askInvite) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 24 }}>
-        <View style={{ paddingHorizontal: layout.gutter, gap: 20 }}>
-          <InviteStep
-            title="Did someone invite you?"
-            body="Paste the code so you both get free matches."
-            code={draft.inviteCode}
-            onChangeCode={(code) => update({ inviteCode: code })}
-            redeemed={draft.inviteOk}
-            invitedBy={draft.invitedBy}
-            checking={checkingCode}
-            onRedeem={redeemCode}
-          />
-          <Pressable
-            onPress={continueAfterInvite}
-            style={({ pressed }) => ({
-              height: 56,
-              borderRadius: radii.pill,
-              backgroundColor: c.ink,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            <Txt size={15.5} weight={600} color={c.bg}>
-              {draft.inviteOk ? 'Continue' : 'Skip for now'}
+      <ThemeOverride c={{ bg: '#FFFFFF', ink: '#FF5900', muted: '#FF5900', surface: '#FFFFFF' }}>
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: insets.top }}>
+          <View style={{ paddingHorizontal: 22, paddingTop: 14, gap: 9 }}>
+            <Txt font="mono" size={29} weight={600} lh={1.12} tracking={-1.45} color="#FF5900">
+              Did someone invite you?
             </Txt>
-          </Pressable>
+            <Txt size={16} lh={1.45} color="#FF5900">
+              Paste the code so you both get free matches.
+            </Txt>
+          </View>
+          <View style={{ paddingHorizontal: 20, paddingTop: 22 }}>
+            <InviteStep
+              code={draft.inviteCode}
+              onChangeCode={(code) => update({ inviteCode: code })}
+              redeemed={draft.inviteOk}
+              invitedBy={draft.invitedBy}
+              checking={checkingCode}
+            />
+          </View>
+          <View style={{ flex: 1 }} />
+          <View
+            style={{
+              paddingHorizontal: 20,
+              paddingTop: 12,
+              paddingBottom: Math.max(insets.bottom, 34),
+              gap: 10,
+            }}
+          >
+            <FlowButton
+              label={
+                draft.inviteOk
+                  ? 'Continue'
+                  : checkingCode
+                    ? 'Checking…'
+                    : inviteCodeReady
+                      ? 'Yes, Redeem'
+                      : 'Nope, Continue'
+              }
+              bg={LIME}
+              fg={INK}
+              shadow={INK}
+              dim={checkingCode && !draft.inviteOk}
+              onPress={draft.inviteOk || !inviteCodeReady ? continueAfterInvite : redeemCode}
+            />
+            {!draft.inviteOk && inviteCodeReady ? (
+              <Pressable
+                onPress={continueAfterInvite}
+                style={{ height: 30, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Txt size={14.5} weight={700} color="#FF5900" style={{ textDecorationLine: 'underline' }}>
+                  Skip for now
+                </Txt>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
-      </View>
+      </ThemeOverride>
     );
   }
 
@@ -662,7 +742,10 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       <JoiningStep
         appName={joining}
         onDone={() => {
-          router.replace('/paywall?from=onboarding');
+          router.replace({
+            pathname: '/setup/notifications',
+            params: { appId: store.primaryApp.id, then: 'paywall' },
+          });
         }}
       />
     );
@@ -676,189 +759,313 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
   if (isWelcome) {
     return (
+      <ThemeOverride c={stepPalette(look)} isDark>
       <View style={{ flex: 1, backgroundColor: background, paddingTop: insets.top + 8 }}>
-        <WelcomeStep onContinue={() => update({ step: 1 })} onLogIn={() => setLogIn(true)} />
+        <WelcomeStep onContinue={() => goTo(1)} onLogIn={() => setLogIn(true)} />
 
-        <Sheet
-          visible={logIn}
-          onClose={() => {
-            setLogIn(false);
-            setEmailLogIn(false);
+        <ThemeOverride
+          isDark={false}
+          c={{
+            bg: '#FFFFFF',
+            surface: '#FFFFFF',
+            raised: '#F2F3EF',
+            ink: '#111111',
+            muted: 'rgba(17,17,17,0.62)',
+            line: 'rgba(17,17,17,0.16)',
           }}
         >
-          <View style={{ gap: 16 }}>
-            <Txt font="mono" size={18} weight={500}>
-              Welcome back
-            </Txt>
-            <Txt size={14.5} lh={1.5} muted>
-              Log in with whichever account you listed your app with.
-            </Txt>
+          <Sheet
+            visible={logIn}
+            onClose={() => {
+              setLogIn(false);
+              setEmailLogIn(false);
+            }}
+          >
+            <View style={{ gap: 16 }}>
+              <Txt font="mono" size={18} weight={500}>
+                Welcome back
+              </Txt>
+              <Txt size={14.5} lh={1.5} muted>
+                Log in with whichever account you listed your app with.
+              </Txt>
 
-            <ProviderButtons verb="Log in with" onPress={logInWith} pending={authPending} />
-            {emailLogIn ? (
-              <View style={{ gap: 12 }}>
-                <OrRule />
-                <EmailAuthForm mode="log-in" pending={authPending} onSubmit={logInWithEmail} />
-              </View>
-            ) : (
-              <EmailOption verb="Log in with" pending={authPending} onPress={() => setEmailLogIn(true)} />
-            )}
-          </View>
-        </Sheet>
+              <ProviderButtons verb="Log in with" onPress={logInWith} pending={authPending} />
+              {emailLogIn ? (
+                <View style={{ gap: 12 }}>
+                  <OrRule />
+                  <EmailAuthForm mode="log-in" pending={authPending} onSubmit={logInWithEmail} />
+                </View>
+              ) : (
+                <EmailOption verb="Log in with" pending={authPending} onPress={() => setEmailLogIn(true)} />
+              )}
+            </View>
+          </Sheet>
+        </ThemeOverride>
       </View>
+      </ThemeOverride>
     );
   }
 
   if (isStory || isWhy) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
-        <View style={{ paddingHorizontal: layout.gutter, height: 46, justifyContent: 'center' }}>
-          <Pressable onPress={goBack} hitSlop={12} accessibilityLabel="Back">
-            <Ionicons name="chevron-back" size={26} color={c.ink} />
-          </Pressable>
+      <ThemeOverride c={stepPalette(look)} isDark={look.dark}>
+        <View style={{ flex: 1, backgroundColor: look.bg, paddingTop: insets.top }}>
+          <View style={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 4 }}>
+              <Pressable onPress={goBack} accessibilityLabel="Back" style={{ width: 40, height: 40 }}>
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: 3,
+                    bottom: -3,
+                    borderRadius: 20,
+                    backgroundColor: look.shadow,
+                  }}
+                />
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    borderWidth: 2,
+                    borderColor: '#111111',
+                    backgroundColor: '#FFFFFF',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="arrow-back" size={18} color="#111111" />
+                </View>
+              </Pressable>
+          </View>
+          {isStory ? (
+            <StoryStep onContinue={() => goTo(draft.step + 1)} />
+          ) : (
+            <WhyStep onContinue={() => goTo(draft.step + 1)} />
+          )}
+          {earn ? <EarnToast key={earn.key} from={earn.from} to={earn.to} gain={earn.gain} top={insets.top + 4} /> : null}
         </View>
-        {isStory ? (
-          <StoryStep onContinue={() => update((prev) => ({ step: prev.step + 1 }))} />
-        ) : (
-          <WhyStep onContinue={() => update((prev) => ({ step: prev.step + 1 }))} />
-        )}
-      </View>
+      </ThemeOverride>
     );
   }
 
   const title = writing ? 'Write answer' : picker !== null ? 'Select a prompt' : (step.title ?? '');
 
-  const showBottomBar = !isCheckLike && step.kind !== 'auth' && !writing && picker === null;
+  const showBottomBar = step.kind !== 'auth' && !writing && picker === null;
+  const bridge = BRIDGES[draft.step];
+  const showTitle = showsChromeTitle(step) && !writing && picker === null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: background, paddingTop: insets.top }}>
-      <View style={{ paddingHorizontal: layout.gutter, paddingTop: 10 }}>
-        <Progress value={(draft.step + 1) / (lastStep + 1)} />
-
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            height: 46,
-          }}
-        >
-          <Pressable onPress={goBack} hitSlop={12} accessibilityLabel="Back">
-            <Ionicons name="chevron-back" size={26} color={c.ink} />
-          </Pressable>
-
-          {writing ? (
-            <Pressable
-              onPress={() => {
-                const id = writing;
-                const slot = picker ?? draft.answered.length;
-                update((prev) => {
-                  const answered = [...prev.answered];
-                  answered[slot] = id;
-                  return {
-                    answered: answered.filter(Boolean),
-                    answers: { ...prev.answers, [id]: answerDraft.trim() },
-                  };
-                });
-                setWriting(null);
-                setPicker(null);
-              }}
-              hitSlop={10}
-            >
-              <Txt size={15} weight={600} color={answerDraft.trim() ? c.accentText : c.muted}>
-                Done
-              </Txt>
+    <ThemeOverride c={stepPalette(look)} isDark={look.dark}>
+      <View style={{ flex: 1, backgroundColor: background, paddingTop: insets.top }}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Pressable onPress={goBack} accessibilityLabel="Back" style={{ width: 40, height: 40 }}>
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: 3,
+                  bottom: -3,
+                  borderRadius: 20,
+                  backgroundColor: look.shadow,
+                }}
+              />
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  borderWidth: 2,
+                  borderColor: '#111111',
+                  backgroundColor: '#FFFFFF',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="arrow-back" size={18} color="#111111" />
+              </View>
             </Pressable>
-          ) : step.skip && picker === null ? (
-            <Pressable
-              onPress={() => update((prev) => ({ step: Math.min(lastStep, prev.step + 1) }))}
-              style={{
-                paddingHorizontal: 14,
-                height: 32,
-                borderRadius: radii.pill,
-                borderWidth: 1.5,
-                borderColor: c.line,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Txt size={13.5} weight={600} muted>
-                Skip
+            <View style={{ flex: 1, flexDirection: 'row', gap: 5 }}>
+              {segments.map((value, index) => (
+                <View
+                  key={index}
+                  style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: look.track, overflow: 'hidden' }}
+                >
+                  <View
+                    style={{
+                      width: `${Math.round(value * 100)}%`,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: look.fill,
+                    }}
+                  />
+                </View>
+              ))}
+            </View>
+            {writing ? (
+              <Pressable
+                onPress={() => {
+                  const id = writing;
+                  const slot = picker ?? draft.answered.length;
+                  update((prev) => {
+                    const answered = [...prev.answered];
+                    answered[slot] = id;
+                    return {
+                      answered: answered.filter(Boolean),
+                      answers: { ...prev.answers, [id]: answerDraft.trim() },
+                    };
+                  });
+                  setWriting(null);
+                  setPicker(null);
+                }}
+                hitSlop={10}
+              >
+                <Txt size={15} weight={700} color={answerDraft.trim() ? look.fill : look.muted}>
+                  Done
+                </Txt>
+              </Pressable>
+            ) : (
+              <Txt
+                font="mono"
+                size={11.5}
+                weight={700}
+                color={look.ink}
+                style={{ minWidth: 44, textAlign: 'right' }}
+              >
+                {counter}
               </Txt>
-            </Pressable>
-          ) : (
-            <View style={{ width: 26 }} />
-          )}
+            )}
+          </View>
         </View>
-      </View>
 
-      <ScrollView
-        ref={scrollRef}
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        contentContainerStyle={{
-          paddingHorizontal: layout.gutter,
-          paddingTop: isCheckLike ? 0 : isSummary ? 14 : 24,
-          paddingBottom: showBottomBar ? 140 : insets.bottom + 40,
-          flexGrow: isCheckLike ? 1 : undefined,
-        }}
-      >
-        {!isCheckLike && title && step.kind !== 'username' && step.kind !== 'problem' ? (
-          <Txt font="mono" size={27} weight={500} lh={1.22} style={{ marginBottom: 18 }}>
-            {title}
-          </Txt>
-        ) : null}
-
-        {renderStep()}
-      </ScrollView>
-
-      {showBottomBar ? (
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            paddingHorizontal: layout.gutter,
-            paddingTop: 12,
-            paddingBottom: insets.bottom + 14,
-            backgroundColor: background,
-            borderTopWidth: 1,
-            borderColor: c.line,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 14,
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={{
+            paddingHorizontal: 22,
+            paddingTop: 14,
+            paddingBottom: showBottomBar ? 150 : insets.bottom + 40,
+            flexGrow: isCheckLike ? 1 : undefined,
+            justifyContent: isCheckLike ? 'center' : undefined,
           }}
         >
-          {step.kind === 'media' && draft.shots.length ? (
-            <Txt size={13.5} lh={1.4} muted style={{ flex: 1 }}>
-              Continue with {draft.shots.length === 1 ? 'this' : 'these'} {shotTally(draft.shots)}
-            </Txt>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
+          {isCheckLike && bridge ? (
+            <View style={{ flexGrow: 1, justifyContent: 'center', gap: 22, paddingHorizontal: 4, paddingBottom: 30 }}>
+              <View style={{ width: 104, height: 109, transform: [{ rotate: '-10deg' }] }}>
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 5,
+                    width: 104,
+                    height: 104,
+                    borderRadius: 52,
+                    backgroundColor: '#111111',
+                  }}
+                />
+                <View
+                  style={{
+                    width: 104,
+                    height: 104,
+                    borderRadius: 52,
+                    backgroundColor: LIME,
+                    borderWidth: 2,
+                    borderColor: '#111111',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Glyph source={bridgeMark(draft.step)} size={52} color="#111111" />
+                </View>
+              </View>
+              <View
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingVertical: 6,
+                  paddingHorizontal: 11,
+                  borderRadius: 9,
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 2,
+                  borderColor: '#111111',
+                }}
+              >
+                <Txt font="mono" size={11} weight={700} color="#111111" tracking={1.1}>
+                  {bridge.part}
+                </Txt>
+              </View>
+              <Txt font="mono" size={31} weight={600} lh={1.14} tracking={-1.55} color={look.ink}>
+                {bridge.text}
+              </Txt>
+            </View>
+          ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Next"
-            onPress={next}
-            style={({ pressed }) => ({
-              width: 60,
-              height: 60,
-              borderRadius: 20,
-              backgroundColor: valid ? c.ink : c.muted,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.8 : 1,
-            })}
+          {showTitle && title ? (
+            <View style={{ gap: 9, marginBottom: 18 }}>
+              {step.meta ? (
+                <Txt font="mono" size={11} weight={700} color={look.ink} tracking={1.1}>
+                  {step.meta}
+                </Txt>
+              ) : null}
+              <Txt font="mono" size={29} weight={600} lh={1.12} tracking={-1.45} color={look.ink}>
+                {title}
+              </Txt>
+              {step.subtitle ? (
+                <Txt size={16} lh={1.45} color={look.muted}>
+                  {step.subtitle}
+                </Txt>
+              ) : null}
+            </View>
+          ) : null}
+
+          {isCheckLike ? null : renderStep()}
+        </ScrollView>
+
+        {showBottomBar ? (
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              paddingHorizontal: 20,
+              paddingTop: 12,
+              paddingBottom: Math.max(insets.bottom, 16),
+              backgroundColor: background,
+              gap: 10,
+            }}
           >
-            <Ionicons name="chevron-forward" size={28} color={c.bg} />
-          </Pressable>
-        </View>
-      ) : null}
-    </View>
+            <FlowButton
+              label="Continue"
+              bg={look.ctaBg}
+              fg={look.ctaFg}
+              shadow={look.shadow}
+              dim={!valid}
+              onPress={next}
+            />
+            {step.skip ? (
+              <Pressable
+                onPress={() => goTo(Math.min(lastStep, draft.step + 1), { pay: false })}
+                style={{ height: 30, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Txt size={14.5} weight={700} color={look.ink} style={{ textDecorationLine: 'underline' }}>
+                  Skip
+                </Txt>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+        {earn ? <EarnToast key={earn.key} from={earn.from} to={earn.to} gain={earn.gain} top={insets.top + 4} /> : null}
+      </View>
+    </ThemeOverride>
   );
 
   function renderStep() {
@@ -890,7 +1097,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
 
     switch (step.kind) {
       case 'check':
-        return <CheckStep title={step.title!} onContinue={next} />;
+        return null;
 
       case 'link':
         return (
@@ -904,8 +1111,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             cats={draft.appCats}
             icon={draft.appIcon || undefined}
             shots={draft.shots}
+            shotLayout={shotLayout}
             links={draft.links}
-            onFetch={(result) =>
+            onFetch={(result) => {
+              const keepLocal = draft.shots.some((shot) => !/^https?:/i.test(shot.uri));
+              if (!keepLocal) setShotLayout(result.shotLayout ?? 'vertical');
               update((prev) => ({
                 fetched: true,
                 appName: result.name,
@@ -925,8 +1135,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
                   ? prev.shots.filter((shot) => !/^https?:/i.test(shot.uri))
                   : result.shots.map((uri) => ({ uri, kind: 'image' as const })),
                 links: { ...prev.links, web: result.web },
-              }))
-            }
+              }));
+            }}
             onChangeName={(appName) => update({ appName })}
             onChangeSub={(appSub) => update({ appSub })}
             onChangeCats={(appCats) => update({ appCats: appCats.slice(0, 2) })}
@@ -997,7 +1207,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
         );
 
       case 'summary':
-        return <SummaryStep rows={summaryRows()} />;
+        return <SummaryStep {...summary()} />;
 
       case 'prompts':
         return (
@@ -1012,6 +1222,14 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
               setPicker(slot);
               setWriting(promptId);
               setAnswerDraft(draft.answers[promptId] ?? '');
+            }}
+            onRemoveSlot={(slot) => {
+              update((prev) => {
+                const id = prev.answered[slot];
+                const answers = { ...prev.answers };
+                if (id) delete answers[id];
+                return { answered: prev.answered.filter((_, index) => index !== slot), answers };
+              });
             }}
           />
         );
@@ -1082,6 +1300,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
             username={draft.username}
             realName={realName || store.user.realName}
             photo={draft.photo || store.user.photo}
+            blocks={draft.blocks ?? 0}
             pending={authPending || publishing}
             signedIn={!!userId}
             onSignIn={signUpWith}
@@ -1095,3 +1314,4 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
     }
   }
 }
+

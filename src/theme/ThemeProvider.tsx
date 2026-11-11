@@ -58,3 +58,25 @@ export function useTheme(): ThemeValue {
   if (!value) throw new Error('useTheme must be used inside ThemeProvider');
   return value;
 }
+
+/** Paints one screen with a different palette without changing the saved theme. */
+export function ThemeOverride({
+  c,
+  isDark,
+  children,
+}: {
+  c: Partial<Palette>;
+  isDark?: boolean;
+  children: React.ReactNode;
+}) {
+  const parent = useTheme();
+  const value = useMemo<ThemeValue>(
+    () => ({
+      ...parent,
+      c: { ...parent.c, ...c },
+      isDark: isDark ?? parent.isDark,
+    }),
+    [parent, c, isDark],
+  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}

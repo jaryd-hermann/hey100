@@ -849,12 +849,12 @@ function Section({
 
   if (section === 'looking') {
     const ideal = listing.ideal;
-    const blocks: { label: string; items: string[]; tone?: 'blue'; devices?: boolean }[] = [
-      { label: 'Age', items: splitList(ideal?.age) },
-      { label: 'Gender', items: splitList(ideal?.gender) },
-      { label: 'On', items: splitList(ideal?.plat), devices: true },
-      { label: 'Wants feedback on', items: splitList(ideal?.wants) },
-      { label: 'Into', items: splitList(ideal?.interests), tone: 'blue' },
+    const blocks: { label: string; items: string[]; devices?: boolean; outline: string }[] = [
+      { label: 'Age', items: splitList(ideal?.age), outline: '#00FFFF' },
+      { label: 'Gender', items: splitList(ideal?.gender), outline: '#FF1C6F' },
+      { label: 'On', items: splitList(ideal?.plat), devices: true, outline: '#00FF00' },
+      { label: 'Wants feedback on', items: splitList(ideal?.wants), outline: '#FFFF00' },
+      { label: 'Into', items: splitList(ideal?.interests), outline: '#7B00FF' },
     ];
 
     return (
@@ -862,7 +862,7 @@ function Section({
         <Card padding={18} radius={radii.cardLg} style={{ gap: 16 }}>
           <Label>Ideal users</Label>
           <View style={{ gap: 14 }}>
-            {blocks.map(({ label, items, tone, devices }) => (
+            {blocks.map(({ label, items, devices, outline }) => (
               <View key={label} style={{ gap: 8 }}>
                 <Txt size={13} muted>
                   {label}
@@ -874,10 +874,10 @@ function Section({
                         key={item}
                         label={item}
                         size="sm"
-                        tone={tone}
+                        outline={outline}
                         left={
                           devices && deviceMark(item) ? (
-                            <Ionicons name={deviceMark(item)!} size={12} color={c.ink} />
+                            <Ionicons name={deviceMark(item)!} size={12} color="#FFFFFF" />
                           ) : undefined
                         }
                       />

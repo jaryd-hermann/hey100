@@ -30,6 +30,7 @@ import { ReportSheet } from '@/features/safety/ReportSheet';
 import { cardToListing } from '@/features/loop/mapLoop';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { avatarName, firstName, TEAM_ID } from '@/features/chat/chatMeta';
+import { markTeamRead, teamUnreadCount, useTeamReadAt } from '@/features/chat/teamUnread';
 import {
   isMatchGroup,
   joinCommunityGroup,
@@ -137,16 +138,24 @@ export default function ChatThread() {
   useThreadMessages(isTeam || !match ? null : id);
   const stored = useMemo(() => loop.messages(id), [id, loop]);
 
+  const teamReadAt = useTeamReadAt(isTeam ? userId : null);
   const unreadAtOpen = useRef(
-    store.matches.find((item) => item.id === id)?.unread ??
-      loop.matches.find((item) => item.id === id)?.unread ??
-      0,
+    isTeam
+      ? teamUnreadCount(stored, teamReadAt)
+      : (store.matches.find((item) => item.id === id)?.unread ??
+        loop.matches.find((item) => item.id === id)?.unread ??
+        0),
   ).current;
 
   const { markChatRead } = store;
   useEffect(() => {
+    if (isTeam) {
+      const latest = stored[stored.length - 1]?.at;
+      if (latest) markTeamRead(userId, latest);
+      return;
+    }
     markChatRead(id);
-  }, [id, markChatRead]);
+  }, [id, isTeam, markChatRead, stored, userId]);
 
   const messages = stored;
   const unreadStart =

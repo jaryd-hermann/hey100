@@ -31,6 +31,15 @@ export function previewText(message: Message): string {
   return message.kind === 'me' ? `You: ${label}` : label;
 }
 
+/** Short label for a message timestamp, matching the match-row times. */
+export function relativeTime(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 1440) return `${Math.round(minutes / 60)}h`;
+  return `${Math.round(minutes / 1440)}d`;
+}
+
 /**
  * The Team thread has no `Match` record, so its row reads straight from the
  * messages: it is current once the user writes in, and quiet otherwise.
@@ -39,7 +48,7 @@ export function threadPreview(messages: Message[]): { last: string; time: string
   const last = messages[messages.length - 1];
   if (!last) return { last: 'Bugs, ideas, anything — this comes straight to me.', time: '' };
 
-  return { last: previewText(last), time: last.kind === 'me' ? 'now' : '2d' };
+  return { last: previewText(last), time: last.at ? relativeTime(last.at) : '' };
 }
 
 /** `Jaryd · founder of Hey100` is one person, so the avatar is one initial. */

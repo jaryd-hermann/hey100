@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { Image } from 'expo-image';
-
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
@@ -101,11 +100,7 @@ export function HeySheet({
           size="lg"
           full
           left={
-            <Image
-              source={require('../../../assets/images/like-light.png')}
-              style={{ width: 22, height: 22 }}
-              contentFit="contain"
-            />
+            <Glyph source={glyphs.heartSolid} size={18} color={c.accentInk} />
           }
           onPress={() => {
             onSend(note.trim());

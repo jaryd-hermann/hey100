@@ -2,8 +2,10 @@ import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, PanResponder, Pressable, View } from 'react-native';
+import { Animated, Easing, PanResponder, Pressable, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import {
   AppsIcon,
   ChatIcon,
@@ -14,16 +16,22 @@ import {
 } from '@/components/brand/TabIcons';
 import { Glass } from '@/components/ui/Glass';
 import { Txt } from '@/components/ui/Txt';
+import { TEAM_ID } from '@/features/chat/chatMeta';
+import { teamUnreadCount, useTeamReadAt } from '@/features/chat/teamUnread';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { useCoach } from '@/features/feedback/CoachHost';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
-import { layout, radii } from '@/theme/tokens';
+import { layout } from '@/theme/tokens';
 
-/** The selected sticker sits on a white pill, so its label is sticker black. */
+/** Icon ink when it sits on the pink selected tile. */
 const STICKER = '#111111';
+const SELECTED = '#FF1C6F';
 
 const PADDING = 6;
-const PILL_INSET = 3;
-const PILL_HEIGHT = 54;
+const TILE = 40;
+const LIME = '#C6F24E';
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const TABS: { name: string; label: string; Icon: React.FC<TabIconProps> }[] = [
   { name: 'discover', label: 'Discover', Icon: DiscoverIcon },
@@ -48,15 +56,39 @@ export default function TabsLayout() {
 
 function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const { c } = useTheme();
-  const { heys } = useStore();
+  const { heys, matches, messages, deletedChats } = useStore();
+  const { userId } = useAuth();
+  const teamReadAt = useTeamReadAt(userId);
+  const teamUnread = deletedChats.includes(TEAM_ID)
+    ? 0
+    : teamUnreadCount(messages[TEAM_ID] ?? [], teamReadAt);
+  const chatUnread =
+    teamUnread +
+    matches
+      .filter((match) => !deletedChats.includes(match.id))
+      .reduce((sum, match) => sum + (match.unread ?? 0), 0);
+  const coach = useCoach();
+  const routeName = state.routes[state.index]?.name;
+  const [trace, setTrace] = useState(0);
+  const traced = useRef<string | null>(null);
+  useEffect(() => {
+    if (routeName !== 'apps' && routeName !== 'feedback') {
+      traced.current = null;
+      return;
+    }
+    if (traced.current === routeName) return;
+    traced.current = routeName;
+    setTrace((n) => n + 1);
+  }, [routeName]);
+  const slots = state.routes.length;
   const [rowWidth, setRowWidth] = useState(0);
   const slide = useRef(new Animated.Value(state.index)).current;
-  const metrics = useRef({ width: 0, count: TABS.length });
+  const metrics = useRef({ width: 0, slots: TABS.length, routes: TABS.length });
   const navRef = useRef(navigation);
   const routesRef = useRef(state.routes);
   navRef.current = navigation;
   routesRef.current = state.routes;
-  metrics.current = { width: rowWidth, count: state.routes.length };
+  metrics.current = { width: rowWidth, slots, routes: state.routes.length };
 
   useEffect(() => {
     Animated.spring(slide, {
@@ -73,18 +105,18 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
       onPanResponderMove: (e) => {
-        const { width, count } = metrics.current;
-        if (!width || !count) return;
-        const slotWidth = (width - PADDING * 2) / count;
+        const { width, slots: slotCount, routes } = metrics.current;
+        if (!width || !slotCount) return;
+        const slotWidth = (width - PADDING * 2) / slotCount;
         const x = e.nativeEvent.locationX - PADDING;
-        slide.setValue(Math.max(0, Math.min(count - 1, x / slotWidth)));
+        slide.setValue(Math.max(0, Math.min(routes - 1, x / slotWidth)));
       },
       onPanResponderRelease: (e) => {
-        const { width, count } = metrics.current;
-        if (!width || !count) return;
-        const slotWidth = (width - PADDING * 2) / count;
+        const { width, slots: slotCount, routes } = metrics.current;
+        if (!width || !slotCount) return;
+        const slotWidth = (width - PADDING * 2) / slotCount;
         const x = e.nativeEvent.locationX - PADDING;
-        const next = Math.max(0, Math.min(count - 1, Math.round(x / slotWidth)));
+        const next = Math.max(0, Math.min(routes - 1, Math.round(x / slotWidth)));
         const route = routesRef.current[next];
         if (route) {
           Haptics.selectionAsync().catch(() => {});
@@ -101,7 +133,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
     }),
   ).current;
 
-  const slot = rowWidth > 0 ? (rowWidth - PADDING * 2) / state.routes.length : 0;
+  const slot = rowWidth > 0 ? (rowWidth - PADDING * 2) / slots : 0;
 
   return (
     <View
@@ -110,9 +142,12 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
         left: layout.tabBarInset,
         right: layout.tabBarInset,
         bottom: layout.tabBarBottom,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
       }}
     >
-      <Glass radius={radii.pill} intensity={55}>
+      <Glass radius={18} intensity={55} style={{ flex: 1 }}>
         <View
           onLayout={(e) => setRowWidth(e.nativeEvent.layout.width)}
           {...pan.panHandlers}
@@ -130,7 +165,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
             if (!tab) return null;
 
             const focused = state.index === index;
-            const badge = tab.name === 'heys' ? heys.length : 0;
+            const badge = tab.name === 'heys' ? heys.length : tab.name === 'chat' ? chatUnread : 0;
 
             return (
               <Pressable
@@ -144,52 +179,129 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
                 }}
                 style={{ flex: 1, alignItems: 'center', justifyContent: 'center', height: '100%' }}
               >
-                <View style={{ alignItems: 'center', gap: 1 }}>
-                  <View>
-                    <tab.Icon size={24} active={focused} />
-                    {badge > 0 ? (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: -3,
-                          right: -10,
-                          minWidth: 18,
-                          height: 18,
-                          paddingHorizontal: 4,
-                          borderRadius: 9,
-                          backgroundColor: c.accent,
-                          borderWidth: 1.5,
-                          borderColor: STICKER,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Txt font="mono" size={10} weight={700} color={STICKER}>
-                          {badge}
-                        </Txt>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Txt
-                    font="mono"
-                    size={9}
-                    weight={600}
-                    color={focused ? STICKER : c.muted}
-                    numberOfLines={1}
-                  >
-                    {tab.label}
-                  </Txt>
+                <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <tab.Icon size={22} active={focused} />
+                  {badge > 0 ? (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -10,
+                        minWidth: 18,
+                        height: 18,
+                        paddingHorizontal: 4,
+                        borderRadius: 9,
+                        backgroundColor: c.accent,
+                        borderWidth: 1.5,
+                        borderColor: STICKER,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Txt font="mono" size={10} weight={700} color={STICKER}>
+                        {badge}
+                      </Txt>
+                    </View>
+                  ) : null}
                 </View>
               </Pressable>
             );
           })}
         </View>
       </Glass>
+
+      <View style={{ width: layout.tabBarHeight, height: layout.tabBarHeight }}>
+        <Glass radius={18} intensity={55}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="AI chat"
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              coach.open();
+            }}
+            style={{
+              width: layout.tabBarHeight,
+              height: layout.tabBarHeight,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Glyph source={glyphs.sparkles} size={22} color={c.ink} />
+          </Pressable>
+        </Glass>
+        {trace > 0 ? <MenuTrace key={trace} size={layout.tabBarHeight} /> : null}
+      </View>
     </View>
   );
 }
 
-/** The white indicator slides between tabs with a glass sheen over it. */
+/**
+ * A lime stroke that starts at the top center of the assistant button, runs
+ * once around its edge, and disappears. Played when Apps or Feedback opens.
+ */
+function MenuTrace({ size }: { size: number }) {
+  const radius = 18;
+  const stroke = 2.5;
+  const inset = stroke / 2;
+  const left = inset;
+  const top = inset;
+  const right = size - inset;
+  const bottom = size - inset;
+  const r = radius - inset;
+  const mid = size / 2;
+  const straight = right - left - 2 * r;
+  const length = straight * 4 + 2 * Math.PI * r;
+  const d = [
+    `M ${mid} ${top}`,
+    `H ${right - r}`,
+    `A ${r} ${r} 0 0 1 ${right} ${top + r}`,
+    `V ${bottom - r}`,
+    `A ${r} ${r} 0 0 1 ${right - r} ${bottom}`,
+    `H ${left + r}`,
+    `A ${r} ${r} 0 0 1 ${left} ${bottom - r}`,
+    `V ${top + r}`,
+    `A ${r} ${r} 0 0 1 ${left + r} ${top}`,
+    `H ${mid}`,
+  ].join(' ');
+  const offset = useRef(new Animated.Value(length)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const run = Animated.sequence([
+      Animated.timing(offset, {
+        toValue: 0,
+        duration: 720,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: false,
+      }),
+    ]);
+    run.start();
+    return () => run.stop();
+  }, [length, offset, opacity]);
+
+  return (
+    <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, opacity }}>
+      <Svg width={size} height={size}>
+        <AnimatedPath
+          d={d}
+          fill="none"
+          stroke={LIME}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${length} ${length}`}
+          strokeDashoffset={offset}
+        />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+/** Pink rounded tile behind the selected icon. It slides between tabs. */
 function SelectionPill({ slide, slot }: { slide: Animated.Value; slot: number }) {
   if (slot === 0) return null;
 
@@ -198,17 +310,13 @@ function SelectionPill({ slide, slot }: { slide: Animated.Value; slot: number })
       pointerEvents="none"
       style={{
         position: 'absolute',
-        left: PADDING + PILL_INSET,
-        top: (layout.tabBarHeight - PILL_HEIGHT) / 2,
-        width: slot - PILL_INSET * 2,
-        height: PILL_HEIGHT,
-        borderRadius: radii.pill,
-        backgroundColor: '#FFFFFF',
+        left: PADDING + (slot - TILE) / 2,
+        top: (layout.tabBarHeight - TILE) / 2,
+        width: TILE,
+        height: TILE,
+        borderRadius: 12,
+        backgroundColor: SELECTED,
         transform: [{ translateX: Animated.multiply(slide, slot) }],
-        shadowColor: '#000',
-        shadowOpacity: 0.18,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 3 },
       }}
     />
   );

@@ -1,29 +1,25 @@
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppIcon, Avatar } from '@/components/ui/AppIcon';
-import { Btn } from '@/components/ui/Btn';
-import { Card } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
+import { Avatar } from '@/components/ui/AppIcon';
 import { Txt } from '@/components/ui/Txt';
 import { updateMyProfile } from '@/data/repo/profile';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { FlowButton } from '@/features/onboarding/FlowButton';
+import { INK } from '@/features/onboarding/look';
 import { BIO_MAX } from '@/features/profile/fields';
-import { builderRole } from '@/features/profile/builderCard';
 import { toProfilePatch } from '@/features/profile/mapProfile';
 import { useStore } from '@/store/AppStore';
-import { useTheme } from '@/theme/ThemeProvider';
-import { layout, radii } from '@/theme/tokens';
+import { fonts } from '@/theme/tokens';
 
-const AVATAR = 40;
-const BADGE = 18;
+const PLACEHOLDER = 'Building X on nights and weekends.';
 
 export default function SetupBio() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { c } = useTheme();
   const store = useStore();
   const { userId } = useAuth();
   const { appId } = useLocalSearchParams<{ appId?: string }>();
@@ -31,8 +27,7 @@ export default function SetupBio() {
   const [saving, setSaving] = useState(false);
 
   const user = store.user;
-  const app = store.ownedApps.find((item) => item.id === appId) ?? store.primaryApp;
-  const role = builderRole(user.job, user.workplace);
+  const handle = user.username ? `@${user.username}` : '@you';
 
   const finish = async (value: string) => {
     if (saving) return;
@@ -52,104 +47,133 @@ export default function SetupBio() {
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: c.bg,
-        paddingTop: insets.top + 24,
-        paddingBottom: insets.bottom + 20,
-        paddingHorizontal: layout.gutter,
-      }}
-    >
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        contentContainerStyle={{ gap: 16, paddingTop: 24, paddingBottom: 20 }}
-      >
-        <Txt font="mono" size={27} weight={500} lh={1.22}>
+    <View style={{ flex: 1, backgroundColor: '#FFFF00', paddingTop: insets.top }}>
+      <StatusBar style="dark" />
+      <View style={{ paddingHorizontal: 22, paddingTop: 14, gap: 9 }}>
+        <Txt font="mono" size={29} weight={600} lh={1.12} tracking={-1.45} color={INK}>
           Write a short bio
         </Txt>
-        <Txt size={15.5} lh={1.5} muted>
+        <Txt size={16} lh={1.45} color="rgba(17,17,17,0.78)">
           One or two lines about what you build.
         </Txt>
+      </View>
 
-        <Card padding={16} radius={radii.cardLg}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: AVATAR, height: AVATAR }}>
-              <Avatar
-                name={user.realName || user.username || 'You'}
-                seed={user.username}
-                uri={user.photo}
-                size={AVATAR}
-              />
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  left: 0,
-                  borderRadius: AVATAR / 2,
-                  borderWidth: 1.5,
-                  borderColor: c.ink,
-                }}
-              />
-              <View
-                style={{
-                  position: 'absolute',
-                  right: -4,
-                  bottom: -4,
-                  borderWidth: 2,
-                  borderColor: c.surface,
-                  borderRadius: Math.round(BADGE * 0.26) + 2,
-                }}
-              >
-                <AppIcon hue={app.hue} name={app.name} uri={app.icon} size={BADGE} />
-              </View>
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Txt size={16} weight={700} numberOfLines={1}>
-                {user.realName || 'You'}
-              </Txt>
-              {user.username ? (
-                <Txt font="mono" size={13} muted numberOfLines={1}>
-                  @{user.username}
-                </Txt>
-              ) : null}
-              {role ? (
-                <Txt size={13.5} muted numberOfLines={1}>
-                  {role}
-                </Txt>
-              ) : null}
-            </View>
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 14 }}>
+        <View>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 5,
+              bottom: -5,
+              borderRadius: 20,
+              backgroundColor: INK,
+            }}
+          />
+          <View
+            style={{
+              borderRadius: 20,
+              borderWidth: 2,
+              borderColor: INK,
+              backgroundColor: '#FFFFFF',
+              minHeight: 148,
+            }}
+          >
+            <TextInput
+              value={bio}
+              onChangeText={(next) => setBio(next.slice(0, BIO_MAX))}
+              placeholder={PLACEHOLDER}
+              placeholderTextColor="rgba(17,17,17,0.42)"
+              multiline
+              autoFocus
+              maxLength={BIO_MAX}
+              textAlignVertical="top"
+              style={{
+                minHeight: 148,
+                paddingTop: 16,
+                paddingHorizontal: 16,
+                paddingBottom: 30,
+                color: INK,
+                fontFamily: fonts.bodyMedium,
+                fontSize: 18,
+                lineHeight: 25,
+              }}
+            />
+            <Txt
+              font="mono"
+              size={11.5}
+              weight={600}
+              color="#5B625C"
+              style={{ position: 'absolute', right: 16, bottom: 12 }}
+            >
+              {bio.length}/{BIO_MAX}
+            </Txt>
           </View>
-        </Card>
+        </View>
 
-        <Field
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Building X on nights and weekends."
-          multiline
-          minHeight={120}
-          max={BIO_MAX}
-          accent
-          autoFocus
-        />
-      </ScrollView>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            padding: 12,
+            borderRadius: 18,
+            backgroundColor: 'rgba(17,17,17,0.06)',
+            borderWidth: 1.5,
+            borderStyle: 'dashed',
+            borderColor: INK,
+          }}
+        >
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              borderWidth: 1.5,
+              borderColor: INK,
+              overflow: 'hidden',
+            }}
+          >
+            <Avatar name={user.realName || user.username || 'You'} seed={user.username} uri={user.photo} size={36} />
+          </View>
+          <View style={{ flex: 1, gap: 1 }}>
+            <Txt size={13.5} weight={700} color={INK} numberOfLines={1}>
+              {handle}
+            </Txt>
+            <Txt size={13} lh={1.35} color={INK}>
+              {bio.trim() || PLACEHOLDER}
+            </Txt>
+          </View>
+        </View>
+      </View>
 
-      <View style={{ gap: 10 }}>
-        <Btn
+      <View style={{ flex: 1 }} />
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, 34),
+          gap: 10,
+        }}
+      >
+        <FlowButton
           label={saving ? 'Saving…' : 'Save bio'}
-          variant="accent"
-          size="lg"
-          full
-          dim={!bio.trim()}
+          bg={INK}
+          fg="#FFFFFF"
+          shadow={INK}
+          dim={saving}
           onPress={() => void finish(bio.trim())}
         />
-        <Btn label="Skip" variant="ghost" size="md" full onPress={() => void finish('')} />
+        <Pressable
+          onPress={() => void finish('')}
+          style={{ height: 30, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Txt size={14.5} weight={700} color={INK} style={{ textDecorationLine: 'underline' }}>
+            Skip
+          </Txt>
+        </Pressable>
       </View>
     </View>
   );

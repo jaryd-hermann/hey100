@@ -1,20 +1,22 @@
 import { Image } from 'expo-image';
 import React from 'react';
 
-const ICONS = {
-  karma: require('../../../assets/images/karma.png'),
-  ai: require('../../../assets/images/ai-chat.png'),
-  verified: require('../../../assets/images/verified.png'),
-};
+import { useTheme } from '@/theme/ThemeProvider';
 
-export function KarmaMark({ size = 22 }: { size?: number }) {
-  return <Image source={ICONS.karma} style={{ width: size, height: size }} contentFit="contain" />;
+import { Glyph, glyphs } from './Glyph';
+
+const VERIFIED = require('../../../assets/images/verified.png');
+
+export function KarmaMark({ size = 22, color }: { size?: number; color?: string }) {
+  const { c } = useTheme();
+  return <Glyph source={glyphs.coin} size={size} color={color ?? c.ink} />;
 }
 
-export function AiMark({ size = 22 }: { size?: number }) {
-  return <Image source={ICONS.ai} style={{ width: size, height: size }} contentFit="contain" />;
+export function AiMark({ size = 22, color }: { size?: number; color?: string }) {
+  const { c } = useTheme();
+  return <Glyph source={glyphs.sparkles} size={size} color={color ?? c.ink} />;
 }
 
 export function VerifiedBadge({ size = 18 }: { size?: number }) {
-  return <Image source={ICONS.verified} style={{ width: size, height: size }} contentFit="contain" />;
+  return <Image source={VERIFIED} style={{ width: size, height: size }} contentFit="contain" />;
 }

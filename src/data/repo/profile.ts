@@ -44,6 +44,15 @@ export function useMyProfile() {
  * patch asks it to, so the worst a bug here can do is corrupt the user's own
  * presentable fields.
  */
+/** Saves the Block Points earned during onboarding. Safe to call again. */
+export async function recordOnboardingBlocks(blocks: number): Promise<void> {
+  const db = getSupabase();
+  if (!db || blocks <= 0) return;
+
+  const { error } = await db.rpc('record_onboarding_blocks', { p_blocks: Math.round(blocks) });
+  if (error) throw error;
+}
+
 export async function updateMyProfile(userId: string, patch: ProfilePatch): Promise<void> {
   const db = getSupabase();
   if (!db) return;

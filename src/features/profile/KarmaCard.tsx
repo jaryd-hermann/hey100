@@ -31,7 +31,7 @@ export function KarmaCard() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <KarmaMark size={24} />
             <Txt font="mono" size={16} weight={500} style={{ flex: 1 }}>
-              Karma
+              Block Points
             </Txt>
             {verified ? <VerifiedBadge size={20} /> : null}
           </View>
@@ -40,7 +40,7 @@ export function KarmaCard() {
           </Txt>
           <Txt size={13} muted>
             {verified
-              ? 'Verified badge unlocked. Tap to see how karma works.'
+              ? 'Verified badge unlocked. Tap to see how Block Points work.'
               : `${Math.max(0, VERIFIED_KARMA - karma)} more to unlock the verified badge.`}
           </Txt>
         </Card>
@@ -50,15 +50,15 @@ export function KarmaCard() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <KarmaMark size={28} />
             <Txt font="mono" size={22} weight={500}>
-              Karma
+              Block Points
             </Txt>
           </View>
           <Txt size={15} lh={1.45}>
-            Karma is trust in the community. You earn it by matching, replying, giving feedback,
-            posting, joining groups, verifying your product, and making a strong listing.
+            Block Points are trust in the community. You earn them by matching, replying, giving
+            feedback, posting, joining groups, verifying your product, and making a strong listing.
           </Txt>
           <Txt size={15} lh={1.45}>
-            {VERIFIED_KARMA} karma unlocks a verified badge on your profile.
+            {VERIFIED_KARMA} Block Points unlock a verified badge on your profile.
           </Txt>
           <Label>How to earn it</Label>
           {WAYS.map((item) => (
@@ -76,6 +76,7 @@ export function KarmaChip({ karma, verified }: { karma: number; verified?: boole
   const { isDark } = useTheme();
   return (
     <View
+      accessibilityLabel={`${karma} Block Points`}
       style={{
         flexDirection: 'row',
         alignItems: 'center',

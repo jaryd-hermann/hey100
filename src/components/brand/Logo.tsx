@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -79,17 +80,19 @@ export type WordmarkProps = {
   animated?: boolean;
   /** Use the dark-ink mark, for a light background. */
   onLight?: boolean;
+  /** Use the white-ink mark, for a dark background. */
+  onDark?: boolean;
   /** Stretch to the parent width, keeping the mark's ratio. */
   fill?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /** The real wordmark assets, not a type-drawn stand-in. */
-export function Wordmark({ size = 62, onLight, fill, style }: WordmarkProps) {
+export function Wordmark({ size = 62, onLight, onDark, fill, style }: WordmarkProps) {
   const { isDark } = useTheme();
   const height = size;
   const width = size * LOGO_RATIO;
-  const darkMark = onLight ? false : isDark;
+  const darkMark = onDark ? true : onLight ? false : isDark;
 
   return (
     <View
@@ -132,6 +135,7 @@ export function HeaderLogo({
   onWordmarkPress?: () => void;
 }) {
   const { open } = useHeyMenu();
+  const { isDark } = useTheme();
   const mark = <Wordmark size={26} />;
 
   return (
@@ -150,8 +154,10 @@ export function HeaderLogo({
         hitSlop={8}
         accessibilityRole="button"
         accessibilityLabel="Hey100 menu"
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
       >
         {mark}
+        <Ionicons name="chevron-down" size={14} color={isDark ? '#FFFFFF' : '#111111'} />
       </Pressable>
       {title ? (
         <>

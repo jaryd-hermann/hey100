@@ -1,6 +1,7 @@
 /**
- * Looks up a listing from a store link or a website, so onboarding can fill in
- * the name, subtitle, category, icon and screenshots instead of asking for them.
+ * Looks up a listing from a store link, a Product Hunt page, or a website, so
+ * onboarding can fill in the name, subtitle, category, icon and screenshots
+ * instead of asking for them.
  *
  * It runs on the server for three reasons: the App Store lookup API has no CORS
  * headers, a website's HTML is far too large to ship to a phone just to read
@@ -21,6 +22,8 @@ type Metadata = {
   hue: number;
   rating?: number;
   ratingCount?: number;
+  /** Set when the gallery is landscape, as Product Hunt screenshots are. */
+  shotLayout?: 'vertical' | 'horizontal';
 };
 
 /** Media slots a listing has, kept in step with the client's own cap. */
@@ -215,6 +218,152 @@ function squareIcon(html: string): string {
   return candidates[0]?.href ?? '';
 }
 
+/** producthunt.com/products/sagecraft or /posts/sagecraft, ignoring a launch query. */
+function productHuntSlug(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (!/(^|\.)producthunt\.com$/i.test(parsed.hostname)) return null;
+    return /^\/(?:products|posts)\/([a-z0-9-]+)/i.exec(parsed.pathname)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** "quicker.chat - one inbox for all your DMs" → name plus the tagline. */
+function titleParts(title: string): { name: string; tagline: string } {
+  const parts = title
+    .split(/\s*[|·]\s*|\s+[—–-]\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return { name: parts[0] ?? '', tagline: parts.slice(1).join(' ') };
+}
+
+/**
+ * A website has no App Store subtitle. Prefer the title's tagline when it
+ * already fits, then a description sentence that fits, then the longest whole
+ * words of the hero line.
+ */
+function websiteSubtitle(tagline: string, description: string): string {
+  if (tagline.length > 2 && tagline.length <= 30) return tagline;
+  return oneLine(description) || fitLine(tagline || description);
+}
+
+function fitLine(text: string, max = 30): string {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  const slice = clean.slice(0, max + 1);
+  const cut = slice.lastIndexOf(' ');
+  return (cut > 8 ? slice.slice(0, cut) : clean.slice(0, max)).trim().replace(/[.,;:–—-]+$/, '');
+}
+
+type HuntMedia = {
+  image_uuid?: string;
+  media_type?: string;
+  original_width?: number;
+  original_height?: number;
+};
+
+type HuntProduct = {
+  name?: string;
+  tagline?: string;
+  media?: HuntMedia[];
+};
+
+function decodeBase64Json(encoded: string): unknown {
+  const padded = encoded + '='.repeat((4 - (encoded.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+/**
+ * Product Hunt's product page sits behind a bot challenge. Their public card
+ * embed does not, and it carries the name, tagline and gallery.
+ */
+async function huntCard(kind: 'products' | 'posts', slug: string): Promise<HuntProduct | null> {
+  const response = await fetch(
+    `https://cards.producthunt.com/cards/${kind}/${encodeURIComponent(slug)}`,
+    {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        Accept: 'text/html',
+      },
+    },
+  );
+  if (!response.ok) return null;
+
+  const encoded = /window\.initialState = '([^']+)'/.exec(await response.text())?.[1];
+  if (!encoded) return null;
+
+  try {
+    const data = decodeBase64Json(encoded) as { product?: HuntProduct; post?: HuntProduct };
+    const product = data.product ?? data.post;
+    return product?.name ? product : null;
+  } catch {
+    return null;
+  }
+}
+
+function huntImage(uuid: string): string {
+  return `https://ph-files.imgix.net/${uuid}?auto=format&w=1242`;
+}
+
+function fromHuntProduct(product: HuntProduct, slug: string): Metadata {
+  const images = (product.media ?? []).filter(
+    (item) => item.media_type === 'image' && !!item.image_uuid,
+  );
+  const square = images.find((item) => {
+    const width = item.original_width ?? 0;
+    const height = item.original_height ?? 0;
+    if (width < 80 || height < 80) return false;
+    const ratio = width / height;
+    return ratio > 0.85 && ratio < 1.15;
+  });
+  const sized = images.filter((item) => (item.original_width ?? 0) > 0 && (item.original_height ?? 0) > 0);
+  const wide = sized.filter((item) => (item.original_width ?? 0) > (item.original_height ?? 0)).length;
+
+  return {
+    name: (product.name ?? '').slice(0, 30),
+    sub: fitLine(product.tagline ?? ''),
+    cats: [],
+    // The card does not include the product's own site. Leaving this blank
+    // keeps producthunt.com from being saved as the listing website.
+    web: '',
+    icon: square?.image_uuid ? huntImage(square.image_uuid) : undefined,
+    shots: images
+      .filter((item) => item !== square)
+      .map((item) => huntImage(item.image_uuid!))
+      .slice(0, MAX_SHOTS),
+    hue: hueOf(slug),
+    ...(sized.length ? { shotLayout: wide * 2 >= sized.length ? 'horizontal' as const : 'vertical' as const } : {}),
+  };
+}
+
+async function fromProductHunt(slug: string): Promise<Metadata | null> {
+  const product = (await huntCard('products', slug)) ?? (await huntCard('posts', slug));
+  if (!product) return null;
+  return fromHuntProduct(product, slug);
+}
+
+/** A named listing from the slug when the card is missing, so the app is never called "Product Hunt". */
+function huntFallback(slug: string): Metadata {
+  const name = slug
+    .split('-')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  return {
+    name: name.slice(0, 30),
+    sub: '',
+    cats: [],
+    web: '',
+    shots: [],
+    hue: hueOf(slug),
+  };
+}
+
 async function fromWebsite(url: string): Promise<Metadata> {
   const host = hostOf(url);
 
@@ -231,20 +380,25 @@ async function fromWebsite(url: string): Promise<Metadata> {
   const html = (await response.text()).slice(0, 400_000);
 
   const title =
-    meta(html, 'og:site_name') ||
     meta(html, 'og:title') ||
     decodeEntities(/<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? '');
 
-  const description = meta(html, 'og:description') || meta(html, 'description');
-
-  const name = (title.split(/[|·—–]/)[0].trim() || host.split('.')[0]).slice(0, 30);
+  const description = meta(html, 'og:description') || meta(html, 'description') || meta(html, 'twitter:description');
+  const { name: titleName, tagline } = titleParts(title);
+  const name = (meta(html, 'og:site_name') || titleName || host.split('.')[0]).slice(0, 30);
 
   return {
     name: name.charAt(0).toUpperCase() + name.slice(1),
-    sub: oneLine(description),
+    sub: websiteSubtitle(tagline, description),
     cats: [],
     web: host,
-    icon: absolute(squareIcon(html), response.url || url),
+    // A square PNG or apple-touch-icon when the page has one. An SVG-only
+    // favicon cannot be drawn in the app, so that case uses a raster of it.
+    icon: (() => {
+      const linked = absolute(squareIcon(html), response.url || url);
+      if (linked && !/\.svg($|\?)/i.test(linked)) return linked;
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
+    })(),
     shots: [],
     hue: hueOf(host),
   };
@@ -262,10 +416,13 @@ Deno.serve(async (request) => {
 
     const target = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
     const store = /apps\.apple\.com\/([a-z]{2})\/app\/[^/]+\/id(\d+)/i.exec(target);
+    const hunt = productHuntSlug(target);
 
     const data = store
       ? ((await fromAppStore(store[2], store[1])) ?? (await fromWebsite(target)))
-      : await fromWebsite(target);
+      : hunt
+        ? ((await fromProductHunt(hunt)) ?? huntFallback(hunt))
+        : await fromWebsite(target);
 
     return Response.json(data, {
       headers: { ...CORS, 'Cache-Control': 'public, max-age=86400' },

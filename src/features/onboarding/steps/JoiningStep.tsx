@@ -1,359 +1,264 @@
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Animated, Easing, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Txt } from '@/components/ui/Txt';
-import { fonts } from '@/theme/tokens';
 
-const DURATION = 7000;
-const STEP = 1350;
-const CELL_W = 13;
-const CELL_H = 18;
 const LIME = '#C6F24E';
-const BG = '#0A0A0A';
+const INK = '#111111';
+const BG = '#0E100F';
+const STEP_MS = 1600;
+const TILE = 64;
+const POP = Easing.bezier(0.2, 0.9, 0.3, 1.4);
+
+const TILES = [
+  {
+    logo: require('../../../../web/public/landing/logo-1.png'),
+    face: require('../../../../web/public/landing/face-1.jpg'),
+    ring: '#00FF00',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-2.png'),
+    face: require('../../../../web/public/landing/face-2.png'),
+    ring: '#FFFF00',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-3.png'),
+    face: require('../../../../web/public/landing/face-3.png'),
+    ring: '#00FFFF',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-4.png'),
+    face: require('../../../../web/public/landing/face-4.png'),
+    ring: '#FF00FF',
+  },
+  {
+    logo: require('../../../../web/public/landing/logo-5.png'),
+    face: require('../../../../web/public/landing/face-5.jpg'),
+    ring: '#2E5CFF',
+  },
+];
 
 type JoiningStepProps = {
   appName: string;
   onDone: () => void;
 };
 
-/** 7-second post-publish beat before the paywall. Tap anywhere to skip. */
+/**
+ * The HTML joining beat. Tiles pop from the center every 1.6s, and the
+ * checklist advances on the same clock. The fifth tick opens the paywall.
+ */
 export function JoiningStep({ appName, onDone }: JoiningStepProps) {
+  const insets = useSafeAreaInsets();
   const done = useRef(false);
+  const [joinT, setJoinT] = useState(0);
+
   const finish = () => {
     if (done.current) return;
     done.current = true;
     onDone();
   };
 
-  const lines = [
-    { title: `Publishing ${appName}`, cap: '1 / 4' },
-    { title: 'Joining other builders', cap: '2 / 4' },
-    { title: 'Finding relevant users', cap: '3 / 4' },
-    { title: 'Suggesting apps', cap: '4 / 4' },
-  ];
-
-  const [index, setIndex] = useState(0);
-  const fill = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
-    const timers = [1, 2, 3, 4].map((n) => setTimeout(() => setIndex(n), n * STEP));
-    const end = setTimeout(finish, DURATION);
-    Animated.timing(fill, {
-      toValue: 1,
-      duration: DURATION,
-      easing: Easing.linear,
-      useNativeDriver: false,
-    }).start();
-    return () => {
-      timers.forEach(clearTimeout);
-      clearTimeout(end);
-    };
-  }, [fill]);
+    let t = 0;
+    const id = setInterval(() => {
+      t += 1;
+      if (t > 4) {
+        clearInterval(id);
+        finish();
+        return;
+      }
+      setJoinT(t);
+    }, STEP_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const lines = [
+    `Publishing ${appName}`,
+    'Joining other builders',
+    'Finding relevant users',
+    'Suggesting apps',
+  ];
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Welcome to Hey100. Tap to continue."
+      accessibilityLabel="Tap to skip"
       onPress={finish}
-      style={{ flex: 1, backgroundColor: BG }}
+      style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}
     >
       <StatusBar style="light" />
-      <BinaryGrid />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 30,
+          paddingBottom: 40,
+          gap: 34,
+        }}
+      >
+        <View
+          style={{
+            marginHorizontal: -18,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+            paddingTop: 6,
+            paddingBottom: 10,
+          }}
+        >
+          {TILES.map((tile, index) => (
+            <JoinTile
+              key={index}
+              logo={tile.logo}
+              face={tile.face}
+              ring={tile.ring}
+              rotate={['-24deg', '-12deg', '0deg', '12deg', '24deg'][index]}
+              lift={[22, 8, 0, 8, 22][index]}
+              visible={joinT >= Math.abs(2 - index) * 0.6}
+            />
+          ))}
+        </View>
+        <View style={{ gap: 16 }}>
+          {lines.map((title, index) => (
+            <JoinLine
+              key={title}
+              title={title}
+              done={joinT > index}
+              current={joinT === index}
+            />
+          ))}
+        </View>
+        <Txt font="mono" size={12} weight={500} color="rgba(255,255,255,0.6)" center>
+          Tap to skip
+        </Txt>
+      </View>
+    </Pressable>
+  );
+}
+
+function JoinTile({
+  logo,
+  face,
+  ring,
+  rotate,
+  lift,
+  visible,
+}: {
+  logo: number;
+  face: number;
+  ring: string;
+  rotate: string;
+  lift: number;
+  visible: boolean;
+}) {
+  const progress = useRef(new Animated.Value(visible ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: visible ? 1 : 0,
+      duration: 600,
+      easing: POP,
+      useNativeDriver: true,
+    }).start();
+  }, [progress, visible]);
+
+  return (
+    <Animated.View
+      style={{
+        width: TILE,
+        height: TILE,
+        marginHorizontal: 3,
+        opacity: progress,
+        transform: [
+          { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [30 + lift, lift] }) },
+          { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
+          { rotate },
+        ],
+      }}
+    >
       <View
         pointerEvents="none"
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
-          top: 0,
-          bottom: 0,
-          backgroundColor: 'transparent',
+          top: 5,
+          bottom: -5,
+          borderRadius: 17,
+          backgroundColor: '#000000',
         }}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            left: '19%',
-            right: '19%',
-            top: '35%',
-            bottom: '35%',
-            borderRadius: 200,
-            backgroundColor: BG,
-            opacity: 0.88,
-          }}
-        />
-        <View
-          style={{
-            position: 'absolute',
-            left: 24,
-            right: 24,
-            top: '50%',
-            height: 120,
-            marginTop: -60,
-          }}
-        >
-          {lines.map((line, i) => (
-            <CopyLine
-              key={line.cap}
-              active={index === i}
-              past={index > i}
-              title={line.title}
-              cap={line.cap}
-            />
-          ))}
-          <WelcomeLine active={index === 4} />
-        </View>
-        <View
-          style={{
-            position: 'absolute',
-            left: '50%',
-            bottom: 64,
-            width: 140,
-            marginLeft: -70,
-            height: 3,
-            borderRadius: 2,
-            backgroundColor: 'rgba(255,255,255,0.12)',
-            overflow: 'hidden',
-          }}
-        >
-          <Animated.View
-            style={{
-              height: '100%',
-              backgroundColor: LIME,
-              width: fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-            }}
-          />
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-function CopyLine({
-  active,
-  past,
-  title,
-  cap,
-}: {
-  active: boolean;
-  past: boolean;
-  title: string;
-  cap: string;
-}) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const y = useRef(new Animated.Value(14)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: active ? 1 : 0,
-        duration: 450,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(y, {
-        toValue: active ? 0 : past ? -14 : 14,
-        duration: 450,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [active, opacity, past, y]);
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 14,
-        opacity,
-        transform: [{ translateY: y }],
-      }}
-    >
-      <Txt font="mono" size={23} weight={500} lh={1.25} tracking={-0.7} color="#fff" center>
-        {title}
-        <Txt font="mono" size={23} weight={500} color={LIME}>
-          …
-        </Txt>
-      </Txt>
-      <Txt font="mono" size={11} weight={500} tracking={1.1} upper color="#8E968F">
-        {cap}
-      </Txt>
-    </Animated.View>
-  );
-}
-
-function WelcomeLine({ active }: { active: boolean }) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const y = useRef(new Animated.Value(14)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: active ? 1 : 0,
-        duration: 450,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(y, {
-        toValue: active ? 0 : 14,
-        duration: 450,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [active, opacity, y]);
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 14,
-        opacity,
-        transform: [{ translateY: y }],
-      }}
-    >
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'baseline', gap: 10 }}>
-        <Txt font="mono" size={27} weight={500} lh={1.2} tracking={-0.8} color="#fff">
-          Welcome to
-        </Txt>
-        <Txt font="logo" size={30} color={LIME}>
-          Hey100
-        </Txt>
-      </View>
-      <Txt font="mono" size={11} weight={500} tracking={1.1} upper color="#8E968F">
-        You're in
-      </Txt>
-    </Animated.View>
-  );
-}
-
-function BinaryGrid() {
-  const { width, height } = useWindowDimensions();
-  // JetBrains 12 is ~7.2px wide; extra columns + clip beat a short last row.
-  const cols = Math.ceil(width / CELL_W) + 6;
-  const rows = Math.ceil(height / CELL_H) + 2;
-  const total = cols * rows;
-  const cells = useRef(Array.from({ length: total }, () => (Math.random() < 0.5 ? '0' : '1')));
-  const started = useRef(Date.now());
-  const lastFlip = useRef(0);
-  const [head, setHead] = useState(0);
-  const [reduce, setReduce] = useState(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then(setReduce)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (reduce) return;
-    let frame = 0;
-    const tick = () => {
-      const now = Date.now();
-      const elapsed = now - started.current;
-      const progress = Math.min(1, elapsed / (DURATION - 700));
-      if (now - lastFlip.current > 55) {
-        lastFlip.current = now;
-        const flips = Math.max(1, Math.floor(cells.current.length / 9));
-        for (let k = 0; k < flips; k++) {
-          const i = (Math.random() * cells.current.length) | 0;
-          cells.current[i] = cells.current[i] === '0' ? '1' : '0';
-        }
-        setHead(progress * total);
-      }
-      if (elapsed < DURATION) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [reduce, total]);
-
-  if (reduce) return null;
-
-  const lines: React.ReactNode[] = [];
-  for (let r = 0; r < rows; r++) {
-    const rowStart = r * cols;
-    const visible = Math.min(cols, Math.max(0, Math.ceil(head) - rowStart));
-    if (visible <= 0) continue;
-
-    const chunks: { text: string; color: string }[] = [];
-    let buf = '';
-    let color = '';
-    for (let col = 0; col < visible; col++) {
-      const i = rowStart + col;
-      const d = head - i;
-      const next =
-        d < 6
-          ? `rgba(198,242,78,${Math.max(0.15, 1 - d / 7).toFixed(2)})`
-          : d < cols * 0.5
-            ? 'rgba(220,224,220,0.34)'
-            : 'rgba(220,224,220,0.16)';
-      if (color && next !== color) {
-        chunks.push({ text: buf, color });
-        buf = '';
-      }
-      color = next;
-      buf += cells.current[i] ?? '0';
-    }
-    if (buf) chunks.push({ text: buf, color });
-
-    lines.push(
-      <Text
-        key={r}
+      />
+      <Image
+        source={logo}
+        contentFit="cover"
         style={{
-          fontFamily: fonts.monoMedium,
-          fontSize: 12,
-          lineHeight: CELL_H,
-          letterSpacing: CELL_W - 7.2,
-          height: CELL_H,
+          width: TILE,
+          height: TILE,
+          borderRadius: 17,
+          borderWidth: 2,
+          borderColor: INK,
+          backgroundColor: INK,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          right: -7,
+          bottom: -7,
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          borderWidth: 2,
+          borderColor: INK,
+          backgroundColor: ring,
+          overflow: 'hidden',
         }}
       >
-        {chunks.map((chunk, i) => (
-          <Text key={i} style={{ color: chunk.color }}>
-            {chunk.text}
-          </Text>
-        ))}
-      </Text>,
-    );
-  }
+        <Image source={face} contentFit="cover" style={{ width: 22, height: 22 }} />
+      </View>
+    </Animated.View>
+  );
+}
+
+function JoinLine({ title, done, current }: { title: string; done: boolean; current: boolean }) {
+  const shown = done || current;
+  const opacity = useRef(new Animated.Value(shown ? 1 : 0.35)).current;
+
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: shown ? 1 : 0.35,
+      duration: 400,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [opacity, shown]);
 
   return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        overflow: 'hidden',
-        paddingLeft: 2,
-        paddingTop: 2,
-      }}
-    >
-      {lines}
-    </View>
+    <Animated.View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, opacity }}>
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          borderWidth: 2,
+          borderColor: done ? INK : current ? LIME : 'rgba(255,255,255,0.4)',
+          backgroundColor: done ? LIME : 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {done ? (
+          <Txt size={14} weight={700} color={INK}>
+            ✓
+          </Txt>
+        ) : null}
+      </View>
+      <Txt font="mono" size={19} weight={600} tracking={-0.76} color="#FFFFFF" style={{ flex: 1 }} numberOfLines={1}>
+        {title}
+      </Txt>
+    </Animated.View>
   );
 }

@@ -19,6 +19,19 @@ export const RESERVED = new Set([
   'onboarding',
   'settings',
   'apple-app-site-association',
+  'login',
+  'auth',
+  'discover',
+  'heys',
+  'chat',
+  'community',
+  'feedback',
+  'assistant',
+  'apps',
+  'pro',
+  'profile',
+  'settings',
+  'tools',
 ]);
 
 export function appLink(path: string): string {
@@ -27,7 +40,16 @@ export function appLink(path: string): string {
 
 export function publicMediaUrl(path: string | null | undefined): string | null {
   if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
   if (!base) return null;
   return `${base}/storage/v1/object/public/listing-media/${path}`;
+}
+
+export function publicAvatarUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+  if (!base) return null;
+  return `${base}/storage/v1/object/public/avatars/${path}`;
 }

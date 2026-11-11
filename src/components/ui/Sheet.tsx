@@ -34,6 +34,8 @@ export type SheetProps = {
   header?: React.ReactNode;
   /** Drop the default content padding so the child can fill the sheet. */
   flush?: boolean;
+  /** White sheet with black chrome, including in dark mode. */
+  light?: boolean;
 };
 
 /** Slides up over a scrim with a grab handle. Tapping the scrim dismisses. */
@@ -48,6 +50,7 @@ export function Sheet({
   full,
   header,
   flush,
+  light,
 }: SheetProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -163,10 +166,10 @@ export function Sheet({
       >
         <Animated.View
           style={{
-            backgroundColor: c.surface,
+            backgroundColor: light ? '#FFFFFF' : c.surface,
             borderTopLeftRadius: radii.sheet,
             borderTopRightRadius: radii.sheet,
-            borderTopWidth: overlay ? 0 : 1,
+            borderTopWidth: overlay || light ? 0 : 1,
             borderColor: c.line,
             overflow: 'hidden',
             // A percentage has no definite parent height to resolve against
@@ -202,7 +205,7 @@ export function Sheet({
                 width: 38,
                 height: 4,
                 borderRadius: 2,
-                backgroundColor: overlay ? 'rgba(255,255,255,0.55)' : c.muted,
+                backgroundColor: overlay ? 'rgba(255,255,255,0.55)' : light ? 'rgba(17,17,17,0.2)' : c.muted,
                 opacity: overlay ? 1 : 0.5,
               }}
             />
@@ -215,15 +218,17 @@ export function Sheet({
                 position: 'absolute',
                 right: 10,
                 top: 6,
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: overlay ? 'rgba(255,255,255,0.16)' : c.raised,
+                width: light ? 44 : 32,
+                height: light ? 44 : 32,
+                borderRadius: light ? 22 : 16,
+                backgroundColor: overlay ? 'rgba(255,255,255,0.16)' : light ? '#FFFFFF' : c.raised,
+                borderWidth: light ? 2 : 0,
+                borderColor: '#111111',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="close" size={18} color={overlay ? '#FFFFFF' : c.ink} />
+              <Ionicons name="close" size={18} color={overlay ? '#FFFFFF' : light ? '#111111' : c.ink} />
             </Pressable>
           </View>
           <Content

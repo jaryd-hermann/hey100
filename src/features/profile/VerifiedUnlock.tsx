@@ -18,14 +18,16 @@ export function VerifiedUnlockHost() {
   const router = useRouter();
   const params = useGlobalSearchParams<{ verified?: string }>();
   const { userId, isAdmin } = useAuth();
-  const { karma, verified } = useMyKarma();
+  const { karma, activity, verified } = useMyKarma();
   const [open, setOpen] = useState(false);
   const last = useRef<number | null>(null);
 
   useEffect(() => {
     if (!userId) return;
-    void syncKarma(karma);
-  }, [karma, userId]);
+    // Activity only. The database adds onboarding blocks, so a sync before the
+    // profile reloads cannot drop what sign-in just saved.
+    void syncKarma(activity);
+  }, [activity, userId]);
 
   useEffect(() => {
     if (!verified || isAdmin) {

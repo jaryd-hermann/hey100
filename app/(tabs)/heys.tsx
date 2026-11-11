@@ -3,21 +3,24 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 
 import { Screen } from '@/components/layout/Screen';
+import { PageTabs } from '@/components/ui/PageTabs';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { shortName } from '@/data/mock';
 import type { IncomingHey } from '@/data/types';
 import { BuilderSheet } from '@/features/app-page/BuilderSheet';
 import { FollowUpSheet } from '@/features/heys/FollowUpSheet';
-import { HeysSwitcher, type HeysTab } from '@/features/heys/HeysSwitcher';
+import { type HeysTab } from '@/features/heys/HeysSwitcher';
 import { PassReasonSheet } from '@/features/heys/PassReasonSheet';
 import { MatchChip } from '@/features/heys/MatchChip';
 import { ReceivedHeyCard } from '@/features/heys/ReceivedHeyCard';
 import { SentHeyCard } from '@/features/heys/SentHeyCard';
 import { useTick } from '@/features/heys/time';
 import { useDevLoop } from '@/features/dev/useDevLoop';
+import { EnhanceListingCard } from '@/features/marketing/EnhanceListingCard';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
+import { layout } from '@/theme/tokens';
 
 export default function HeysScreen() {
   const router = useRouter();
@@ -84,15 +87,31 @@ export default function HeysScreen() {
   const builderListing = builderAppId ? store.listing(builderAppId) : undefined;
 
   return (
-    <Screen title="Heys" headerRight={<HeysSwitcher value={tab} onChange={setTab} />}>
+    <Screen
+      header={
+        <View style={{ paddingHorizontal: layout.gutter, paddingTop: 8, paddingBottom: 14 }}>
+          <PageTabs
+            value={tab}
+            onChange={setTab}
+            options={[
+              { id: 'received', label: 'They liked you', count: loop.heys.length },
+              { id: 'sent', label: 'You liked them' },
+            ]}
+          />
+        </View>
+      }
+    >
       {tab === 'received' ? (
         <View style={{ gap: 14 }}>
           {loop.heys.length === 0 ? (
-            <EmptyState
-              title="No heys waiting."
-              body="Say hey to a few apps in Discover. A note doubles your reply rate."
-              compact={(loop.matchedHeys?.length ?? 0) > 0}
-            />
+            <View style={{ gap: 18 }}>
+              <EmptyState
+                title="No heys waiting."
+                body="Say hey to a few apps in Discover. A note doubles your reply rate."
+                compact
+              />
+              <EnhanceListingCard />
+            </View>
           ) : (
             loop.heys.map((hey) => {
               const listing = store.listing(hey.appId);

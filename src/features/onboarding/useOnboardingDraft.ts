@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { PickedShot } from '@/data/types';
 
+import { blocksThrough } from './blocks';
 import { LAST_STEP } from './steps';
 
 const ADJECTIVES = [
@@ -90,6 +91,10 @@ export type Draft = {
   /** Local uri until there is an account to upload it under. */
   photo: string;
   terms: boolean;
+
+  /** Block Points earned by reaching steps, and the furthest step already paid. */
+  blocks: number;
+  blocksReached: number;
 };
 
 function initialDraft(startStep: number): Draft {
@@ -127,6 +132,8 @@ function initialDraft(startStep: number): Draft {
     lastName: '',
     photo: '',
     terms: true,
+    blocks: 0,
+    blocksReached: 0,
   };
 }
 
@@ -163,7 +170,16 @@ export function useOnboardingDraft(startStep = 0, storageKey: string | null = nu
             ? Math.floor(parsed.step)
             : startStep;
         const step = Math.min(LAST_STEP, Math.max(0, rawStep));
-        setDraft((prev) => ({ ...prev, ...parsed, step, terms: true }));
+        // A draft from before blocks existed still completed those steps.
+        const blocksReached =
+          typeof parsed.blocksReached === 'number' && Number.isFinite(parsed.blocksReached)
+            ? Math.max(0, Math.floor(parsed.blocksReached))
+            : step;
+        const blocks =
+          typeof parsed.blocks === 'number' && Number.isFinite(parsed.blocks)
+            ? Math.max(0, Math.floor(parsed.blocks))
+            : blocksThrough(blocksReached);
+        setDraft((prev) => ({ ...prev, ...parsed, step, terms: true, blocks, blocksReached }));
       })
       .catch(() => {})
       .finally(() => {

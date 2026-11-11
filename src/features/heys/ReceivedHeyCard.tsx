@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
-import { HandMark } from '@/components/brand/Logo';
+import { Glyph, glyphs } from '@/components/brand/Glyph';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
 import { Card } from '@/components/ui/Card';
@@ -69,7 +69,7 @@ export function ReceivedHeyCard({
         <Btn
           label="Hey back"
           variant="accent"
-          left={<HandMark size={18} />}
+          left={<Glyph source={glyphs.heartSolid} size={18} color="#111111" />}
           style={{ flex: 1.3 }}
           onPress={onHeyBack}
         />

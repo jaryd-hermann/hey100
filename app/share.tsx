@@ -5,6 +5,7 @@ import React from 'react';
 import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Glyph } from '@/components/brand/Glyph';
 import { HeaderLogo } from '@/components/brand/Logo';
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { Btn } from '@/components/ui/Btn';
@@ -12,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { MILESTONES, shortName, slugify } from '@/data/mock';
+import { milestoneGlyph } from '@/features/apps/milestones';
 import { captureEvent } from '@/lib/analytics';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -149,7 +151,7 @@ export default function ShareSheet() {
             </>
           ) : kind === 'milestone' && milestone ? (
             <>
-              <Txt size={34}>{milestone.badge}</Txt>
+              <Glyph source={milestoneGlyph(milestone.id)} size={42} color={c.ink} />
               <Txt font="mono" size={19} weight={500} lh={1.3}>
                 {milestone.title}
               </Txt>

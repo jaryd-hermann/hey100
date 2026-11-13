@@ -10,10 +10,19 @@ import { getSupabase, isServerId, publicUrl } from '@/lib/supabase';
 import { queryKeys } from './keys';
 
 export type JoinMode = 'open' | 'request' | 'criteria' | 'match';
-export type GroupKind = 'community' | 'official';
+export type GroupKind = 'community' | 'official' | 'revenue_pod';
 
 /** Seeded official group. Everyone is a member; only admins start threads. */
 export const OFFICIAL_GROUP_ID = 'a1000000-1000-4000-8000-000000000001';
+
+/** Premade rooms. Lower bound inclusive, upper bound exclusive, null cap means $30k+. */
+export const REVENUE_POD_IDS = [
+  'a1000000-1000-4000-8000-000000000011',
+  'a1000000-1000-4000-8000-000000000012',
+  'a1000000-1000-4000-8000-000000000013',
+  'a1000000-1000-4000-8000-000000000014',
+  'a1000000-1000-4000-8000-000000000015',
+] as const;
 export type JoinCriterion = 'revenue' | 'customers' | 'shipping' | 'launched';
 
 export const JOIN_CRITERIA: {
@@ -72,6 +81,10 @@ export type CommunityGroup = {
   bio: string;
   audience: string;
   kind?: GroupKind;
+  /** Verified-MRR floor for a revenue pod. */
+  revenueMin?: number;
+  /** Exclusive ceiling. Missing on the open $30k+ pod. */
+  revenueMax?: number | null;
   coverUrl?: string;
   /** Storage path or `identicon:` seed, so an edit can keep the current cover. */
   coverPath?: string;
@@ -115,6 +128,18 @@ export function isMatchGroup(group?: Pick<CommunityGroup, 'joinMode'> | null): b
 
 export function isOfficialGroup(group?: Pick<CommunityGroup, 'kind' | 'id'> | null): boolean {
   return group?.kind === 'official' || group?.id === OFFICIAL_GROUP_ID;
+}
+
+export function isRevenuePod(group?: Pick<CommunityGroup, 'kind' | 'id'> | null): boolean {
+  return group?.kind === 'revenue_pod' || (!!group?.id && (REVENUE_POD_IDS as readonly string[]).includes(group.id));
+}
+
+/** A connected Stripe or RevenueCat MRR sits in this pod. Null means not verified. */
+export function inRevenueBand(mrr: number | null | undefined, min: number, max?: number | null): boolean {
+  if (mrr == null || !Number.isFinite(mrr)) return false;
+  if (mrr < min) return false;
+  if (max != null && mrr >= max) return false;
+  return true;
 }
 
 function compactNumber(value?: string): number {
@@ -240,6 +265,8 @@ function mapGroup(row: {
   cover_path?: string | null;
   join_mode: JoinMode;
   kind?: GroupKind;
+  revenue_min?: number | null;
+  revenue_max?: number | null;
   created_by: string;
   member_count?: number;
   last_preview?: string | null;
@@ -279,7 +306,9 @@ function mapGroup(row: {
     coverPath: row.cover_path ?? undefined,
     iconSeed: cover.iconSeed,
     joinMode: row.join_mode,
-    kind: row.kind === 'official' ? 'official' : 'community',
+    kind: row.kind === 'official' ? 'official' : row.kind === 'revenue_pod' ? 'revenue_pod' : 'community',
+    revenueMin: row.revenue_min == null ? undefined : Number(row.revenue_min),
+    revenueMax: row.revenue_max == null ? null : Number(row.revenue_max),
     createdBy: row.created_by,
     memberCount: row.member_count ?? 0,
     lastPreview: row.last_preview ?? undefined,
@@ -368,18 +397,27 @@ function foldReactions(
   return [...counts.entries()].map(([emoji, value]) => ({ emoji, ...value }));
 }
 
+function readMrr(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
+
 export async function fetchCommunityHome(userId: string): Promise<{
   mine: CommunityGroup[];
   discover: CommunityGroup[];
+  pods: CommunityGroup[];
+  verifiedMrr: number | null;
 }> {
   const db = client();
-  if (!db) return { mine: [], discover: [] };
+  if (!db) return { mine: [], discover: [], pods: [], verifiedMrr: null };
 
   const payload = await (db as unknown as AnyClient).rpc('community_home_payload');
   if (payload.error) throw payload.error;
 
   const packed = (payload.data ?? {}) as {
     groups?: Record<string, unknown>[];
+    verified_mrr?: number | string | null;
     memberships?: {
       group_id: string;
       user_id: string;
@@ -589,6 +627,10 @@ export async function fetchCommunityHome(userId: string): Promise<{
     discover: mapped
       .filter((group) => !group.membership && !isOfficialGroup(group))
       .sort(compareDiscoverGroups),
+    pods: mapped
+      .filter((group) => isRevenuePod(group))
+      .sort((a, b) => (a.revenueMin ?? 0) - (b.revenueMin ?? 0)),
+    verifiedMrr: readMrr(packed.verified_mrr),
   };
 }
 
@@ -670,6 +712,7 @@ export async function updateCommunityGroup(
 
 export async function deleteCommunityGroup(groupId: string): Promise<void> {
   if (groupId === OFFICIAL_GROUP_ID) throw new Error('The official group stays');
+  if ((REVENUE_POD_IDS as readonly string[]).includes(groupId)) throw new Error('Revenue pods stay');
   const db = getSupabase();
   if (!db) throw new Error('Not signed in');
   const { error } = await db.from('community_groups').delete().eq('id', groupId);
@@ -696,7 +739,16 @@ export async function joinCommunityGroup(
   const db = client();
   if (!db) throw new Error('Not signed in');
   let status: MemberStatus = 'active';
-  if (group.joinMode === 'request') {
+  if (isRevenuePod(group)) {
+    const check = await checkCommunityJoin(group.id);
+    if (!check.ok) {
+      throw new Error(
+        check.items.find((item) => !item.met)?.how ||
+          'Verified Stripe or RevenueCat MRR has to be in this band.',
+      );
+    }
+    status = 'active';
+  } else if (group.joinMode === 'request') {
     status = 'pending';
   } else if (group.joinMode === 'criteria') {
     const check = await checkCommunityJoin(group.id);

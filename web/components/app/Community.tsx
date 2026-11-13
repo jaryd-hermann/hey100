@@ -18,7 +18,12 @@ import { hueFill, initial, timeAgo } from '@/lib/format';
 import { publicAvatarUrl, publicMediaUrl } from '@/lib/site';
 import { createClient } from '@/lib/supabase/client';
 
-type Group = SeedGroup & { created_by?: string };
+type Group = SeedGroup & {
+  created_by?: string;
+  kind?: string;
+  revenue_min?: number | string | null;
+  revenue_max?: number | string | null;
+};
 type Membership = { group_id: string; user_id: string; status?: string; role?: string };
 type Thread = {
   id: string;
@@ -135,6 +140,21 @@ function ThreadPost({
   );
 }
 
+function readMrr(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
+
+function inRevenueBand(mrr: number | null, min: unknown, max: unknown): boolean {
+  const floor = readMrr(min);
+  const cap = readMrr(max);
+  if (mrr == null || floor == null) return false;
+  if (mrr < floor) return false;
+  if (cap != null && mrr >= cap) return false;
+  return true;
+}
+
 export function Community() {
   const me = useMe();
   const { devMode, setDevMode } = useDevMode();
@@ -159,6 +179,7 @@ export function Community() {
   const [menu, setMenu] = useState(false);
   const [membersOpen, setMembersOpen] = useState(true);
   const [tick, setTick] = useState(0);
+  const [verifiedMrr, setVerifiedMrr] = useState<number | null>(null);
   const [myRating, setMyRating] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
@@ -173,6 +194,7 @@ export function Community() {
       groups?: Group[];
       memberships?: Membership[];
       member_stacks?: { group_id: string; name: string; photo?: string | null }[];
+      verified_mrr?: number | string | null;
     };
     let next = packed.groups ?? [];
     if (sample) {
@@ -181,6 +203,7 @@ export function Community() {
     }
     setGroups(next);
     setMemberships(packed.memberships ?? []);
+    setVerifiedMrr(readMrr(packed.verified_mrr));
     const map: Record<string, MemberFace[]> = {};
     for (const row of packed.member_stacks ?? []) {
       (map[row.group_id] ??= []).push({ name: row.name, photo: publicAvatarUrl(row.photo) });
@@ -238,7 +261,10 @@ export function Community() {
   );
 
   const mine = groups.filter((row) => isMember(row.id));
-  const discover = groups.filter((row) => !isMember(row.id));
+  const pods = groups
+    .filter((row) => row.kind === 'revenue_pod')
+    .sort((a, b) => (readMrr(a.revenue_min) ?? 0) - (readMrr(b.revenue_min) ?? 0));
+  const discover = groups.filter((row) => !isMember(row.id) && row.kind !== 'revenue_pod');
   const group = groups.find((row) => row.id === active) ?? null;
   const faces = (active && stacks[active]) || group?.members || [];
   const openThread = threads.find((row) => row.id === threadId) ?? null;
@@ -428,6 +454,10 @@ export function Community() {
       setMode('group');
       return;
     }
+    if (group.kind === 'revenue_pod' && !inRevenueBand(verifiedMrr, group.revenue_min, group.revenue_max)) {
+      setToast('Verified Stripe or RevenueCat MRR has to be in this band.');
+      return;
+    }
     setBusy(true);
     const status = group.join_mode === 'request' ? 'pending' : 'active';
     const { error } = await createClient().from('community_group_members').upsert({
@@ -482,9 +512,68 @@ export function Community() {
             />
           ))}
           {!mine.length ? <p className="empty">Join a group to see it here.</p> : null}
-          <p className="eyebrow" style={{ padding: '16px 14px 4px' }}>
-            Find new groups
-          </p>
+          {pods.length ? (
+            <div style={{ margin: '4px 14px 10px', padding: 12, borderRadius: 16, background: '#3C3C3B' }}>
+              <p className="eyebrow" style={{ color: '#FFFFFF' }}>
+                Revenue Squads
+              </p>
+              <p style={{ margin: '2px 0 8px', color: 'rgba(255,255,255,0.88)', fontSize: 13 }}>
+                Group chats for similar stage builders
+              </p>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                {pods.map((row) => {
+                  const joined = isMember(row.id);
+                  const open = joined || inRevenueBand(verifiedMrr, row.revenue_min, row.revenue_max);
+                  return (
+                    <button
+                      key={row.id}
+                      type="button"
+                      onClick={() => openGroup(row.id, !joined)}
+                      style={{
+                        flex: '0 0 168px',
+                        textAlign: 'left',
+                        border: 'none',
+                        borderRadius: 16,
+                        padding: 12,
+                        background: '#FFFFFF',
+                        color: '#141414',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#5E5E5E', fontSize: 12 }}>
+                        {joined ? 'Joined' : open ? 'Open' : 'Locked'}
+                        <span
+                          aria-hidden
+                          style={{
+                            width: 16,
+                            height: 16,
+                            backgroundColor: open ? '#2E5CFF' : '#FF0000',
+                            WebkitMaskImage: `url(${open ? '/icons/lock-open.png' : '/icons/lock-solid.png'})`,
+                            maskImage: `url(${open ? '/icons/lock-open.png' : '/icons/lock-solid.png'})`,
+                            WebkitMaskSize: 'contain',
+                            maskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            maskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskPosition: 'center',
+                          }}
+                        />
+                      </span>
+                      <strong style={{ display: 'block', marginTop: 6 }}>{row.name}</strong>
+                      <span style={{ display: 'block', marginTop: 6, color: '#5E5E5E' }}>
+                        {(row.member_count ?? 0).toLocaleString()} members
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+          {discover.length ? (
+            <p className="eyebrow" style={{ padding: '16px 14px 4px' }}>
+              Find new groups
+            </p>
+          ) : null}
           {discover.map((row) => (
             <GroupRow
               key={row.id}
@@ -536,9 +625,23 @@ export function Community() {
                 </div>
               </div>
             ) : null}
-            <button className="btn-accent" type="button" disabled={busy} onClick={() => void join()}>
-              {group.join_mode === 'request' ? 'Request to join' : 'Join group'}
+            <button
+              className="btn-accent"
+              type="button"
+              disabled={busy || (!!group && group.kind === 'revenue_pod' && !inRevenueBand(verifiedMrr, group.revenue_min, group.revenue_max))}
+              onClick={() => void join()}
+            >
+              {group.kind === 'revenue_pod' && !inRevenueBand(verifiedMrr, group.revenue_min, group.revenue_max)
+                ? 'Locked'
+                : group.join_mode === 'request'
+                  ? 'Request to join'
+                  : 'Join group'}
             </button>
+            {group.kind === 'revenue_pod' && !inRevenueBand(verifiedMrr, group.revenue_min, group.revenue_max) ? (
+              <p className="muted">
+                You can preview this squad. Joining stays locked until verified Stripe or RevenueCat MRR is in this band.
+              </p>
+            ) : null}
           </div>
         ) : group ? (
           <>

@@ -8,6 +8,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { queryKeys } from '@/data/repo/keys';
 import {
+  isRevenuePod,
   joinCommunityGroup,
   useCommunityHome,
   type CommunityGroup,
@@ -25,6 +26,7 @@ import { CreateGroupForm } from './CreateGroupSheet';
 import { DiscoverCard } from './DiscoverCard';
 import { GroupCoverSheet } from './GroupCoverSheet';
 import { GroupRow } from './GroupRow';
+import { RevenuePodCarousel } from './RevenuePodCarousel';
 import { seedHome, seedJoin, useSeedTick } from './seed';
 
 const seenPending = new Set<string>();
@@ -56,7 +58,9 @@ export function CommunityHome() {
     [devMode, isAdmin],
   );
   const mine = [...(data?.mine ?? []), ...seeded.mine];
-  const discover = [...(data?.discover ?? []), ...seeded.discover];
+  const pods = data?.pods ?? [];
+  const discover = [...(data?.discover ?? []).filter((group) => !isRevenuePod(group)), ...seeded.discover];
+  const verifiedMrr = data?.verifiedMrr ?? null;
 
   useEffect(() => {
     for (const group of data?.mine ?? []) {
@@ -120,8 +124,8 @@ export function CommunityHome() {
 
   return (
     <View style={{ gap: 20 }}>
-      {isLoading && !mine.length && !discover.length ? <Txt muted>Loading groups…</Txt> : null}
-      {isError && !mine.length && !discover.length ? (
+      {isLoading && !mine.length && !discover.length && !pods.length ? <Txt muted>Loading groups…</Txt> : null}
+      {isError && !mine.length && !discover.length && !pods.length ? (
         <Pressable onPress={() => void refetch()}>
           <Txt muted>Couldn’t load groups. Tap to retry.</Txt>
         </Pressable>
@@ -150,16 +154,17 @@ export function CommunityHome() {
           mine.map((group) => <GroupRow key={group.id} group={group} onPress={() => openGroup(group)} />)
         ) : (
           <Txt size={14.5} muted>
-            {discover.length
+            {discover.length || pods.length
               ? 'You have not joined a group yet. Create one, or pick from Find new groups.'
               : 'You have not joined a group yet. Create one to get started.'}
           </Txt>
         )}
       </View>
 
-      {discover.length ? (
+      {pods.length || discover.length ? (
         <View style={{ gap: 12 }}>
-          <Label>Find new groups</Label>
+          <RevenuePodCarousel pods={pods} verifiedMrr={verifiedMrr} onPress={openGroup} />
+          {discover.length ? <Label>Find new groups</Label> : null}
           {discover.map((group) => (
             <DiscoverCard key={group.id} group={group} onPress={() => openGroup(group)} />
           ))}
@@ -186,6 +191,7 @@ export function CommunityHome() {
 
       <GroupCoverSheet
         group={preview}
+        verifiedMrr={verifiedMrr}
         busy={joining}
         onClose={() => setPreview(null)}
         onClosed={openPendingGroup}

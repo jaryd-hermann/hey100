@@ -13,6 +13,7 @@ import { queryKeys } from '@/data/repo/keys';
 import {
   deleteCommunityGroup,
   isOfficialGroup,
+  isRevenuePod,
   leaveCommunityGroup,
   markCommunityGroupRead,
   muteCommunityGroup,
@@ -418,7 +419,7 @@ export default function GroupScreen() {
               }}
             />
           ) : null}
-          {isOwner && !official ? (
+          {isOwner && !official && !isRevenuePod(group) ? (
             <MenuRow
               label="Edit group"
               onPress={() => {
@@ -475,7 +476,7 @@ export default function GroupScreen() {
             }}
           />
           )}
-          {isOwner && !official ? (
+          {isOwner && !official && !isRevenuePod(group) ? (
             <MenuRow
               label="Delete group"
               danger

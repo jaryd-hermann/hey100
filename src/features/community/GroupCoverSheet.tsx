@@ -11,8 +11,10 @@ import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import {
   checkCommunityJoin,
-  JOIN_CRITERIA,
+  inRevenueBand,
   isMatchGroup,
+  isRevenuePod,
+  JOIN_CRITERIA,
   type CommunityGroup,
   type JoinCriterion,
 } from '@/data/repo/community';
@@ -29,12 +31,14 @@ import { seedThreads } from './seed';
 
 export function GroupCoverSheet({
   group,
+  verifiedMrr = null,
   busy,
   onClose,
   onClosed,
   onJoin,
 }: {
   group: CommunityGroup | null;
+  verifiedMrr?: number | null;
   busy?: boolean;
   onClose: () => void;
   onClosed?: () => void;
@@ -69,8 +73,11 @@ export function GroupCoverSheet({
 
   const waiting = group.membership === 'pending';
   const joined = group.membership === 'active';
+  const pod = isRevenuePod(group);
   const unmet = check.length > 0 && check.some((item) => !item.met);
-  const needsApproval = group.joinMode === 'request' || (group.joinMode === 'criteria' && unmet);
+  const locallyOpen = inRevenueBand(verifiedMrr, group.revenueMin ?? 0, group.revenueMax);
+  const podLocked = pod && !joined && (check.length ? unmet : !locallyOpen);
+  const needsApproval = !pod && (group.joinMode === 'request' || (group.joinMode === 'criteria' && unmet));
   const needsNote = needsApproval && !joined && !waiting;
   const seededRecent = seedThreads(group.id).slice(0, 2);
   const recent = seededRecent.length
@@ -143,7 +150,9 @@ export function GroupCoverSheet({
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
             <Chip
               label={
-                group.joinMode === 'request'
+                pod
+                  ? 'Verified revenue'
+                  : group.joinMode === 'request'
                   ? 'Request to join'
                   : group.joinMode === 'criteria'
                     ? 'Match criteria'
@@ -167,7 +176,7 @@ export function GroupCoverSheet({
                 }
               />
             ) : null}
-            {group.ownerName ? <Chip label={`Admin: ${group.ownerName}`} size="sm" /> : null}
+            {!pod && group.ownerName ? <Chip label={`Admin: ${group.ownerName}`} size="sm" /> : null}
             {group.ratingAvg != null && group.ratingCount ? (
               <Chip
                 label={`${group.ratingAvg.toFixed(1)} (${group.ratingCount.toLocaleString()})`}
@@ -247,16 +256,25 @@ export function GroupCoverSheet({
           <View style={{ gap: 8 }}>
             <Label>Your fit</Label>
             {check.map((item) => (
-              <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View key={item.id} style={{ gap: 2 }}>
                 <Txt size={14.5} weight={600} color={item.met ? c.accentText : c.danger}>
                   {item.met ? '✓' : '✕'} {item.label}
                 </Txt>
+                {!item.met && item.how ? (
+                  <Txt size={13} muted>
+                    {item.how}
+                  </Txt>
+                ) : null}
               </View>
             ))}
             <Txt size={13} muted>
-              {unmet
-                ? 'You can still request to join. Anyone in the group can approve.'
-                : 'You can join without waiting for approval.'}
+              {pod
+                ? podLocked
+                  ? 'You can read this preview. Joining stays locked until your verified MRR is in this band.'
+                  : 'Your verified MRR is in this band.'
+                : unmet
+                  ? 'You can still request to join. Anyone in the group can approve.'
+                  : 'You can join without waiting for approval.'}
             </Txt>
           </View>
         ) : null}
@@ -279,14 +297,16 @@ export function GroupCoverSheet({
                 ? 'Open group'
                 : waiting
                   ? 'Request pending'
-                  : needsApproval
-                    ? 'Request to join'
-                    : 'Join group'
+                  : podLocked
+                    ? 'Locked'
+                    : needsApproval
+                      ? 'Request to join'
+                      : 'Join group'
             }
             variant="accent"
             size="lg"
             full
-            disabled={waiting || busy || (needsNote && !note.trim())}
+            disabled={waiting || busy || podLocked || (needsNote && !note.trim())}
             onPress={() => onJoin(note.trim() || undefined, !needsApproval)}
           />
           {isMatchGroup(group) ? null : (

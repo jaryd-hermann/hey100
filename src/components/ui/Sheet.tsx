@@ -4,13 +4,14 @@ import {
   Animated,
   Easing,
   Keyboard,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   useWindowDimensions,
   View,
 } from 'react-native';
+
+import { FullOverlay } from '@/components/ui/OverlayHost';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -130,8 +131,8 @@ export function Sheet({
     return () => clearTimeout(t);
   }, [anim, visible]);
 
-  // Unmount only after iOS has dismissed the modal. Removing it sooner leaves
-  // a full-screen touch shield, and the app ignores every tap until relaunch.
+  // Drop the layer only after the slide finishes. It is a view in this app,
+  // not a native modal, so removing it cannot leave a touch shield behind.
   useEffect(() => {
     if (modalOn || !mounted || openRef.current) return;
     const t = setTimeout(unmount, 700);
@@ -158,17 +159,18 @@ export function Sheet({
   if (!mounted) return null;
 
   return (
-    <Modal
-      visible={modalOn}
-      transparent
-      animationType="none"
-      presentationStyle="overFullScreen"
-      onRequestClose={onClose}
-      onDismiss={unmount}
-    >
+    <FullOverlay visible={modalOn} onDismiss={unmount} onRequestClose={onClose}>
       <Animated.View
         pointerEvents={visible && modalOn ? 'auto' : 'none'}
-        style={{ flex: 1, backgroundColor: c.scrim, opacity: anim }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          backgroundColor: c.scrim,
+          opacity: anim,
+        }}
       >
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Dismiss" />
       </Animated.View>
@@ -312,6 +314,6 @@ export function Sheet({
           </Content>
         </Animated.View>
       </View>
-    </Modal>
+    </FullOverlay>
   );
 }

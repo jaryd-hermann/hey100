@@ -1,42 +1,68 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, type PressableProps } from 'react-native';
 
-import { afterTouch } from '@/lib/afterTouch';
+import { afterTouch, touchClaimed } from '@/lib/afterTouch';
 
-/** Pressable that opens menus only once the finger is up.
- * A long press fires while the finger is still down; presenting a sheet then
- * sticks the iOS touch system. */
+/** Pressable that opens menus only once the finger is up, and not while scrolling.
+ * The system long-press fires while the finger is still down. Presenting a sheet
+ * then sticks the iOS touch system. */
 export function HoldPressable({
   onLongPress,
   onPress,
+  onPressIn,
+  onPressOut,
   delayLongPress = 280,
   ...rest
 }: PressableProps) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const start = useRef({ x: 0, y: 0 });
   const held = useRef(false);
+  const fired = useRef(false);
+
+  const clear = () => {
+    if (!timer.current) return;
+    clearTimeout(timer.current);
+    timer.current = null;
+  };
+
+  useEffect(() => () => clear(), []);
 
   return (
     <Pressable
       {...rest}
-      delayLongPress={onLongPress ? delayLongPress : undefined}
-      onLongPress={
-        onLongPress
-          ? () => {
-              held.current = true;
-            }
-          : undefined
-      }
-      onPress={
-        onPress
-          ? (event) => {
-              afterTouch(() => onPress(event));
-            }
-          : undefined
-      }
-      onPressOut={(event) => {
-        if (!held.current || !onLongPress) return;
+      onPressIn={(event) => {
+        fired.current = false;
         held.current = false;
-        const fire = onLongPress;
-        afterTouch(() => fire(event));
+        start.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
+        clear();
+        if (onLongPress) {
+          timer.current = setTimeout(() => {
+            held.current = true;
+          }, delayLongPress);
+        }
+        onPressIn?.(event);
+      }}
+      onPress={(event) => {
+        if (fired.current || touchClaimed() || !onPress) return;
+        afterTouch(() => onPress(event));
+      }}
+      onPressOut={(event) => {
+        clear();
+        const dx = event.nativeEvent.pageX - start.current.x;
+        const dy = event.nativeEvent.pageY - start.current.y;
+        const moved = dx * dx + dy * dy > 144;
+        if (held.current && onLongPress && !moved) {
+          held.current = false;
+          fired.current = true;
+          const fire = onLongPress;
+          afterTouch(() => {
+            if (touchClaimed()) return;
+            fire(event);
+          });
+        } else {
+          held.current = false;
+        }
+        onPressOut?.(event);
       }}
     />
   );

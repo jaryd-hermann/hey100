@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 
-import { afterTouch } from '@/lib/afterTouch';
+import { afterTouch, claimTouch, touchClaimed } from '@/lib/afterTouch';
 
 import { Txt } from './Txt';
 
@@ -44,10 +44,12 @@ export function LinkedText({
             lh={lh}
             color={color}
             weight={600}
+            onPressIn={() => claimTouch()}
             onPress={() =>
-              afterTouch(() =>
-                router.push({ pathname: '/browser', params: { kind: 'Web', value: href } }),
-              )
+              afterTouch(() => {
+                touchClaimed();
+                router.push({ pathname: '/browser', params: { kind: 'Web', value: href } });
+              })
             }
             style={{ textDecorationLine: 'underline' }}
           >

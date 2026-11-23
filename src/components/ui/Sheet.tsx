@@ -60,14 +60,20 @@ export function Sheet({
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
   const wasOpen = useRef(visible);
-  const closedFired = useRef(false);
+  const openRef = useRef(visible);
+  const dismissToken = useRef(0);
+  const pendingClose = useRef(0);
+  const closedOnce = useRef(false);
   const [mounted, setMounted] = useState(visible);
   const [modalOn, setModalOn] = useState(visible);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const hideModal = () => {
-    closedFired.current = true;
-    setModalOn(false);
+  const unmount = () => {
+    if (openRef.current || closedOnce.current) return;
+    if (pendingClose.current !== dismissToken.current) return;
+    closedOnce.current = true;
+    setMounted(false);
+    onClosedRef.current?.();
   };
 
   useEffect(() => {
@@ -86,11 +92,15 @@ export function Sheet({
   }, []);
 
   useEffect(() => {
+    openRef.current = visible;
     if (visible) {
+      // A close that is still dismissing must not unmount this open.
+      dismissToken.current += 1;
+      closedOnce.current = false;
       wasOpen.current = true;
-      closedFired.current = false;
       setMounted(true);
       setModalOn(true);
+      anim.stopAnimation();
       Animated.timing(anim, {
         toValue: 1,
         duration: 260,
@@ -101,28 +111,31 @@ export function Sheet({
     }
     if (!wasOpen.current) return;
     wasOpen.current = false;
-    let hidden = false;
-    const finish = () => {
-      if (hidden) return;
-      hidden = true;
-      hideModal();
+    pendingClose.current = dismissToken.current;
+    const token = dismissToken.current;
+    const closeNative = () => {
+      if (token !== dismissToken.current || openRef.current) return;
+      setModalOn(false);
     };
+    anim.stopAnimation();
     Animated.timing(anim, {
       toValue: 0,
       duration: 180,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start(finish);
-    const t = setTimeout(finish, 280);
+    }).start(({ finished }) => {
+      if (finished) closeNative();
+    });
+    const t = setTimeout(closeNative, 280);
     return () => clearTimeout(t);
   }, [anim, visible]);
 
-  // Unmount only after Modal has committed visible={false}. Unmounting a
-  // still-visible RN Modal leaves a touch-blocking overlay on iOS.
+  // Unmount only after iOS has dismissed the modal. Removing it sooner leaves
+  // a full-screen touch shield, and the app ignores every tap until relaunch.
   useEffect(() => {
-    if (modalOn || !closedFired.current || !mounted) return;
-    setMounted(false);
-    onClosedRef.current?.();
+    if (modalOn || !mounted || openRef.current) return;
+    const t = setTimeout(unmount, 700);
+    return () => clearTimeout(t);
   }, [modalOn, mounted]);
 
   useEffect(() => {
@@ -151,7 +164,7 @@ export function Sheet({
       animationType="none"
       presentationStyle="overFullScreen"
       onRequestClose={onClose}
-      onDismiss={hideModal}
+      onDismiss={unmount}
     >
       <Animated.View
         pointerEvents={visible && modalOn ? 'auto' : 'none'}

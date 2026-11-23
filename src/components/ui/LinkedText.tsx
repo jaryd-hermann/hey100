@@ -1,6 +1,8 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 
+import { afterTouch } from '@/lib/afterTouch';
+
 import { Txt } from './Txt';
 
 const LINK =
@@ -43,7 +45,9 @@ export function LinkedText({
             color={color}
             weight={600}
             onPress={() =>
-              router.push({ pathname: '/browser', params: { kind: 'Web', value: href } })
+              afterTouch(() =>
+                router.push({ pathname: '/browser', params: { kind: 'Web', value: href } }),
+              )
             }
             style={{ textDecorationLine: 'underline' }}
           >

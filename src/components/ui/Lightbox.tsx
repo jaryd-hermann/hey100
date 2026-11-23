@@ -49,10 +49,37 @@ export function Lightbox({ visible, items, index, hue, layout, onClose, onHey, o
   const [page, setPage] = useState(index);
   const [progress, setProgress] = useState(0);
   const drop = useRef(new Animated.Value(0)).current;
+  const openRef = useRef(visible);
+  const closedOnce = useRef(false);
+  const [mounted, setMounted] = useState(visible);
+  const [modalOn, setModalOn] = useState(visible);
 
   // The pan responder is created once, so it reads the latest handler by ref.
   const close = useRef(onClose);
   close.current = onClose;
+
+  useEffect(() => {
+    openRef.current = visible;
+    if (visible) {
+      closedOnce.current = false;
+      setMounted(true);
+      setModalOn(true);
+      return;
+    }
+    setModalOn(false);
+  }, [visible]);
+
+  const unmount = () => {
+    if (openRef.current || closedOnce.current) return;
+    closedOnce.current = true;
+    setMounted(false);
+  };
+
+  useEffect(() => {
+    if (modalOn || !mounted) return;
+    const t = setTimeout(unmount, 500);
+    return () => clearTimeout(t);
+  }, [modalOn, mounted]);
 
   useEffect(() => {
     if (!visible) return;
@@ -98,14 +125,15 @@ export function Lightbox({ visible, items, index, hue, layout, onClose, onHey, o
       ? { width: wide, height: Math.min((wide * 9) / 16, tall) }
       : { width: Math.min(wide, (tall * 9) / 16), height: tall };
 
-  if (!visible) return null;
+  if (!mounted) return null;
 
   return (
     <Modal
-      visible
+      visible={modalOn}
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      onDismiss={unmount}
       statusBarTranslucent
     >
       <Animated.View style={{ flex: 1, backgroundColor: c.scrim, opacity: scrimOpacity }}>

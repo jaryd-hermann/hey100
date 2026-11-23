@@ -5,6 +5,7 @@ import { ActivityIndicator, Modal, Pressable, View, type StyleProp, type ViewSty
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SHOT_RATIO, type MediaItem, type ShotLayout } from '@/data/types';
+import { afterTouch } from '@/lib/afterTouch';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -178,7 +179,7 @@ export function InlineVideo({
     if (!playable || uploading) return;
     player.play();
     setPlaying(true);
-    setExpanded(true);
+    afterTouch(() => setExpanded(true));
   };
 
   return (

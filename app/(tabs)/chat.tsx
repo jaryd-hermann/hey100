@@ -23,6 +23,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useDevMode } from '@/lib/devMode';
 import { useStore } from '@/store/AppStore';
 import { useTheme } from '@/theme/ThemeProvider';
+import { afterTouch } from '@/lib/afterTouch';
 import { layout } from '@/theme/tokens';
 
 const HEY100_ICON = require('../../assets/images/icon.png');
@@ -62,7 +63,8 @@ export default function ChatScreen() {
     }
   }, [deskParam]);
 
-  const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
+  const open = (id: string) =>
+    afterTouch(() => router.push({ pathname: '/chat/[id]', params: { id } }));
 
   // Jaryd's 1:1 sorts with match rows, including for the admin account.
   const rows = useMemo<Row[]>(() => {

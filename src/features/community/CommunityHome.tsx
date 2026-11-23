@@ -18,6 +18,7 @@ import { CreateGroupPromo } from '@/features/marketing/CreateGroupPromo';
 import { ProductHint } from '@/features/marketing/ProductHint';
 import { useFirstHint } from '@/features/marketing/useFirstHint';
 import { captureEvent } from '@/lib/analytics';
+import { afterTouch } from '@/lib/afterTouch';
 import { useDevMode } from '@/lib/devMode';
 import { isServerId } from '@/lib/supabase';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -77,11 +78,13 @@ export function CommunityHome() {
   }, [data]);
 
   const openGroup = (group: CommunityGroup) => {
-    if (group.membership === 'active') {
-      router.push({ pathname: '/group/[id]', params: { id: group.id } });
-      return;
-    }
-    setPreview(group);
+    afterTouch(() => {
+      if (group.membership === 'active') {
+        router.push({ pathname: '/group/[id]', params: { id: group.id } });
+        return;
+      }
+      setPreview(group);
+    });
   };
 
   const join = async (note?: string, skipApproval?: boolean) => {

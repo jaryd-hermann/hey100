@@ -2,6 +2,9 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
+import { HoldPressable } from '@/components/ui/HoldPressable';
+import { afterTouch } from '@/lib/afterTouch';
+
 import { AppIcon, Avatar } from '@/components/ui/AppIcon';
 import { LinkedText } from '@/components/ui/LinkedText';
 import { Txt } from '@/components/ui/Txt';
@@ -50,7 +53,7 @@ export function ThreadBubble({
   return (
     <View style={{ gap: 4, paddingBottom: 10 }}>
       <Pressable
-        onPress={onAuthorPress}
+        onPress={onAuthorPress ? () => afterTouch(onAuthorPress) : undefined}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 40 }}
       >
         <Txt size={12} muted>
@@ -66,7 +69,7 @@ export function ThreadBubble({
       </Pressable>
 
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-        <Pressable onPress={onAuthorPress}>
+        <Pressable onPress={onAuthorPress ? () => afterTouch(onAuthorPress) : undefined}>
           <View>
             <Avatar name={author.name} uri={author.photo} size={32} />
             {listing ? (
@@ -78,10 +81,9 @@ export function ThreadBubble({
         </Pressable>
 
         <View style={{ flex: 1, minWidth: 0, maxWidth: 304 }}>
-          <Pressable
+          <HoldPressable
             onPress={onPress}
             onLongPress={onLongPress}
-            delayLongPress={280}
             style={{
               paddingVertical: 10,
               paddingHorizontal: 13,
@@ -104,7 +106,7 @@ export function ThreadBubble({
               </View>
             ) : null}
             {body.trim() ? <LinkedText text={body} size={14} lh={1.4} /> : null}
-          </Pressable>
+          </HoldPressable>
 
           {reactions?.length ? (
             <View style={{ position: 'absolute', top: -15, right: 10, flexDirection: 'row', gap: 4 }}>
@@ -141,7 +143,7 @@ export function ThreadBubble({
 
       {onPress ? (
         <Pressable
-          onPress={onPress}
+          onPress={onPress ? () => afterTouch(onPress) : undefined}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 40, marginTop: 2 }}
         >
           {replies ? (

@@ -2,6 +2,9 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
+import { HoldPressable } from '@/components/ui/HoldPressable';
+import { afterTouch } from '@/lib/afterTouch';
+
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Card } from '@/components/ui/Card';
 import { Fuzzy } from '@/components/ui/Fuzzy';
@@ -59,7 +62,7 @@ export function MessageBubble({
     return (
       <View>
         <Card tone="soft" padding={14} radius={radii.cardLg} style={{ gap: 8 }}>
-          <Pressable onLongPress={onLongPress} delayLongPress={280} style={{ gap: 8 }}>
+          <HoldPressable onLongPress={onLongPress} style={{ gap: 8 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Label size={10}>Announcement · all builders</Label>
               <Txt size={11} color={c.accentText}>
@@ -81,7 +84,7 @@ export function MessageBubble({
                     item={item}
                     hue={hue}
                     width={SOLO_WIDTH}
-                    onPress={onOpenMedia ? () => onOpenMedia(message.media!, index) : undefined}
+                    onPress={onOpenMedia ? () => afterTouch(() => onOpenMedia(message.media!, index)) : undefined}
                   />
                 ))}
               </View>
@@ -91,7 +94,7 @@ export function MessageBubble({
                 {message.body}
               </Txt>
             ) : null}
-          </Pressable>
+          </HoldPressable>
         </Card>
         {message.reactions?.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
@@ -126,10 +129,9 @@ export function MessageBubble({
   if (message.kind === 'invite') {
     const mine = message.from === 'me';
     return (
-      <Pressable
+      <HoldPressable
         onPress={() => message.groupId && onOpenInvite?.(message.groupId)}
         onLongPress={onLongPress}
-        delayLongPress={280}
         accessibilityRole="button"
         accessibilityLabel="Open group preview"
         style={{
@@ -164,7 +166,7 @@ export function MessageBubble({
             {message.body}
           </Txt>
         </Card>
-      </Pressable>
+      </HoldPressable>
     );
   }
 
@@ -172,14 +174,13 @@ export function MessageBubble({
     const mine = message.from === 'me';
     const locked = !!message.locked && !mine;
     return (
-      <Pressable
+      <HoldPressable
         accessibilityRole="button"
         accessibilityLabel={
           mine ? 'Edit the feedback you sent' : locked ? 'Unlock this feedback' : 'Feedback received'
         }
         onPress={onPressFeedback}
         onLongPress={onLongPress}
-        delayLongPress={280}
         style={{ maxWidth: '92%', alignSelf: mine ? 'flex-end' : 'flex-start' }}
       >
         <Fuzzy locked={locked}>
@@ -211,7 +212,7 @@ export function MessageBubble({
             ) : null}
           </View>
         </Fuzzy>
-      </Pressable>
+      </HoldPressable>
     );
   }
 
@@ -220,9 +221,8 @@ export function MessageBubble({
   const hasBody = !!message.body;
 
   const bubble = (
-    <Pressable
+    <HoldPressable
       onLongPress={onLongPress}
-      delayLongPress={280}
       style={{
         backgroundColor: mine ? c.ink : c.surface,
         borderWidth: mine ? 0 : 1,
@@ -260,7 +260,7 @@ export function MessageBubble({
               item={item}
               hue={hue}
               width={media.length === 1 ? SOLO_WIDTH : TILE_WIDTH}
-              onPress={onOpenMedia ? () => onOpenMedia(media, index) : undefined}
+              onPress={onOpenMedia ? () => afterTouch(() => onOpenMedia(media, index)) : undefined}
             />
           ))}
         </View>
@@ -276,7 +276,7 @@ export function MessageBubble({
           />
         </View>
       ) : null}
-    </Pressable>
+    </HoldPressable>
   );
 
   const chips = message.reactions?.length ? (

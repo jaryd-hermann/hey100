@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Modal,
   PanResponder,
   Pressable,
   ScrollView,
@@ -15,7 +16,6 @@ import type { MediaItem, ShotLayout } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layout as layoutTokens, radii } from '@/theme/tokens';
 
-import { FullOverlay } from './OverlayHost';
 import { HeyPill } from './HeyPill';
 import { InlineVideo } from './InlineVideo';
 import { MediaPlaceholder } from './MediaPlaceholder';
@@ -76,12 +76,6 @@ export function Lightbox({ visible, items, index, hue, layout, onClose, onHey, o
   };
 
   useEffect(() => {
-    if (modalOn || !mounted) return;
-    const t = setTimeout(unmount, 500);
-    return () => clearTimeout(t);
-  }, [modalOn, mounted]);
-
-  useEffect(() => {
     if (!visible) return;
     setPage(index);
     setProgress(items.length > 1 ? index / (items.length - 1) : 1);
@@ -128,7 +122,14 @@ export function Lightbox({ visible, items, index, hue, layout, onClose, onHey, o
   if (!mounted) return null;
 
   return (
-    <FullOverlay visible={modalOn} onDismiss={unmount} onRequestClose={onClose}>
+    <Modal
+      visible={modalOn}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      onDismiss={unmount}
+      statusBarTranslucent
+    >
       <Animated.View style={{ flex: 1, backgroundColor: c.scrim, opacity: scrimOpacity }}>
         <Animated.View style={{ flex: 1, transform: [{ translateY: drop }] }} {...pan.panHandlers}>
           <ScrollView
@@ -248,6 +249,6 @@ export function Lightbox({ visible, items, index, hue, layout, onClose, onHey, o
           ) : null}
         </View>
       </Animated.View>
-    </FullOverlay>
+    </Modal>
   );
 }

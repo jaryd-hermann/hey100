@@ -16,6 +16,7 @@ import { queryKeys } from '@/data/repo/keys';
 import { createListing, isListingLimitError } from '@/data/repo/listings';
 import { recordOnboardingBlocks, updateMyProfile } from '@/data/repo/profile';
 import { toListingInsert } from '@/features/apps/mapListing';
+import { isOtherMobilePlatform } from '@/features/apps/deviceMarks';
 import { uploadAsset, uploadShots } from '@/features/apps/uploadShots';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { SignInError, signIn, signInWithPassword, signUpWithPassword } from '@/features/auth/signIn';
@@ -272,7 +273,11 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       age: picked('ia').join(', ') || 'Any',
       gender: picked('ig')[0] ?? 'Anyone',
       interests: picked('ii').map(stripEmoji).join(', ') || 'Anyone',
-      plat: picked('ip').map(stripEmoji).join(', ') || 'iPhone',
+      plat:
+        picked('ip')
+          .map(stripEmoji)
+          .filter((item) => !isOtherMobilePlatform(item))
+          .join(', ') || 'iPhone',
       wants: (picked('f').join(', ') || draft.own.f || '').toLowerCase() || 'anything',
     },
     problemOf: draft.problemOf.trim() || undefined,
@@ -499,7 +504,7 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       ...((realName || fullName) ? { real_name: realName || fullName } : {}),
       ...(stored ? { photo_url: stored } : {}),
       display_pref: draft.showAs === 'username' ? ('username' as const) : ('real_name' as const),
-      job: draft.job || null,
+      job: draft.job && !isOtherMobilePlatform(draft.job) ? draft.job : null,
       workplace: draft.workplace || null,
       industry: draft.industry || null,
       company_size: draft.companySize || null,
@@ -507,8 +512,8 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       years_experience: draft.yearsExperience || null,
       looking_for: picked('look'),
       app_interests: picked('cat'),
-      test_devices: picked('d'),
-      skills: picked('sk'),
+      test_devices: picked('d').filter((item) => !isOtherMobilePlatform(item)),
+      skills: picked('sk').filter((item) => !isOtherMobilePlatform(item)),
       own_words: draft.own,
       visibility: draft.vis,
     };
@@ -659,7 +664,10 @@ export function OnboardingFlow({ mode = 'full' }: { mode?: OnboardingMode }) {
       icon: draft.appIcon || undefined,
       hue: draft.appHue,
       stage: stripEmoji(picked('stage')[0] ?? 'Stage not set'),
-      devices: picked('ip').map(stripEmoji).join(', '),
+      devices: picked('ip')
+        .map(stripEmoji)
+        .filter((item) => !isOtherMobilePlatform(item))
+        .join(', '),
       shotLabel: `${draft.shots.length} · ${shotLayout}`,
       looking: picked('ii').map(stripEmoji).join(', '),
       ageGender: [age, gender].filter(Boolean).join(' · '),

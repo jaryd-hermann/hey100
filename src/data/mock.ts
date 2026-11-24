@@ -839,7 +839,7 @@ export const FILTER_GROUPS = {
       'Games',
     ],
   },
-  plat: { title: 'Platform', opts: ['iPhone', 'Android', 'Mac', 'Web', 'Chrome extension'] },
+  plat: { title: 'Platform', opts: ['iPhone', 'iPad', 'Mac', 'Web', 'Chrome extension'] },
   stage: { title: 'Stage', opts: ['Beta / TestFlight', 'Live', 'Has revenue'] },
 } as const;
 

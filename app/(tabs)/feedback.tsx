@@ -351,8 +351,8 @@ const SAMPLE_AUDIENCE: ListingInsights['audience'] = {
   ],
   devices: [
     { label: 'iPhone', pct: 61 },
-    { label: 'Web', pct: 24 },
-    { label: 'Android', pct: 15 },
+    { label: 'iPad', pct: 24 },
+    { label: 'Web', pct: 15 },
   ],
 };
 

@@ -16,7 +16,7 @@ import { fonts, radii } from '@/theme/tokens';
  */
 const MARKS: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
   'iPhone (iOS)': 'logo-apple',
-  Android: 'logo-google-playstore',
+  iPad: 'logo-apple',
   Mac: 'logo-apple',
   Windows: 'logo-windows',
   Web: 'logo-chrome',

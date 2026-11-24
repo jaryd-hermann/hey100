@@ -116,7 +116,7 @@ export const FLOWS: Record<FlowId, IntegrationFlowCopy> = {
     tagline: 'For mobile apps · subscriptions and customers',
     kicker: 'VERIFY REVENUE · MOBILE APPS',
     title: 'Show real subscribers.',
-    what: 'RevenueCat runs in-app subscriptions for iOS and Android. Connecting it shows verified revenue, active subscriptions and customers.',
+    what: 'RevenueCat runs in-app subscriptions. Connecting it shows verified revenue, active subscriptions and customers.',
     whys: [
       { icon: '$', text: 'Proves people pay for your app, not just download it.', color: YELLOW },
       { icon: '✓', text: 'Adds a Verified subscriptions badge to your profile.', color: LIME },

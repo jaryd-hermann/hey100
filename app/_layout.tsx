@@ -10,7 +10,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PostHogProvider } from 'posthog-react-native';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { OverlayHost } from '@/components/ui/OverlayHost';
 import { ToastProvider } from '@/components/ui/Toast';
 import { useListingsSync } from '@/features/apps/useListingsSync';
 import { AuthProvider } from '@/features/auth/AuthProvider';
@@ -60,24 +59,22 @@ export default function RootLayout() {
       <AnalyticsGate>
         <SafeAreaProvider>
           <ThemeProvider>
-            <OverlayHost>
-              <QueryClientProvider client={queryClient}>
-                {/* Inside the query client, so signing out can drop the cache. */}
-                <AuthProvider>
-                  <AppStoreProvider>
-                    <ToastProvider>
-                      <DailyHeyLimitProvider>
-                        <CoachProvider>
-                          <HeyMenuProvider>
-                            <Shell />
-                          </HeyMenuProvider>
-                        </CoachProvider>
-                      </DailyHeyLimitProvider>
-                    </ToastProvider>
-                  </AppStoreProvider>
-                </AuthProvider>
-              </QueryClientProvider>
-            </OverlayHost>
+            <QueryClientProvider client={queryClient}>
+              {/* Inside the query client, so signing out can drop the cache. */}
+              <AuthProvider>
+                <AppStoreProvider>
+                  <ToastProvider>
+                    <DailyHeyLimitProvider>
+                      <CoachProvider>
+                        <HeyMenuProvider>
+                          <Shell />
+                        </HeyMenuProvider>
+                      </CoachProvider>
+                    </DailyHeyLimitProvider>
+                  </ToastProvider>
+                </AppStoreProvider>
+              </AuthProvider>
+            </QueryClientProvider>
           </ThemeProvider>
         </SafeAreaProvider>
       </AnalyticsGate>
@@ -136,7 +133,7 @@ function Shell() {
           options={{ presentation: 'fullScreenModal', animation: 'fade' }}
         />
         <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="browser" options={{ presentation: 'card' }} />
+        <Stack.Screen name="browser" options={{ presentation: 'modal' }} />
         <Stack.Screen name="feedback-form" options={{ presentation: 'fullScreenModal' }} />
           </Stack>
       <VerifiedUnlockHost />

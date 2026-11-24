@@ -12,12 +12,8 @@ export function touchClaimed() {
   return was;
 }
 
-/** Run only after iOS has finished the touch.
- * Opening a screen in the touch handler can leave the app unable to take taps. */
+/** Run only after iOS has released the touch.
+ * Pushing a screen inside the touch leaves the window unable to take taps. */
 export function afterTouch(task: () => void) {
-  setTimeout(() => {
-    requestAnimationFrame(() => {
-      task();
-    });
-  }, 48);
+  setTimeout(task, 80);
 }

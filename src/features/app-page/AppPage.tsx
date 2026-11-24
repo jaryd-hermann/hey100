@@ -22,7 +22,7 @@ import {
 } from '@/data/types';
 import { recordPitchWatch } from '@/data/repo/insights';
 import { recordProfileView } from '@/data/repo/notifications';
-import { deviceMark, splitList } from '@/features/apps/deviceMarks';
+import { deviceMark, isOtherMobilePlatform, splitList } from '@/features/apps/deviceMarks';
 import { MAX_SHOTS } from '@/features/apps/pickShots';
 import { VerifiedBadge } from '@/components/brand/Marks';
 import { ChipRow, VerifiedStatsRow, verifiedMoney } from '@/features/profile/BuilderBits';
@@ -253,7 +253,9 @@ export function AppPage({
           {splitList(listing.cat).map((value) => (
             <Chip key={value} label={value} size="sm" />
           ))}
-          {splitList(listing.plat).map((value) => (
+          {splitList(listing.plat)
+            .filter((value) => !isOtherMobilePlatform(value))
+            .map((value) => (
             <Chip
               key={value}
               label={value}
@@ -852,7 +854,7 @@ function Section({
     const blocks: { label: string; items: string[]; devices?: boolean; outline: string }[] = [
       { label: 'Age', items: splitList(ideal?.age), outline: '#00FFFF' },
       { label: 'Gender', items: splitList(ideal?.gender), outline: '#FF1C6F' },
-      { label: 'On', items: splitList(ideal?.plat), devices: true, outline: '#00FF00' },
+      { label: 'On', items: splitList(ideal?.plat).filter((item) => !isOtherMobilePlatform(item)), devices: true, outline: '#00FF00' },
       { label: 'Wants feedback on', items: splitList(ideal?.wants), outline: '#FFFF00' },
       { label: 'Into', items: splitList(ideal?.interests), outline: '#7B00FF' },
     ];

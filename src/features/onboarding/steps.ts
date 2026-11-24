@@ -138,7 +138,6 @@ export const JOB_TITLES = [
   'Full Stack Engineer',
   'Mobile Engineer',
   'iOS Engineer',
-  'Android Engineer',
   'Product Manager',
   'Senior Product Manager',
   'Staff Product Manager',
@@ -258,7 +257,6 @@ export const SKILLS = [
   'Backend development',
   'Mobile development',
   'iOS development',
-  'Android development',
   'Web development',
   'DevOps & infrastructure',
   'Databases',
@@ -400,7 +398,7 @@ export const FEEDBACK_AREAS = [
 ];
 
 /** Platforms, by the name of the thing a builder actually ships to. */
-export const DEVICES = ['iPhone (iOS)', 'Android', 'Mac', 'Windows', 'Web'];
+export const DEVICES = ['iPhone (iOS)', 'iPad', 'Mac', 'Windows', 'Web'];
 
 /**
  * Ideal-user age bands. Defined here so the pick step cannot render empty if

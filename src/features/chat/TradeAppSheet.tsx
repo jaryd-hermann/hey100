@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Sheet } from '@/components/ui/Sheet';
 import { Label, Txt } from '@/components/ui/Txt';
-import type { AppListing } from '@/data/types';
+import { isOtherMobilePlatform } from '@/features/apps/deviceMarks';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
@@ -38,7 +38,7 @@ export function TradeAppSheet({
   // Matched apps are stubs, so every list here can be missing at runtime.
   const links = listing.links ?? [];
   const tags = [listing.cat, listing.plat, listing.stage].filter(
-    (value): value is string => !!value,
+    (tag): tag is string => !!tag && !isOtherMobilePlatform(tag),
   );
 
   return (

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SHOT_RATIO, type MediaItem, type ShotLayout } from '@/data/types';
@@ -10,7 +10,6 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radii } from '@/theme/tokens';
 
 import { MediaPlaceholder } from './MediaPlaceholder';
-import { FullOverlay } from './OverlayHost';
 import { Txt } from './Txt';
 
 /** Deliberate sticker tones: controls sit over media, not over a themed surface. */
@@ -281,7 +280,13 @@ export function InlineVideo({
         ) : null}
       </Pressable>
 
-      <FullOverlay visible={expanded} onRequestClose={() => setExpanded(false)}>
+      <Modal
+        visible={expanded}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setExpanded(false)}
+        statusBarTranslucent
+      >
         <View style={{ flex: 1, backgroundColor: '#000000' }}>
           <VideoView
             player={player}
@@ -309,7 +314,7 @@ export function InlineVideo({
             <Ionicons name="close" size={22} color={OVER_MEDIA} />
           </Pressable>
         </View>
-      </FullOverlay>
+      </Modal>
     </>
   );
 }

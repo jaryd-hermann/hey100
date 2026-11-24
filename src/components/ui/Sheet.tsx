@@ -4,14 +4,13 @@ import {
   Animated,
   Easing,
   Keyboard,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   useWindowDimensions,
   View,
 } from 'react-native';
-
-import { FullOverlay } from '@/components/ui/OverlayHost';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -131,14 +130,6 @@ export function Sheet({
     return () => clearTimeout(t);
   }, [anim, visible]);
 
-  // Drop the layer only after the slide finishes. It is a view in this app,
-  // not a native modal, so removing it cannot leave a touch shield behind.
-  useEffect(() => {
-    if (modalOn || !mounted || openRef.current) return;
-    const t = setTimeout(unmount, 700);
-    return () => clearTimeout(t);
-  }, [modalOn, mounted]);
-
   useEffect(() => {
     if (!visible) setKeyboardHeight(0);
   }, [visible]);
@@ -159,7 +150,14 @@ export function Sheet({
   if (!mounted) return null;
 
   return (
-    <FullOverlay visible={modalOn} onDismiss={unmount} onRequestClose={onClose}>
+    <Modal
+      visible={modalOn}
+      transparent
+      animationType="none"
+      presentationStyle="overFullScreen"
+      onRequestClose={onClose}
+      onDismiss={unmount}
+    >
       <Animated.View
         pointerEvents={visible && modalOn ? 'auto' : 'none'}
         style={{
@@ -314,6 +312,6 @@ export function Sheet({
           </Content>
         </Animated.View>
       </View>
-    </FullOverlay>
+    </Modal>
   );
 }

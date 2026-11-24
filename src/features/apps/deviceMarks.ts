@@ -7,7 +7,7 @@ export const DEVICE_MARKS: Record<string, IconName> = {
   'iPhone (iOS)': 'logo-apple',
   iPhone: 'logo-apple',
   iOS: 'logo-apple',
-  Android: 'logo-google-playstore',
+  iPad: 'logo-apple',
   Mac: 'logo-apple',
   Windows: 'logo-windows',
   Web: 'logo-chrome',
@@ -21,6 +21,12 @@ export function deviceMark(label: string): IconName | undefined {
     trimmed.toLowerCase().includes(key.toLowerCase()),
   );
   return hit ? DEVICE_MARKS[hit] : undefined;
+}
+
+/** App Review rejects names of other mobile stores in the iOS app. */
+export function isOtherMobilePlatform(label: string): boolean {
+  const value = label.toLowerCase();
+  return value.includes('android') || value.includes('google play') || value.includes('play store');
 }
 
 export function splitList(value?: string): string[] {

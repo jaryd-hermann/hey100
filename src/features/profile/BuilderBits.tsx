@@ -6,6 +6,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Chip } from '@/components/ui/Chip';
+import { isOtherMobilePlatform } from '@/features/apps/deviceMarks';
 import { Label, Txt } from '@/components/ui/Txt';
 import { fetchShippedApps } from '@/data/repo/listings';
 import type { AppConnection, AppListing, OwnedApp, ShippedApp } from '@/data/types';
@@ -88,12 +89,13 @@ export function useBuilderProducts(listing: AppListing | OwnedApp | null, mine: 
 }
 
 export function ChipRow({ label, items }: { label?: string; items: string[] }) {
-  if (!items.length) return null;
+  const shown = items.filter((item) => !isOtherMobilePlatform(item));
+  if (!shown.length) return null;
   return (
     <View style={{ gap: label ? 8 : 0 }}>
       {label ? <Label>{label}</Label> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {items.slice(0, 8).map((item) => (
+        {shown.slice(0, 8).map((item) => (
           <Chip key={item} label={item} size="sm" />
         ))}
       </View>

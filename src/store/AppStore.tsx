@@ -792,9 +792,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const markChatRead = useCallback<Store['markChatRead']>(
     (matchId) => {
-      patch((prev) => ({
-        matches: prev.matches.map((m) => (m.id === matchId ? { ...m, unread: 0 } : m)),
-      }));
+      // Keep the same state object when nothing changes. A new `matches` array
+      // re-renders the open thread, which marks it read again, forever.
+      setState((prev) => {
+        if (!prev.matches.some((m) => m.id === matchId && m.unread)) return prev;
+        return {
+          ...prev,
+          matches: prev.matches.map((m) => (m.id === matchId ? { ...m, unread: 0 } : m)),
+        };
+      });
 
       if (!remote) return;
 

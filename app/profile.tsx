@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { stripEmoji } from '@/data/mock';
 import { syncGithubProfile } from '@/data/repo/connections';
+import { isOtherMobilePlatform } from '@/features/apps/deviceMarks';
 import { TAG_ROWS } from '@/features/profile/fields';
 import { KarmaCard } from '@/features/profile/KarmaCard';
 import { PRO_PRICE, useStore } from '@/store/AppStore';
@@ -268,10 +269,11 @@ export default function Profile() {
         </Card>
 
         {TAG_ROWS.map(([label, group]) => {
-          const values =
+          const values = (
             group === 'job'
               ? [user.job, user.department, user.workplace, user.industry].filter(Boolean)
-              : (user.tags[group] ?? []).map(stripEmoji);
+              : (user.tags[group] ?? []).map(stripEmoji)
+          ).filter((value) => !isOtherMobilePlatform(value));
 
           if (!values.length) return null;
 

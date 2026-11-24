@@ -64,9 +64,6 @@ function foundOn(url: string): { title: string; detail: string } {
   if (value.includes('apps.apple.com') || value.includes('itunes.apple.com')) {
     return { title: 'Found it on the App Store', detail: 'Name, subtitle and screenshots filled in' };
   }
-  if (value.includes('play.google.com')) {
-    return { title: 'Found it on Google Play', detail: 'Name, subtitle and screenshots filled in' };
-  }
   if (value.includes('producthunt.com')) {
     return { title: 'Found it on Product Hunt', detail: 'Name, subtitle and screenshots filled in' };
   }

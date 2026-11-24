@@ -77,7 +77,7 @@ function matchDevices(stored?: string): string[] {
     const hit =
       matchOptions(part, DEVICES)[0] ??
       (lower.includes('iphone') || lower.includes('ios') ? 'iPhone (iOS)' : undefined) ??
-      (lower.includes('android') ? 'Android' : undefined) ??
+      (lower.includes('ipad') ? 'iPad' : undefined) ??
       (lower.includes('mac') ? 'Mac' : undefined) ??
       (lower.includes('windows') ? 'Windows' : undefined) ??
       (lower.includes('web') ? 'Web' : undefined);

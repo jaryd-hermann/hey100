@@ -148,14 +148,17 @@ export default function ChatThread() {
   ).current;
 
   const { markChatRead } = store;
+  const latestAt = stored[stored.length - 1]?.at ?? '';
   useEffect(() => {
     if (isTeam) {
-      const latest = stored[stored.length - 1]?.at;
-      if (latest) markTeamRead(userId, latest);
+      if (latestAt) markTeamRead(userId, latestAt);
       return;
     }
     markChatRead(id);
-  }, [id, isTeam, markChatRead, stored, userId]);
+    // Keyed on the newest message, not the list. The list is a new array on
+    // every store change, and marking read changes the store.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isTeam, latestAt, userId]);
 
   const messages = stored;
   const unreadStart =
@@ -302,6 +305,7 @@ export default function ChatThread() {
       style={{ flex: 1, backgroundColor: c.bg }}
     >
       <View
+        pointerEvents="box-none"
         style={{
           position: 'absolute',
           top: insets.top + 6,

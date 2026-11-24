@@ -109,7 +109,10 @@ export default function Paywall() {
       }
       store.setPlan(result.pro ? 'pro' : 'free');
       toast(result.pro ? 'Pro restored' : 'No Pro subscription on this Apple ID');
-      if (result.pro) dismiss();
+      if (result.pro) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        dismiss();
+      }
     } finally {
       setRestoring(false);
     }
@@ -128,6 +131,9 @@ export default function Paywall() {
       if (result.pro) store.setPlan('pro');
       captureEvent('pro_started', { plan: 'monthly', reason: reason ?? from ?? 'unknown' });
       toast('Hey100 Pro started');
+      // StoreKit's sheet is still closing when the purchase promise resolves.
+      // Dismissing this screen in that moment leaves iPad unable to take taps.
+      await new Promise((resolve) => setTimeout(resolve, 800));
       dismiss();
     } finally {
       setBuying(false);

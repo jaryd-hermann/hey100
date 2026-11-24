@@ -13,6 +13,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { Label, Txt } from '@/components/ui/Txt';
 import { TOOL_CATEGORIES, useSponsoredTools, useVoteSponsoredTool } from '@/data/repo/tools';
+import { isOtherMobilePlatform } from '@/features/apps/deviceMarks';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { captureEvent } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -49,6 +50,7 @@ export default function ToolsScreen() {
           const myVote = mine[tool.id] ?? mine[tool.name] ?? tool.myVote;
           return myVote === tool.myVote ? tool : { ...tool, myVote };
         })
+        .filter((tool) => !isOtherMobilePlatform(tool.name) && !isOtherMobilePlatform(tool.subtitle ?? ''))
         .filter((tool) => !category || tool.category === category)
         .sort((a, b) =>
           sort === 'newest'

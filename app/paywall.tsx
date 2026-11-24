@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Txt } from '@/components/ui/Txt';
@@ -104,15 +104,17 @@ export default function Paywall() {
     try {
       const result = await restorePurchases();
       if ('message' in result) {
-        toast(result.message);
+        Alert.alert('Restore did not finish', result.message);
         return;
       }
       store.setPlan(result.pro ? 'pro' : 'free');
-      toast(result.pro ? 'Pro restored' : 'No Pro subscription on this Apple ID');
-      if (result.pro) {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        dismiss();
+      if (!result.pro) {
+        Alert.alert('Nothing to restore', 'No Pro subscription on this Apple ID.');
+        return;
       }
+      toast('Pro restored');
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      dismiss();
     } finally {
       setRestoring(false);
     }
@@ -125,7 +127,7 @@ export default function Paywall() {
       const result = await purchaseMonthly();
       if (result.status === 'cancelled') return;
       if (result.status === 'unavailable') {
-        toast(result.message);
+        Alert.alert('Pro did not start', result.message);
         return;
       }
       if (result.pro) store.setPlan('pro');

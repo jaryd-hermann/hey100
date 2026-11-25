@@ -1,0 +1,20 @@
+---
+description: htg.chat pivot context — read the plan before any work on the v2-htg-chat branch
+alwaysApply: true
+---
+
+# htg.chat (v2) context
+
+This repo is mid-pivot from Hey100 (swipe/match) to **htg.chat** (revenue-banded group chats built around one daily question).
+
+- Branch `v2-htg-chat` is htg.chat. Branch `main` is the frozen Hey100 app — don't build htg features there.
+- **Before starting any htg.chat task, read `docs/htg-plan.md`.** It is the source of truth: decisions (D1…), schema, access rules, phases, Apple compliance.
+- Product spec: `design/htg/htg-chat-v3-spec.md`. Design: `design/htg/htg-chat-v3.html` (screen IDs like `[G1]`, `[R5]` match both).
+- Where plan and spec disagree, the plan wins. If you make a new product decision, add it to the plan's Decisions log.
+- When a task lands, add a line to the plan's **Progress log** (date · phase · what landed · follow-ups) and tick its checkbox in §14.
+
+Non-negotiables:
+- Gating (answer-to-unlock, peek, plan, DMs, TLDR scope) is enforced in Postgres (RLS + `security definer` RPCs in `app.`), never only in the client.
+- Exact MRR never reaches another user's client unless they opted in (`show_exact_mrr`).
+- Apple compliance in plan §11 (report, block, mute, delete account reachable without paying, terms acceptance, AI consent, reviewer account) is a release blocker — don't remove or gate any of it.
+- Destructive remote actions (database reset, `db push` of the baseline) need Jaryd's explicit go-ahead in the chat.

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 import { config } from './config';
 import { hasNativeModule } from './nativeModule';
@@ -8,6 +8,7 @@ export const PRO_PRODUCT_ID = 'hey100_pro_monthly';
 
 export type CustomerInfoLike = {
   entitlements: { active: Record<string, unknown> };
+  activeSubscriptions?: string[];
 };
 
 type PurchaseError = Error & { userCancelled?: boolean; code?: number | string };
@@ -56,8 +57,16 @@ export function isPurchasesConfigured(): boolean {
   return booted;
 }
 
+/**
+ * Pro is the only thing Hey100 sells, so any active entitlement or the Pro
+ * product itself counts. An entitlement renamed in the RevenueCat dashboard
+ * must not strand someone who paid.
+ */
 export function hasPro(info: CustomerInfoLike | null | undefined): boolean {
-  return !!info?.entitlements.active[PRO_ENTITLEMENT];
+  if (!info) return false;
+  if (info.entitlements.active[PRO_ENTITLEMENT]) return true;
+  if (Object.keys(info.entitlements.active).length > 0) return true;
+  return (info.activeSubscriptions ?? []).some((id) => id.startsWith(PRO_PRODUCT_ID));
 }
 
 /** Safe in Expo Go and before a native rebuild: missing binaries become a no-op. */
@@ -168,10 +177,19 @@ export async function restorePurchases(): Promise<{ pro: boolean } | { message: 
   }
 }
 
+const APPLE_SUBSCRIPTIONS = 'https://apps.apple.com/account/subscriptions';
+
 export async function manageSubscriptions(): Promise<void> {
   const purchases = sdk();
-  if (!purchases || !booted) return;
-  await purchases.showManageSubscriptions();
+  if (purchases && booted) {
+    try {
+      await purchases.showManageSubscriptions();
+      return;
+    } catch {
+      // Fall through to Apple's page.
+    }
+  }
+  await Linking.openURL(APPLE_SUBSCRIPTIONS);
 }
 
 export function onCustomerInfo(listener: (info: CustomerInfoLike) => void): () => void {

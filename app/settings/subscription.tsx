@@ -63,7 +63,7 @@ export default function Subscription() {
         toast(result.message);
         return;
       }
-      store.setPlan(result.pro ? 'pro' : 'free');
+      store.setStorePro(result.pro);
       toast(result.pro ? 'Pro restored' : 'No Pro subscription on this Apple ID');
     } finally {
       setBusy(false);

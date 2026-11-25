@@ -208,7 +208,13 @@ export type SayHeyInput = {
 
 type State = {
   onboarded: boolean;
+  /** `profiles.plan`, which server limits read. */
   plan: Plan;
+  /**
+   * RevenueCat's live entitlement. Kept apart from `plan` so a server refresh
+   * cannot hide a paid subscription before the server row catches up.
+   */
+  storePro: boolean;
   user: UserProfile;
   apps: Record<string, OwnedApp>;
   appOrder: string[];
@@ -294,6 +300,7 @@ function initialState(): State {
   return {
     onboarded: false,
     plan: 'free',
+    storePro: false,
     user: initialUser,
     apps: {
       tide: { ...OWNED_APPS.tide, layout: [...DEFAULT_LAYOUT] },
@@ -410,6 +417,7 @@ type Store = State & {
   moveSection: (appId: string, index: number, direction: -1 | 1) => void;
 
   setPlan: (plan: Plan) => void;
+  setStorePro: (pro: boolean) => void;
   markMatchPaywallSeen: () => void;
   completeOnboarding: (patch: { user?: Partial<UserProfile>; app?: Partial<OwnedApp> }) => void;
   addApp: (app: OwnedApp) => void;
@@ -506,7 +514,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [state.appOrder, state.apps, state.listings],
   );
 
-  const isPro = state.plan === 'pro';
+  const isPro = state.plan === 'pro' || state.storePro;
   const matchesLeft = Math.max(
     0,
     FREE_MATCH_LIMIT + state.user.bonusMatches - state.matches.length,
@@ -518,7 +526,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
     setState((prev) => {
       const limit = FREE_MATCH_LIMIT + prev.user.bonusMatches;
-      const hitPaywall = prev.plan === 'free' && prev.matches.length + 1 >= limit;
+      const hitPaywall =
+        prev.plan === 'free' && !prev.storePro && prev.matches.length + 1 >= limit;
       result = { matched: true, matchId: appId, hitPaywall };
 
       const match: Match = {
@@ -612,7 +621,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       patch((prev) => ({
         sentHeys: [sent, ...prev.sentHeys],
         heysLeftToday:
-          prev.plan === 'pro' ? prev.heysLeftToday : Math.max(0, prev.heysLeftToday - 1),
+          prev.plan === 'pro' || prev.storePro
+            ? prev.heysLeftToday
+            : Math.max(0, prev.heysLeftToday - 1),
         heys: theyAlreadySaidHey ? prev.heys.filter((hey) => hey.appId !== input.appId) : prev.heys,
       }));
 
@@ -1206,6 +1217,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       hydrateConnections,
       moveSection,
       setPlan: (plan) => patch({ plan }),
+      setStorePro: (pro) => patch({ storePro: pro }),
       markMatchPaywallSeen: () => patch({ seenMatchPaywall: true }),
       completeOnboarding,
       addApp,

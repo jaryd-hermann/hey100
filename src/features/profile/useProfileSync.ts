@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 
 import { useMyProfile } from '@/data/repo/profile';
-import { isPurchasesConfigured } from '@/lib/purchases';
 import { useStore } from '@/store/AppStore';
 
 import { toUserProfile } from './mapProfile';
@@ -36,10 +35,7 @@ export function useProfileSync(): void {
 
     storeRef.current.updateUser(mapped);
 
-    // RevenueCat is the live client copy of Pro. The server row still upgrades
-    // us if the webhook landed first; it must not clobber a just-purchased
-    // entitlement before that write arrives.
-    if (data.plan === 'pro') storeRef.current.setPlan('pro');
-    else if (!isPurchasesConfigured()) storeRef.current.setPlan('free');
+    // RevenueCat's copy lives in `storePro`, so the server row can be taken as is.
+    storeRef.current.setPlan(data.plan === 'pro' ? 'pro' : 'free');
   }, [data]);
 }

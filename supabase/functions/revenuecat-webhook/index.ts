@@ -35,6 +35,7 @@ type Event = {
   expiration_at_ms?: number | null;
   entitlement_ids?: string[] | null;
   entitlement_id?: string | null;
+  product_id?: string;
   transferred_from?: string[];
   transferred_to?: string[];
 };
@@ -70,9 +71,10 @@ function expiresAt(ms: number | null | undefined): string | null {
   return new Date(ms).toISOString();
 }
 
+/** Hey100 sells one thing, so any entitlement is Pro whatever the dashboard named it. */
 function hasPro(event: Event): boolean {
   const ids = event.entitlement_ids ?? (event.entitlement_id ? [event.entitlement_id] : []);
-  return ids.includes('pro');
+  return ids.length > 0 || (event.product_id ?? '').startsWith('hey100_pro_monthly');
 }
 
 async function setPlan(userId: string, plan: 'free' | 'pro', expires: string | null) {
@@ -99,6 +101,7 @@ Deno.serve(async (req) => {
   const type = event.type ?? '';
   const userId = asUserId(event.app_user_id) ?? asUserId(event.original_app_user_id);
   const expires = expiresAt(event.expiration_at_ms);
+  console.log('[revenuecat]', type, event.app_user_id, event.product_id, event.entitlement_ids ?? event.entitlement_id);
 
   try {
     if (type === 'TRANSFER') {

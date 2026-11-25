@@ -53,6 +53,21 @@ export async function recordOnboardingBlocks(blocks: number): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Asks the server to re-read this account's plan from RevenueCat, for when
+ * the webhook is late or missing. Null when the server could not answer.
+ */
+export async function syncMyPlan(): Promise<'free' | 'pro' | null> {
+  const db = getSupabase();
+  if (!db) return null;
+
+  const { data, error } = await db.functions.invoke<{ plan?: 'free' | 'pro' }>('sync-plan', {
+    body: {},
+  });
+  if (error || !data?.plan) return null;
+  return data.plan;
+}
+
 export async function updateMyProfile(userId: string, patch: ProfilePatch): Promise<void> {
   const db = getSupabase();
   if (!db) return;

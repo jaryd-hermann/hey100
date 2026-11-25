@@ -213,7 +213,11 @@ export default function Settings() {
             <Pressable
               key={row.label}
               accessibilityRole="button"
-              onPress={() => router.push(row.href)}
+              onPress={() =>
+                row.label === 'Subscription' && !store.isPro
+                  ? router.push({ pathname: '/paywall', params: { from: 'settings' } })
+                  : router.push(row.href)
+              }
               style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',

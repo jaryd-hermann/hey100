@@ -153,7 +153,9 @@ export default function Profile() {
           </Pressable>
         )}
 
-        <Pressable onPress={() => router.push('/paywall?from=profile')}>
+        <Pressable
+          onPress={() => router.push(store.isPro ? '/settings/subscription' : '/paywall?from=profile')}
+        >
           <Card padding={16} radius={radii.cardLg} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ flex: 1, gap: 3 }}>
               <Label size={10}>Subscription</Label>

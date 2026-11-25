@@ -31,6 +31,11 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
+# Signed-in phones ask for their plan to be re-read from RevenueCat.
+[functions.sync-plan]
+enabled = true
+verify_jwt = true
+
 # Signed-in phones register their APNs/FCM token so OneSignal can find them.
 [functions.register-push]
 enabled = true

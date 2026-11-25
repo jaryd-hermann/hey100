@@ -107,7 +107,7 @@ export default function Paywall() {
         Alert.alert('Restore did not finish', result.message);
         return;
       }
-      store.setPlan(result.pro ? 'pro' : 'free');
+      store.setStorePro(result.pro);
       if (!result.pro) {
         Alert.alert('Nothing to restore', 'No Pro subscription on this Apple ID.');
         return;
@@ -130,7 +130,15 @@ export default function Paywall() {
         Alert.alert('Pro did not start', result.message);
         return;
       }
-      if (result.pro) store.setPlan('pro');
+      if (!result.pro) {
+        captureEvent('pro_purchase_unentitled', { reason: reason ?? from ?? 'unknown' });
+        Alert.alert(
+          'Payment received',
+          'Apple confirmed the payment, but Pro is not active on this account yet. Tap Restore in a moment, or contact support if it stays this way.',
+        );
+        return;
+      }
+      store.setStorePro(true);
       captureEvent('pro_started', { plan: 'monthly', reason: reason ?? from ?? 'unknown' });
       toast('Hey100 Pro started');
       // StoreKit's sheet is still closing when the purchase promise resolves.

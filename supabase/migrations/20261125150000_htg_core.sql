@@ -398,6 +398,16 @@ on conflict (id) do update
       file_size_limit = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
+-- Hey100 storage policies survive a database reset; storage is not reset.
+drop policy if exists "Avatars are readable by everyone" on storage.objects;
+drop policy if exists "Builders delete their own listing media" on storage.objects;
+drop policy if exists "Builders replace their own listing media" on storage.objects;
+drop policy if exists "Builders write listing media in their own folder" on storage.objects;
+drop policy if exists "Listing media is readable by everyone" on storage.objects;
+drop policy if exists "People delete their own avatar" on storage.objects;
+drop policy if exists "People replace their own avatar" on storage.objects;
+drop policy if exists "People write avatars in their own folder" on storage.objects;
+
 create policy "Public images are readable by everyone"
   on storage.objects for select to anon, authenticated
   using (bucket_id in ('avatars', 'product-icons'));

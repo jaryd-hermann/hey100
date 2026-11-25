@@ -509,7 +509,7 @@ Each phase ends with typecheck green, the phase's checks in §15 passing, and a 
 ### Phase 1 — Teardown, schema, shell (2–3 days)
 - [x] Delete per §13; move reusable chat + connect code.
 - [x] Archive old migrations; write the baseline (§4) + access functions (§5) + RLS + seed reference data (bands, categories, themes, settings, Jaryd official profile). Split into seven `20261125150*_htg_*.sql` files; validated by `npm run db:check`.
-- [ ] Reset database (**needs explicit go-ahead**), `npm run db:types`.
+- [x] Reset database (**needs explicit go-ahead**), `npm run db:types`.
 - [x] App shell: rebrand name, tokens, fonts, Wordmark, Chats/TLDR tabs, auth + plan gates, empty states.
 - **Done when:** app boots to splash, signs in with Apple/Google/email, lands on an empty Chats tab behind the gates.
 
@@ -612,3 +612,4 @@ Add one line per landed task: date · phase · what landed · follow-ups.
 
 - 2026-11-25 · Plan · Plan written; spec + design copied to `design/htg/`. Decisions D1–D19 recorded.
 - 2026-11-25 · Phase 1 · Hey100 work committed on `main` (3f6689a); branch `v2-htg-chat` created. Teardown of Hey100 routes, features, edge functions and web app. Seven baseline migrations (old ones in `supabase/migrations_hey100_archive/`); `npm run db:check` applies them to PGlite and runs 22 access checks; `npm run db:types:local` generates `src/types/supabase.ts` from the same local schema until the remote is pushed. `delete-account` edge function. App shell: htg.chat name + permission strings, dark-only theme with functional colour tokens (`htg`, `shift`), HackerNoon wordmark, splash [O1] + sign-in drawer [O1b] (Apple, Google, email), `me()`-driven gates (welcome → onboarding → paywall → tabs), Chats/TLDR tabs with empty states, `···` account menu (Log out / Delete account) on gate screens and Chats. Follow-ups: remote reset + `db push` + `db:types` (needs go-ahead); "I have an invite code" link lands with redemption in Phase 2; push permission prompt moved to the [N] step; splash image and app icon still Hey100 (Phase 8). To reach Chats before Phase 2, set `onboarded_at` and `plan` on the profile by SQL.
+- 2026-11-25 · Phase 1 · Remote reset with Jaryd's go-ahead: `supabase db reset --linked` truncated auth and dropped the Hey100 storage policies, then applied the seven htg migrations; `npm run db:types` regenerated from the project; `delete-account` deployed. Follow-ups: `app.push_config` is empty after the reset (set a new `PUSH_DRAIN_SECRET` secret and call `admin_set_push_config` with the `send-push` URL before push work in Phase 2); old functions `engagement-cron`, `app-metadata`, `listing-connect` are still deployed but unscheduled (delete once `revenue-verify` replaces `listing-connect`).

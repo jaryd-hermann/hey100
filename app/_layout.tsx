@@ -11,22 +11,11 @@ import { PostHogProvider } from 'posthog-react-native';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/Toast';
-import { useListingsSync } from '@/features/apps/useListingsSync';
 import { AuthProvider } from '@/features/auth/AuthProvider';
-import { useLoopSync } from '@/features/loop/useLoopSync';
-import { useLoopRealtime } from '@/features/loop/useRealtime';
-import { useTeamChat } from '@/features/chat/useTeamChat';
-import { DailyHeyLimitProvider } from '@/features/billing/DailyHeyLimit';
-import { usePurchases } from '@/features/billing/usePurchases';
 import { usePush } from '@/features/push/usePush';
-import { CoachProvider } from '@/features/feedback/CoachHost';
-import { HeyMenuProvider } from '@/features/nav/HeyMenu';
-import { useProfileSync } from '@/features/profile/useProfileSync';
-import { VerifiedUnlockHost } from '@/features/profile/VerifiedUnlock';
 import { getPostHog } from '@/lib/analytics';
 import { restoreAppIcon } from '@/lib/appIcon';
 import { isPostHogConfigured, warnOnMissingConfig } from '@/lib/config';
-import { AppStoreProvider } from '@/store/AppStore';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -62,17 +51,9 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
               {/* Inside the query client, so signing out can drop the cache. */}
               <AuthProvider>
-                <AppStoreProvider>
-                  <ToastProvider>
-                    <DailyHeyLimitProvider>
-                      <CoachProvider>
-                        <HeyMenuProvider>
-                          <Shell />
-                        </HeyMenuProvider>
-                      </CoachProvider>
-                    </DailyHeyLimitProvider>
-                  </ToastProvider>
-                </AppStoreProvider>
+                <ToastProvider>
+                  <Shell />
+                </ToastProvider>
               </AuthProvider>
             </QueryClientProvider>
           </ThemeProvider>
@@ -102,24 +83,17 @@ function AnalyticsGate({ children }: { children: React.ReactNode }) {
 }
 
 function Shell() {
-  const { c, isDark } = useTheme();
+  const { c } = useTheme();
 
   useEffect(() => {
     void restoreAppIcon().catch(() => {});
   }, []);
 
-  // Hydrates the store from the signed-in user's rows; no-ops when signed out.
-  useProfileSync();
-  useListingsSync();
-  useLoopSync();
-  useLoopRealtime();
-  useTeamChat();
   usePush();
-  usePurchases();
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -127,16 +101,12 @@ function Shell() {
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
         <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
-        <Stack.Screen
-          name="match"
-          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
-        />
-        <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="paywall" options={{ animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="browser" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="feedback-form" options={{ presentation: 'fullScreenModal' }} />
-          </Stack>
-      <VerifiedUnlockHost />
+      </Stack>
     </View>
   );
 }

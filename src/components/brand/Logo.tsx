@@ -1,174 +1,97 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import React from 'react';
+import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useHeyMenu } from '@/features/nav/heyMenuContext';
-import { useTheme } from '@/theme/ThemeProvider';
+import { fonts, htg } from '@/theme/tokens';
 
 import { Txt } from '../ui/Txt';
 
-const LOGO_LIGHT = require('../../../assets/images/logo-lightmode.svg');
-const LOGO_DARK = require('../../../assets/images/logo-darkmode.svg');
-const LOGO_RATIO = 449 / 119.5;
-
-const STICKER = '#111111';
-
-/** The waving hand, taken from the prototype's `HP` constant. */
-const HAND_PATH =
-  'M30 124 C 18 110, 12 92, 14 76 L 10 48 C 9 38, 22 36, 24 46 L 28 70 L 26 24 C 25 12, 41 11, 42 23 L 46 64 L 48 12 C 49 0, 65 1, 64 14 L 62 64 L 70 22 C 72 11, 87 14, 84 26 L 76 72 C 84 64, 96 54, 106 58 C 116 62, 112 74, 104 80 L 88 100 C 78 118, 60 128, 44 128 C 38 128, 33 126, 30 124 Z';
-
-export type HandMarkProps = {
-  size?: number;
-  wave?: boolean;
-  /** The sticker outline stays black; only the inner fill changes. */
-  fill?: string;
-};
-
-export function HandMark({ size = 64, wave = false, fill = '#FFFFFF' }: HandMarkProps) {
-  const anim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!wave) return;
-    const sequence = Animated.sequence([
-      Animated.delay(300),
-      ...[-24, -6, -20, -14].map((_, i) =>
-        Animated.timing(anim, {
-          toValue: i + 1,
-          duration: 225,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ),
-    ]);
-    sequence.start();
-    return () => sequence.stop();
-  }, [anim, wave]);
-
-  const rotate = anim.interpolate({
-    inputRange: [0, 1, 2, 3, 4],
-    outputRange: ['-14deg', '-24deg', '-6deg', '-20deg', '-14deg'],
-  });
-
-  return (
-    <Animated.View
-      style={{
-        width: size,
-        height: size * 1.03,
-        transform: [{ rotate: wave ? rotate : '-14deg' }],
-      }}
-    >
-      <Svg viewBox="-24 -6 136 140" width="100%" height="100%">
-        <Path
-          d={HAND_PATH}
-          transform="translate(0,4)"
-          fill={STICKER}
-          stroke={STICKER}
-          strokeWidth={14}
-          strokeLinejoin="round"
-        />
-        <Path d={HAND_PATH} fill={fill} stroke={STICKER} strokeWidth={7} strokeLinejoin="round" />
-      </Svg>
-    </Animated.View>
-  );
-}
-
 export type WordmarkProps = {
+  /** Font size of the letters; every other measure scales from it. */
   size?: number;
-  /** Blinks the 00 eyes and draws the smile, once on mount. */
-  animated?: boolean;
-  /** Use the dark-ink mark, for a light background. */
-  onLight?: boolean;
-  /** Use the white-ink mark, for a dark background. */
-  onDark?: boolean;
-  /** Stretch to the parent width, keeping the mark's ratio. */
-  fill?: boolean;
+  /** `HTG` colour. */
+  ink?: string;
+  /** `.CHAT` sticker fill and letter colour. */
+  chip?: string;
+  chipInk?: string;
   style?: StyleProp<ViewStyle>;
 };
 
-/** The real wordmark assets, not a type-drawn stand-in. */
-export function Wordmark({ size = 62, onLight, onDark, fill, style }: WordmarkProps) {
-  const { isDark } = useTheme();
-  const height = size;
-  const width = size * LOGO_RATIO;
-  const darkMark = onDark ? true : onLight ? false : isDark;
-
-  return (
-    <View
-      style={[
-        fill ? { width: '100%', aspectRatio: LOGO_RATIO } : { width, height },
-        style,
-      ]}
-    >
-      <Image
-        source={darkMark ? LOGO_DARK : LOGO_LIGHT}
-        contentFit="contain"
-        style={{ width: '100%', height: '100%' }}
-        accessibilityLabel="Hey100"
-      />
-    </View>
-  );
-}
-
-/** The splash and welcome lockup. The asset already includes the hand. */
-export function HeroLogo({ size = 58, onLight }: { size?: number; onLight?: boolean }) {
-  return (
-    <View style={{ paddingTop: 4, paddingBottom: 16, width: '100%' }}>
-      <Wordmark size={size} onLight={onLight} fill />
-    </View>
-  );
-}
-
 /**
- * The in-app header lockup: `Hey100 % Screen`, with the hand only on Discover.
+ * `HTG` plus a `.CHAT` sticker chip. The chip's small left tail makes it read
+ * as a chat bubble.
  */
-export function HeaderLogo({
-  title,
-  hand: _hand = false,
-  right,
-  onWordmarkPress,
-}: {
-  title?: string;
-  hand?: boolean;
-  right?: React.ReactNode;
-  onWordmarkPress?: () => void;
-}) {
-  const { open } = useHeyMenu();
-  const { isDark } = useTheme();
-  const mark = <Wordmark size={26} />;
+export function Wordmark({
+  size = 34,
+  ink = '#FFFFFF',
+  chip = htg.verified,
+  chipInk = htg.sticker,
+  style,
+}: WordmarkProps) {
+  const border = Math.max(2, size * 0.07);
+  const letters = {
+    fontFamily: fonts.logo,
+    fontSize: size,
+    lineHeight: size,
+    includeFontPadding: false,
+  } as const;
 
   return (
     <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        // flexBasis auto keeps the row at content height inside an auto-height column.
-        flexGrow: 1,
-        flexBasis: 'auto',
-      }}
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel="htg.chat"
+      style={[{ flexDirection: 'row', alignItems: 'center', gap: size * 0.3 }, style]}
     >
-      <Pressable
-        onPress={onWordmarkPress ?? open}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Hey100 menu"
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+      <Text style={[letters, { color: ink }]}>HTG</Text>
+      <View
+        style={{
+          paddingTop: size * 0.2,
+          paddingBottom: size * 0.12,
+          paddingHorizontal: size * 0.28,
+          borderRadius: size * 0.3,
+          backgroundColor: chip,
+          borderWidth: border,
+          borderColor: htg.sticker,
+          shadowColor: '#000',
+          shadowOpacity: 1,
+          shadowRadius: 0,
+          shadowOffset: { width: 0, height: Math.max(1, size * 0.12) },
+        }}
       >
-        {mark}
-        <Ionicons name="chevron-down" size={14} color={isDark ? '#FFFFFF' : '#111111'} />
-      </Pressable>
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: -size * 0.2,
+            top: '50%',
+            width: size * 0.34,
+            height: size * 0.34,
+            marginTop: -size * 0.17,
+            backgroundColor: chip,
+            borderLeftWidth: size * 0.07,
+            borderBottomWidth: size * 0.07,
+            borderColor: htg.sticker,
+            transform: [{ rotate: '45deg' }],
+          }}
+        />
+        <Text style={[letters, { color: chipInk }]}>.CHAT</Text>
+      </View>
+    </View>
+  );
+}
+
+/** In-app header row: wordmark, optional screen title, and a right slot. */
+export function HeaderLogo({ title, right }: { title?: string; right?: React.ReactNode }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexGrow: 1, flexBasis: 'auto' }}>
+      <Wordmark size={22} />
       {title ? (
-        <>
-          <Txt font="mono" size={17} weight={500} muted>
-            %
-          </Txt>
-          <Txt font="mono" size={17} weight={500}>
-            {title}
-          </Txt>
-        </>
-      ) : null}
+        <Txt font="mono" size={17} weight={500} style={{ flex: 1 }} numberOfLines={1}>
+          {title}
+        </Txt>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
       {right}
     </View>
   );

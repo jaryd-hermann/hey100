@@ -8,9 +8,8 @@ import { layout } from '@/theme/tokens';
 import { HeaderLogo } from '../brand/Logo';
 
 export type ScreenProps = {
-  /** Renders the `Hey100 % {title}` lockup. */
+  /** Renders the wordmark plus this title. */
   title?: string;
-  hand?: boolean;
   /** Replaces the whole header row, e.g. Discover's filter bar. */
   header?: React.ReactNode;
   headerRight?: React.ReactNode;
@@ -27,7 +26,6 @@ export type ScreenProps = {
 
 export function Screen({
   title,
-  hand,
   header,
   headerRight,
   children,
@@ -60,8 +58,7 @@ export function Screen({
             gap: 12,
           }}
         >
-          <HeaderLogo title={title} hand={hand} />
-          {headerRight}
+          <HeaderLogo title={title} right={headerRight} />
         </View>
       ) : null)}
 

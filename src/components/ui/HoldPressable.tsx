@@ -38,7 +38,7 @@ export function HoldPressable({
         if (onLongPress) {
           timer.current = setTimeout(() => {
             held.current = true;
-          }, delayLongPress);
+          }, delayLongPress ?? 280);
         }
         onPressIn?.(event);
       }}

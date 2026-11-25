@@ -411,7 +411,7 @@ Applies to answers, chat, thread replies, DMs, question submissions, profile and
 
 ### 11.2 Account deletion — Guideline 5.1.1(v)
 - Settings → Delete account (red, confirm sheet) **and** reachable from the paywall `···` menu and from onboarding (sign-in completed but not subscribed), so deletion never sits behind a purchase.
-- `delete_my_account()` rewritten for the new schema: delete storage under `avatars/{uid}`, `product-icons/{uid}`, `message-media/*/{uid}`; delete `revenue_secrets`; then `auth.users` cascade. Group messages: delete the user's messages and media (default; the spec has no "deleted user" display). Bookmarks of their messages keep the snapshot and render "Answer removed by author".
+- `delete-account` edge function (SQL cannot delete storage objects): calls `admin_scrub_user_content(uid)`, which empties the body of every group and DM message the user wrote, sets `deleted_at`, deletes their `message_media`/`dm_media` rows and `revenue_secrets`, and returns the media paths; the function removes those objects plus `avatars/{uid}/` and `product-icons/{uid}/`, then deletes the `auth.users` row (profile, product, memberships, peeks, etc. cascade; `messages.author_id` goes null). Rows are emptied rather than deleted so other people's thread replies and quotes keep their parent; the UI renders them as "Deleted account · message removed". Bookmarks of their messages keep the snapshot and render "Answer removed by author".
 - The confirm sheet says subscriptions are managed by Apple and links to Manage Subscriptions (Apple requires telling users the subscription isn't cancelled automatically).
 
 ### 11.3 Payments — Guidelines 3.1.1 / 3.1.2
@@ -423,7 +423,7 @@ Reviewers cannot verify real revenue. Ship a **review account**: pre-created ema
 ### 11.5 Privacy — Guidelines 5.1.1 / 5.1.2
 - **Third-party AI disclosure + consent (5.1.2(i)):** before content leaves the device for AI processing, the user gives explicit consent. Add a clear disclosure on `[O2]` How it works (or a short consent card right before the paywall): "Your answers are processed by AI (Anthropic, OpenAI) to pick questions and build TLDR." Store `ai_consent_at`. Because the daily question + TLDR depend on it, consent is required to join a group (default); Settings shows the disclosure again.
 - Permission strings: microphone + speech recognition ("Turn your voice into an answer. Audio stays on your phone."), photos, camera, notifications.
-- Revenue keys: read-only, encrypted at rest, service-role only, deletable via Disconnect.
+- Revenue keys: read-only keys stored in `revenue_secrets`, a table with RLS on and no client grants (service role only; Supabase encrypts the database at rest, there is no column-level encryption), deleted on Disconnect and on account deletion.
 - Update App Privacy labels: contact info, user content, financial info (revenue range), identifiers, usage data; tracking: none.
 - Update `hey100.com/terms` and `/privacy` (web) for htg.chat: revenue data, AI processors, OneSignal, RevenueCat, PostHog, Stripe/RevenueCat/GitHub read-only access, retention + deletion.
 
@@ -507,10 +507,10 @@ Each phase ends with typecheck green, the phase's checks in §15 passing, and a 
 - [ ] Enable `vector` and confirm `pg_cron`, `pg_net` on the Supabase project.
 
 ### Phase 1 — Teardown, schema, shell (2–3 days)
-- [ ] Delete per §13; move reusable chat + connect code.
-- [ ] Archive old migrations; write `htg_baseline.sql` (§4) + access functions (§5) + RLS + seed reference data (bands, categories, themes, settings, Jaryd official profile).
+- [x] Delete per §13; move reusable chat + connect code.
+- [x] Archive old migrations; write the baseline (§4) + access functions (§5) + RLS + seed reference data (bands, categories, themes, settings, Jaryd official profile). Split into seven `20261125150*_htg_*.sql` files; validated by `npm run db:check`.
 - [ ] Reset database (**needs explicit go-ahead**), `npm run db:types`.
-- [ ] App shell: rebrand name, tokens, fonts, Wordmark, Chats/TLDR tabs, auth + plan gates, empty states.
+- [x] App shell: rebrand name, tokens, fonts, Wordmark, Chats/TLDR tabs, auth + plan gates, empty states.
 - **Done when:** app boots to splash, signs in with Apple/Google/email, lands on an empty Chats tab behind the gates.
 
 ### Phase 2 — Onboarding, verification, placement, paywall (3–4 days)
@@ -611,3 +611,4 @@ Each phase ends with typecheck green, the phase's checks in §15 passing, and a 
 Add one line per landed task: date · phase · what landed · follow-ups.
 
 - 2026-11-25 · Plan · Plan written; spec + design copied to `design/htg/`. Decisions D1–D19 recorded.
+- 2026-11-25 · Phase 1 · Hey100 work committed on `main` (3f6689a); branch `v2-htg-chat` created. Teardown of Hey100 routes, features, edge functions and web app. Seven baseline migrations (old ones in `supabase/migrations_hey100_archive/`); `npm run db:check` applies them to PGlite and runs 22 access checks; `npm run db:types:local` generates `src/types/supabase.ts` from the same local schema until the remote is pushed. `delete-account` edge function. App shell: htg.chat name + permission strings, dark-only theme with functional colour tokens (`htg`, `shift`), HackerNoon wordmark, splash [O1] + sign-in drawer [O1b] (Apple, Google, email), `me()`-driven gates (welcome → onboarding → paywall → tabs), Chats/TLDR tabs with empty states, `···` account menu (Log out / Delete account) on gate screens and Chats. Follow-ups: remote reset + `db push` + `db:types` (needs go-ahead); "I have an invite code" link lands with redemption in Phase 2; push permission prompt moved to the [N] step; splash image and app icon still Hey100 (Phase 8). To reach Chats before Phase 2, set `onboarded_at` and `plan` on the profile by SQL.

@@ -2,28 +2,20 @@ import { Redirect } from 'expo-router';
 import React from 'react';
 
 import { BootScreen } from '@/components/brand/BootScreen';
+import { nextRoute, useMe } from '@/features/account/useMe';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { useMyProfile } from '@/data/repo/profile';
-import { useStore } from '@/store/AppStore';
 
+/** Signed out → splash. Signed in → the first gate the account has not passed. */
 export default function Index() {
-  const { onboarded } = useStore();
   const { session, restoring } = useAuth();
-  const profile = useMyProfile();
+  const me = useMe();
 
-  if (restoring) {
-    return <BootScreen />;
-  }
+  if (restoring) return <BootScreen />;
+  if (!session) return <Redirect href="/welcome" />;
+  if (me.isError) return <BootScreen onRetry={() => void me.refetch()} />;
+  if (me.data === undefined) return <BootScreen />;
+  // A session without a profile row means the account was deleted elsewhere.
+  if (me.data === null) return <Redirect href="/welcome" />;
 
-  if (onboarded || (session && profile.data?.onboarded_at)) {
-    return <Redirect href="/(tabs)/discover" />;
-  }
-
-  // Session is back, but the profile row has not arrived yet — wait rather
-  // than bouncing a returning user through the welcome screen.
-  if (session && (profile.isLoading || profile.isFetching) && profile.data === undefined) {
-    return <BootScreen />;
-  }
-
-  return <Redirect href="/onboarding" />;
+  return <Redirect href={nextRoute(me.data)} />;
 }

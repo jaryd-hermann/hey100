@@ -4,19 +4,14 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
 import { useAuth } from '@/features/auth/AuthProvider';
-import { touchPresence } from '@/data/repo/notifications';
-import {
-  initOneSignal,
-  loginOneSignal,
-  logoutOneSignal,
-  onNotificationOpen,
-  requestPushPermission,
-} from '@/lib/onesignal';
+import { initOneSignal, loginOneSignal, logoutOneSignal, onNotificationOpen } from '@/lib/onesignal';
+import { getSupabase } from '@/lib/supabase';
 
 /**
- * Registers the signed-in user with OneSignal, pings last_active so the
- * server can suppress pushes while they are in the app, and opens the
- * deep link on a tap.
+ * Registers the signed-in user with OneSignal, pings last_active (and the
+ * device timezone) so the server can suppress pushes while they are in the
+ * app, and opens the deep link on a tap. The permission prompt itself lives
+ * on the onboarding notifications step.
  */
 export function usePush(): void {
   const { userId } = useAuth();
@@ -32,8 +27,6 @@ export function usePush(): void {
       return;
     }
     loginOneSignal(userId);
-    // Existing accounts signed up before OneSignal never hit setup.
-    void requestPushPermission();
   }, [userId]);
 
   useEffect(() => {
@@ -47,7 +40,9 @@ export function usePush(): void {
 
     const zone = getCalendars()[0]?.timeZone ?? undefined;
     const ping = () => {
-      void touchPresence(zone);
+      getSupabase()
+        ?.rpc('touch_presence', zone ? { p_timezone: zone } : {})
+        .then(() => undefined, () => undefined);
     };
 
     ping();

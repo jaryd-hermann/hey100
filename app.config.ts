@@ -10,7 +10,7 @@ const IS_DEV_CLIENT = BUILD_PROFILE === 'development' || BUILD_PROFILE === 'devi
 const IS_STORE_BUILD = BUILD_PROFILE === 'production';
 
 const FONTS = [
-  './assets/fonts/TitanOne_400Regular.ttf',
+  './assets/fonts/HackerNoonV1-Regular.ttf',
   './assets/fonts/Inter_400Regular.ttf',
   './assets/fonts/Inter_500Medium.ttf',
   './assets/fonts/Inter_600SemiBold.ttf',
@@ -26,13 +26,13 @@ const FONTS = [
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Hey100',
+  name: 'htg.chat',
   slug: 'hey100',
   owner: 'jarydhermann',
   version,
   scheme: 'hey100',
   orientation: 'portrait',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'dark',
   newArchEnabled: false,
   icon: './assets/images/app-icons/lime.png',
   assetBundlePatterns: ['assets/**/*'],
@@ -124,11 +124,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       UIBackgroundModes: ['remote-notification'],
       ITSAppUsesNonExemptEncryption: false,
       NSPhotoLibraryUsageDescription:
-        'Hey100 uses your photos so you can set a profile picture, add screenshots to your listing, and attach photos in chats.',
+        'htg.chat uses your photos so you can set a profile picture and product icon, and attach images to answers and messages.',
       NSCameraUsageDescription:
-        'Hey100 uses the camera so you can take a profile photo or record a listing pitch.',
+        'htg.chat uses the camera so you can take a profile photo or attach a photo to an answer.',
       NSMicrophoneUsageDescription:
-        'Hey100 uses the microphone so listing pitch videos can include audio.',
+        'htg.chat uses the microphone to turn your voice into a written answer. Audio stays on your phone.',
+      NSSpeechRecognitionUsageDescription:
+        'htg.chat transcribes your voice into a written answer you can edit before posting. Audio is never stored.',
     },
   },
 
@@ -180,8 +182,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-camera',
       {
         cameraPermission:
-          'Hey100 uses the camera so you can take a profile photo or record a listing pitch.',
-        microphonePermission: 'Hey100 uses the microphone so listing pitch videos can include audio.',
+          'htg.chat uses the camera so you can take a profile photo or attach a photo to an answer.',
+        microphonePermission:
+          'htg.chat uses the microphone to turn your voice into a written answer. Audio stays on your phone.',
         recordAudioAndroid: true,
       },
     ],
@@ -191,7 +194,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         image: './assets/images/splash-logo.png',
         imageWidth: 240,
-        backgroundColor: '#F0D7FF',
+        backgroundColor: '#0E100F',
         dark: { backgroundColor: '#0E100F' },
         resizeMode: 'contain',
       },

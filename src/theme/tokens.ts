@@ -1,8 +1,6 @@
 import { Platform } from 'react-native';
 
-import { oklch } from './oklch';
-
-export type ThemeName = 'dark' | 'light';
+export type ThemeName = 'dark';
 
 export type Palette = {
   bg: string;
@@ -12,7 +10,6 @@ export type Palette = {
   muted: string;
   line: string;
   accent: string;
-  /** Lime used as text or icon colour, darkened on light backgrounds for contrast. */
   accentText: string;
   accentInk: string;
   soft: string;
@@ -33,46 +30,62 @@ export const palettes: Record<ThemeName, Palette> = {
     ink: '#E8ECE7',
     muted: '#8E968F',
     line: 'rgba(232, 236, 231, 0.11)',
-    accent: oklch(0.87, 0.18, 128),
-    accentText: oklch(0.87, 0.18, 128),
-    accentInk: '#0E100F',
-    soft: oklch(0.87, 0.18, 128, 0.13),
-    mid: oklch(0.6, 0.11, 128),
+    accent: '#00FF00',
+    accentText: '#00FF00',
+    accentInk: '#0020A1',
+    soft: 'rgba(0, 255, 0, 0.13)',
+    mid: '#00B800',
     scrim: 'rgba(0, 0, 0, 0.6)',
     glass: 'rgba(34, 38, 35, 0.55)',
     glassBorder: 'rgba(255, 255, 255, 0.12)',
     glassHighlight: 'rgba(255, 255, 255, 0.08)',
-    glow: oklch(0.87, 0.18, 128, 0.22),
+    glow: 'rgba(0, 255, 0, 0.22)',
     danger: '#FF6B61',
-  },
-  light: {
-    bg: '#F2F3EF',
-    surface: '#FFFFFF',
-    raised: '#E6E9E2',
-    ink: '#121412',
-    muted: '#5B625C',
-    line: 'rgba(18, 20, 18, 0.12)',
-    accent: oklch(0.88, 0.19, 128),
-    accentText: oklch(0.48, 0.13, 135),
-    accentInk: '#121412',
-    soft: oklch(0.88, 0.19, 128, 0.3),
-    mid: oklch(0.74, 0.12, 128),
-    scrim: 'rgba(0, 0, 0, 0.35)',
-    glass: 'rgba(255, 255, 255, 0.62)',
-    glassBorder: 'rgba(0, 0, 0, 0.08)',
-    glassHighlight: 'rgba(255, 255, 255, 0.9)',
-    glow: oklch(0.88, 0.19, 128, 0.45),
-    danger: '#D5342A',
   },
 };
 
-/** The splash screen is the one place that breaks the palette. */
-export const SPLASH_BG = { light: '#F0D7FF', dark: '#0E100F' } as const;
+/**
+ * Colour is functional in htg.chat: each of these means one thing everywhere.
+ * Yellow is never used for your own messages; it is reserved for your group
+ * and today's question.
+ */
+export const htg = {
+  /** Your group and today's question: header, question card, unread, active tab. */
+  yours: '#FFFF00',
+  yoursInk: '#111111',
+  /** Groups above you: black with a white stroke. */
+  above: '#000000',
+  aboveStroke: '#FFFFFF',
+  /** Eavesdropping badge, sheet and insights. */
+  eavesdrop: '#FF1C6F',
+  /** Verified states, selected plan, selected category chip. */
+  verified: '#00FF00',
+  verifiedInk: '#0020A1',
+  mineBubble: '#FFFFFF',
+  mineInk: '#111111',
+  otherBubble: '#232825',
+  /** Unselected plan rows and the floating "new ↓" pill. */
+  idle: '#3C3C3B',
+  sticker: '#111111',
+} as const;
+
+/** Full-bleed onboarding step colours, in order. */
+export const shift = {
+  yellow: '#FFFF00',
+  blue: '#2E5CFF',
+  cyan: '#00FFFF',
+  magenta: '#FF00FF',
+  violet: '#7B00FF',
+  dark: '#0E100F',
+} as const;
+
+export const SPLASH_BG = '#0E100F';
 
 const monoFace = (ios: string, android: string) => (Platform.OS === 'ios' ? ios : android);
 
 export const fonts = {
-  logo: 'TitanOne_400Regular',
+  /** Wordmark only. */
+  logo: 'HackerNoonV1-Regular',
   mono: monoFace('JetBrainsMono-Regular', 'JetBrainsMono_400Regular'),
   monoMedium: monoFace('JetBrainsMono-Medium', 'JetBrainsMono_500Medium'),
   monoSemi: monoFace('JetBrainsMono-SemiBold', 'JetBrainsMono_600SemiBold'),
@@ -113,12 +126,6 @@ export const shadow: Record<ThemeName, ShadowStyle> = {
   dark: {
     shadowColor: '#000',
     shadowOpacity: 0.5,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  light: {
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },
   },

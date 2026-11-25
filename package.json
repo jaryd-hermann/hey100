@@ -18,11 +18,10 @@
     "env:pull": "vercel env pull .env.local --yes",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --linked --schema public > src/types/supabase.ts",
-    "seed:demo": "node scripts/seed-demo.mjs",
-    "verify": "npm run verify:loop && npm run verify:qa && npm run verify:realtime",
-    "verify:loop": "python3 scripts/verify-loop.py",
-    "verify:qa": "python3 scripts/verify-qa.py",
-    "verify:realtime": "node --experimental-websocket scripts/verify-realtime.mjs"
+    "db:types:local": "node scripts/gen-types-local.mjs",
+    "verify": "npm run db:check && npm run verify:realtime",
+    "verify:realtime": "node --experimental-websocket scripts/verify-realtime.mjs",
+    "db:check": "node scripts/check-migrations.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -79,6 +78,8 @@
     "react-native-webview": "13.15.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
+    "@electric-sql/pglite-pgvector": "^0.1.0",
     "@types/node": "^20",
     "@types/react": "~19.1.10",
     "babel-plugin-module-resolver": "^5.0.2",
